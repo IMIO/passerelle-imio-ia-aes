@@ -1,5 +1,5 @@
 Source: passerelle-imio-ia-aes
-Maintainer: Frederic Peters <fpeters@entrouvert.com>
+Maintainer: Christophe Boulanger <christophe.boulanger@imio.be>
 Section: python
 Priority: optional
 Build-Depends: python-setuptools (>= 0.6b3), python-all (>= 2.7), debhelper (>= 9), python-django
