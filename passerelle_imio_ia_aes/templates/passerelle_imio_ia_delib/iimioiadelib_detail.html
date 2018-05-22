@@ -1,0 +1,26 @@
+{% extends "passerelle/manage/service_view.html" %}
+{% load i18n passerelle %}
+
+{% block description %}
+{% endblock %}
+
+{% block security %}
+TEST
+<p>
+{% trans 'Access is limited to the following API users:' %}
+</p>
+{% access_rights_table resource=object permission='can_access' %}
+{%endblock %}
+
+{% block endpoints %}
+<ul>
+  {% url 'generic-endpoint' connector='iimioiaaes' slug=object.slug endpoint='testConnection' as is_connected %}
+  <li>{% trans 'Check Connection with IA Aes:' %}
+    <p>{{ is_connected }}</p>
+  </li>
+  {% url 'generic-endpoint' connector='iimioiaaes' slug=object.slug endpoint='getItemInfos' as get_infos %}
+  <li>{% trans 'Get informations about a point (uid in params)' %}
+    <p>{{ get_infos }}</p>
+  </li>
+</ul>
+{% endblock %}

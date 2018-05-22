@@ -1,0 +1,12 @@
+Source: passerelle-imio-ia-aes
+Maintainer: Frederic Peters <fpeters@entrouvert.com>
+Section: python
+Priority: optional
+Build-Depends: python-setuptools (>= 0.6b3), python-all (>= 2.7), debhelper (>= 9), python-django
+Standards-Version: 3.9.1
+
+Package: python-passerelle-imio-ia-aes
+Architecture: all
+Depends: ${misc:Depends}, ${python:Depends}
+Description: Passerelle connector to ia.Aes
+

@@ -1,0 +1,12 @@
+{% extends "passerelle/manage/service_view.html" %}
+{% load i18n passerelle %}
+
+{% block description %}
+{% endblock %}
+
+{% block security %}
+<p>
+{% trans 'Access is limited to the following API users:' %}
+</p>
+{% access_rights_table resource=object permission='can_access' %}
+{% endblock %}

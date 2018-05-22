@@ -1,0 +1,6 @@
+recursive-include passerelle_imio_ia_aes/static *.css *.png
+recursive-include passerelle_imio_ia_aes/templates *.html *.txt
+recursive-include passerelle_imio_ia_aes/locale *.po *.mo
+include MANIFEST.in
+include VERSION
+include README
