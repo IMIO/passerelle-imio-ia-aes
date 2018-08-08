@@ -31,6 +31,8 @@
 #TEST A FAIRE SUR :
 #https://demo-formulaires.guichet-citoyen.be/tests-et-bac-a-sable/demo-cb-aes/1/jump/trigger/validate
 
+#https://doc-publik.entrouvert.com/tech/connecteurs/developpement-d-un-connecteur/#Journalisation
+
 import base64
 import json
 import magic
@@ -40,6 +42,7 @@ import suds
 # https://demo-formulaires.guichet-citoyen.be/tests-et-bac-a-sable/demo-cb-aes/1/jump/trigger/validate
 # ?algo=sha256&timestamp=2018-05-17T10:13:24Z&orig=aes&signature=ZmQxNTQzZDY0ZTM5YzU2N2FkZjFmYTEyOTdlZjBiOWU2ODhkZTVjYmNhODU2MmVjZTg0Yzk3YzRiYmViNWIzZQ==
 from requests.exceptions import ConnectionError
+from datetime import date, datetime
 from django.db import models
 from django.core.urlresolvers import reverse
 from django.db import models
@@ -61,10 +64,8 @@ def get_client(model):
     except ConnectionError as e:
         raise APIError('i-ImioIaAes error: %s' % e)
 
-
 def format_type(t):
     return {'id': unicode(t), 'text': unicode(t)}
-
 
 def format_file(f):
     return {'status': f.status, 'id': f.nom, 'timestamp': f.timestamp}
@@ -107,14 +108,74 @@ class IImioIaAes(BaseResource):
     def get_verbose_name(cls):
         return cls._meta.verbose_name
 
-    # @endpoint(serializer_type='json-api', perm='can_access', methods=['post'])
-    @endpoint(serializer_type='json-api', perm='can_access')
-    def getHelloWorld(self, request, *args, **kwargs):
+    def get_aes_user_id(self):
         server = ServerProxy('{}/xmlrpc/2/common'.format(self.server_url))
         user_id = server.authenticate(self.database_name, self.username, self.password, {})
+        return user_id
+
+    def get_aes_server(self):
         server = ServerProxy('{}/xmlrpc/2/object'.format(self.server_url))
-        str_hello_world = server.execute(
-            self.database_name, user_id, self.password,
-            'extraschool.parent', 'helloworld', []
-            )
-        return {'data':[{'text':str_hello_world}]}
+        return server
+
+    @endpoint(serializer_type='json-api', perm='can_access')
+    def tst_connexion(self, request, **kwargs):
+        test = self.get_aes_server().execute_kw(
+                self.database_name, self.get_aes_user_id(), self.password,
+                'extraschool.parent','test', []
+                )
+        return test
+
+    @endpoint(serializer_type='json-api', perm='can_access')
+    def get_children(self, request, **kwargs):
+        parent = {
+            'nom':'aa',
+            'prenom':'aaa',
+            'email':request.GET['email']
+            }
+        children = self.get_aes_server().execute_kw(
+                self.database_name, self.get_aes_user_id(), self.password,
+                'extraschool.parent','get_children', [parent]
+                )
+        return children
+
+    @endpoint(serializer_type='json-api', perm='can_access')
+    def is_registered_parent(self, request, **kwargs):
+        parent = {
+            'nom':'aa',
+            'prenom':'aaa',
+            'email':request.GET['email']
+            }
+        is_registered_parent = self.get_aes_server().execute_kw(
+                self.database_name, self.get_aes_user_id(), self.password,
+                'extraschool.parent','is_registered_parent', [parent]
+                )
+        return is_registered_parent
+
+    @endpoint(serializer_type='json-api', perm='can_access')
+    def get_activities(self, request, **kwargs):
+        child = {
+            'id':request.GET['child_id']
+            }
+        activities = self.get_aes_server().execute_kw(
+                self.database_name, self.get_aes_user_id(), self.password,
+                'extraschool.child','get_activities', [child]
+                )
+        return activities
+
+    @endpoint(serializer_type='json-api', perm='can_access')
+    def get_activity_details(self, request, **kwargs):
+        dt_begin = datetime.strptime(request.GET['begining_date_search'], '%d/%m/%Y')
+        dt_end = datetime.strptime(request.GET['ending_date_search'], '%d/%m/%Y')
+        activity = request.GET['activity_id']
+        child_id  = request.GET['child_id']
+        get_disponibilities = {
+                'activity':activity,
+                'child_id':child_id,
+                'begining_date_search':dt_begin,
+                'ending_date_search':dt_end
+                }
+        disponibilities = self.get_aes_server().execute_kw(
+                self.database_name, self.get_aes_user_id(), self.password,
+                'extraschool.activity','get_activity_details', [get_disponibilities]
+                )
+        return disponibilities
