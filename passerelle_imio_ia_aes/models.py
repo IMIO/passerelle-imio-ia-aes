@@ -58,14 +58,18 @@ from xmlrpclib import ServerProxy
 from suds.xsd.doctor import ImportDoctor, Import
 from suds.transport.http import HttpAuthenticated
 
+import logging
+
 def get_client(model):
     try:
         return soap_get_client(model)
     except ConnectionError as e:
         raise APIError('i-ImioIaAes error: %s' % e)
 
+
 def format_type(t):
     return {'id': unicode(t), 'text': unicode(t)}
+
 
 def format_file(f):
     return {'status': f.status, 'id': f.nom, 'timestamp': f.timestamp}
@@ -84,6 +88,7 @@ class FileNotFoundError(Exception):
 
 # http://local-formulaires.example.net/travaux/demo-cb-aes/1/jump/trigger/validate
 
+logger = logging.getLogger(__name__)
 class IImioIaAes(BaseResource):
     server_url = models.CharField(max_length=128, blank=False,
             verbose_name=_('SERVER URL'),
@@ -107,21 +112,25 @@ class IImioIaAes(BaseResource):
     @classmethod
     def get_verbose_name(cls):
         return cls._meta.verbose_name
-
+    
     def get_aes_user_id(self):
         server = ServerProxy('{}/xmlrpc/2/common'.format(self.server_url))
-        user_id = server.authenticate(self.database_name, self.username, self.password, {})
+        try:
+            user_id = server.authenticate(self.database_name, self.username, self.password, {})
+        except Exception as e:
+            self.logger.error('get_aes_user_id : server.authenticate error : {}'.format(str(e)))
+            raise
         return user_id
 
     def get_aes_server(self):
         server = ServerProxy('{}/xmlrpc/2/object'.format(self.server_url))
         return server
 
-    @endpoint(serializer_type='json-api', perm='can_access')
+    @endpoint(serializer_type='json-api', perm='can_access')    
     def tst_connexion(self, request, **kwargs):
         test = self.get_aes_server().execute_kw(
                 self.database_name, self.get_aes_user_id(), self.password,
-                'extraschool.parent','test', []
+                'aes_api.aes_api','test', []
                 )
         return test
 
@@ -132,22 +141,23 @@ class IImioIaAes(BaseResource):
             'prenom':'aaa',
             'email':request.GET['email']
             }
-        children = self.get_aes_server().execute_kw(
+        try:
+            children = self.get_aes_server().execute_kw(
                 self.database_name, self.get_aes_user_id(), self.password,
-                'extraschool.parent','get_children', [parent]
+                'aes_api.aes_api','get_children', [parent]
                 )
-        return children
+            return children
+        except:
+            return False
 
     @endpoint(serializer_type='json-api', perm='can_access')
     def is_registered_parent(self, request, **kwargs):
         parent = {
-            'nom':'aa',
-            'prenom':'aaa',
             'email':request.GET['email']
             }
         is_registered_parent = self.get_aes_server().execute_kw(
                 self.database_name, self.get_aes_user_id(), self.password,
-                'extraschool.parent','is_registered_parent', [parent]
+                'aes_api.aes_api','is_registered_parent', [parent]
                 )
         return is_registered_parent
 
@@ -158,7 +168,7 @@ class IImioIaAes(BaseResource):
             }
         activities = self.get_aes_server().execute_kw(
                 self.database_name, self.get_aes_user_id(), self.password,
-                'extraschool.child','get_activities', [child]
+                'aes_api.aes_api','get_activities', [child]
                 )
         return activities
 
@@ -170,12 +180,23 @@ class IImioIaAes(BaseResource):
         child_id  = request.GET['child_id']
         get_disponibilities = {
                 'activity':activity,
-                'child_id':child_id,
+                'child_id':child_id, 
                 'begining_date_search':dt_begin,
                 'ending_date_search':dt_end
                 }
         disponibilities = self.get_aes_server().execute_kw(
                 self.database_name, self.get_aes_user_id(), self.password,
-                'extraschool.activity','get_activity_details', [get_disponibilities]
+                'aes_api.aes_api','get_activity_details', [get_disponibilities]
                 )
         return disponibilities
+
+    @endpoint(serializer_type='json-api', perm='can_access', methods=['post'])
+    def add_registration_child(self, request, *args, **kwargs):
+        data = dict([(x, request.GET[x]) for x in request.GET.keys()])
+        if request.body:
+            occurences_load = json.loads(request.body)
+        is_registration_child =  self.get_aes_server().execute_kw(
+                self.database_name, self.get_aes_user_id(), self.password,
+                'aes_api.aes_api','add_registration_child', [occurences_load]
+                )
+        return is_registration_child
