@@ -10,7 +10,7 @@ pipeline {
     stages {
         stage('Build') {
             steps {
-                sh "fpm -n passerelle-imio-ia-aes -s python -t deb -v `cat version` -d passerelle setup.py --prefix /usr"
+                sh "fpm -n passerelle-imio-ia-aes -s python -t deb -v `cat version` --prefix /usr -d passerelle setup.py"
             }
         }
         stage('Deploy') {
