@@ -10,8 +10,8 @@ pipeline {
     stages {
         stage('Build') {
             steps {
-                version=`echo $(cat version && echo "-" && git log --pretty=format:'%h' -n 1) | tr -d "[:space:]"`
-                sh "fpm -n passerelle-imio-ia-aes -s python -t deb -v `echo $version` --prefix /usr -d passerelle setup.py"
+                env.VERSION=sh "`echo $(cat version && echo "-" && git log --pretty=format:'%h' -n 1) | tr -d "[:space:]"`"
+                sh "fpm -n passerelle-imio-ia-aes -s python -t deb -v `echo ${env.VERSION}` --prefix /usr -d passerelle setup.py"
             }
         }
         stage('Deploy') {
