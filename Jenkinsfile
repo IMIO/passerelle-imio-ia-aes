@@ -10,7 +10,7 @@ pipeline {
     stages {
         stage('Build') {
             environment {
-                VERSION="${sh version.sh}"
+                VERSION= sh (script: "version.sh", returnStdout: true)
             }
             steps {
                 sh "fpm -n passerelle-imio-ia-aes -s python -t deb -v `echo ${VERSION}` --prefix /usr -d passerelle setup.py"
