@@ -8,10 +8,12 @@ pipeline {
         buildDiscarder(logRotator(numToKeepStr:'50'))
     }
     stages {
+        environment {
+            VERSION="${sh test.sh}"
+        }
         stage('Build') {
             steps {
-                env.VERSION="${sh test.sh}"
-                sh "fpm -n passerelle-imio-ia-aes -s python -t deb -v `echo ${env.VERSION}` --prefix /usr -d passerelle setup.py"
+                sh "fpm -n passerelle-imio-ia-aes -s python -t deb -v `echo ${VERSION}` --prefix /usr -d passerelle setup.py"
             }
         }
         stage('Deploy') {
