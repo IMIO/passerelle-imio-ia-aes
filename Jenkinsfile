@@ -22,7 +22,7 @@ pipeline {
             }
             steps {
                 withCredentials([usernamePassword(credentialsId: 'nexus-teleservices', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD'), string(credentialsId: 'nexus-url', variable:'NEXUS_URL')]) {
-                    sh 'curl -u $USERNAME:$PASSWORD -X POST -H \"Content-Type: multipart/form-data\" --data-binary \"@passerelle-imio-ia-aes_`echo ${VERSION}`_all.deb\" $NEXUS_URL'
+                    sh '''curl -u $USERNAME:$PASSWORD -X POST -H "Content-Type: multipart/form-data" --data-binary \"@passerelle-imio-ia-aes_`echo ${VERSION}`_all.deb\" $NEXUS_URL'''
                 }
             }
         }
