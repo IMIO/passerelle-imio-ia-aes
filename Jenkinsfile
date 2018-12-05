@@ -17,8 +17,13 @@ pipeline {
             }
         }
         stage('Deploy') {
+            environment {
+                VERSION= sh (script: "sh version.sh", returnStdout: true)
+            }
             steps {
-                sh "scp passerelle-imio-ia-aes_`cat version`_all.deb root@puppetmaster.imio.be:/tmp"
+                withCredentials([usernamePassword(credentialsId: 'nexus-teleservices', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD'), string(credentialsId: 'nexus-url', variable:'NEXUS_URL')]) {
+                    sh 'curl -u $USERNAME:$PASSWORD -X POST -H "Content-Type: multipart/form-data" --data-binary "@passerelle-imio-ia-aes_`echo ${VERSION}`_all.deb" $NEXUS_URL'
+                }
             }
         }
     }
