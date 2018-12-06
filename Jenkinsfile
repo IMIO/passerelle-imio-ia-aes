@@ -14,6 +14,9 @@ pipeline {
             }
             steps {
                 sh "fpm -n passerelle-imio-ia-aes -s python -t deb -v `echo ${VERSION}` --prefix /usr -d passerelle setup.py"
+                withCredentials([string(credentialsId: 'gpg-passphrase-system@imio.be', variable:'PASSPHRASE')]){
+                    sh ('''dpkg-sig --gpg-options "--yes --batch --passphrase '$PASSPHRASE' " -s builder -k 9D4C79E197D914CF60C05332C0025EEBC59B875B passerelle-imio-ia-aes_`echo ${VERSION}`_all.deb''')
+                }
             }
         }
         stage('Deploy') {
@@ -21,10 +24,11 @@ pipeline {
                 VERSION= sh (script: "sh version.sh", returnStdout: true)
             }
             steps {
-                withCredentials([usernamePassword(credentialsId: 'nexus-teleservices', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD'), string(credentialsId: 'nexus-url', variable:'NEXUS_URL')]) {
-                    sh '''curl -u $USERNAME:$PASSWORD -X POST -H \\"Content-Type: multipart/form-data\\" --data-binary \\"@passerelle-imio-ia-aes_`echo ${VERSION}`_all.deb\\" $NEXUS_URL'''
+                withCredentials([usernameColonPassword(credentialsId: 'nexus-teleservices', variable: 'CREDENTIALS'),string(credentialsId: 'nexus-url', variable:'NEXUS_URL')]) {
+                    sh ('curl -v --fail -u $CREDENTIALS -X POST -H Content-Type:multipart/form-data --data-binary @passerelle-imio-ia-aes_`echo ${VERSION}`_all.deb $NEXUS_URL')
                 }
             }
         }
     }
 }
+
