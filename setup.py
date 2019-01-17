@@ -93,8 +93,7 @@ setup(
         'Programming Language :: Python',
         'Programming Language :: Python :: 2',
     ],
-    install_requires=['django>=1.7, <2.0',
-        ],
+    install_requires=['passerelle',],
     zip_safe=False,
     cmdclass={
         'build': build,
