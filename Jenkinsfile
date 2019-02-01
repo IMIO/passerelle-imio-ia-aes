@@ -30,5 +30,11 @@ pipeline {
             }
         }
     }
+    post {
+        always {
+            sh "rm -f passerelle-imio-ia-aes_*.deb"
+        }
+
+    }
 }
 
