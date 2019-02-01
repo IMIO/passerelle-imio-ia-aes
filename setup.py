@@ -15,19 +15,19 @@ from setuptools import setup, find_packages
 
 class eo_sdist(sdist):
     def run(self):
-        if os.path.exists('VERSION'):
-            os.remove('VERSION')
+        if os.path.exists('version'):
+            os.remove('version')
         version = get_version()
-        version_file = open('VERSION', 'w')
+        version_file = open('version', 'w')
         version_file.write(version)
         version_file.close()
         sdist.run(self)
-        if os.path.exists('VERSION'):
-            os.remove('VERSION')
+        if os.path.exists('version'):
+            os.remove('version')
 
 def get_version():
-    if os.path.exists('VERSION'):
-        version_file = open('VERSION', 'r')
+    if os.path.exists('version'):
+        version_file = open('version', 'r')
         version = version_file.read()
         version_file.close()
         return version
