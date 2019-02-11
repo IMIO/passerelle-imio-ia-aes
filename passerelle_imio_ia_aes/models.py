@@ -130,7 +130,7 @@ class IImioIaAes(BaseResource):
     def tst_connexion(self, request, **kwargs):
         test = self.get_aes_server().execute_kw(
                 self.database_name, self.get_aes_user_id(), self.password,
-                'aes_api.aes_api','test', []
+                'aes_api.aes_api','hello_world', []
                 )
         return test
 
