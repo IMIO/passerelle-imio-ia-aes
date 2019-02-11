@@ -151,6 +151,19 @@ class IImioIaAes(BaseResource):
             return False
 
     @endpoint(serializer_type='json-api', perm='can_access')
+    def get_chidren_with_activities(self, request, **kwargs):
+        try:
+            new_children = []
+            children = self.get_children(request)
+            for child in children.get('data'):
+                child_activity = self.get_activities(None,id=child.get('id'))
+                child.update(activities=child_activity.get('data'))
+                new_children.append(child)
+            return {"data":new_children}
+        except:
+            return False
+
+    @endpoint(serializer_type='json-api', perm='can_access')
     def is_registered_parent(self, request, **kwargs):
         parent = {
             'email':request.GET['email']
@@ -163,9 +176,12 @@ class IImioIaAes(BaseResource):
 
     @endpoint(serializer_type='json-api', perm='can_access')
     def get_activities(self, request, **kwargs):
-        child = {
-            'id':request.GET['child_id']
-            }
+        if request is not None:
+            child = {
+                'id':request.GET['child_id']
+                }
+        else:
+            child = kwargs
         activities = self.get_aes_server().execute_kw(
                 self.database_name, self.get_aes_user_id(), self.password,
                 'aes_api.aes_api','get_activities', [child]
