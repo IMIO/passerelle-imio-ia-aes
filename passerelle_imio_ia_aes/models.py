@@ -105,6 +105,7 @@ class IImioIaAes(BaseResource):
     #        help_text=_('Certificate and private key in PEM format'))
 
     category = _('Business Process Connectors')
+    api_description = "Ce connecteur propose les méthodes d'échanges avec le produit IA-AES."
 
     class Meta:
         verbose_name = _('i-ImioIaAes')
@@ -126,7 +127,7 @@ class IImioIaAes(BaseResource):
         server = ServerProxy('{}/xmlrpc/2/object'.format(self.server_url))
         return server
 
-    @endpoint(serializer_type='json-api', perm='can_access')    
+    @endpoint(serializer_type='json-api', perm='can_access', description='Tester la connexion avec AES')
     def tst_connexion(self, request, **kwargs):
         test = self.get_aes_server().execute_kw(
                 self.database_name, self.get_aes_user_id(), self.password,
@@ -134,7 +135,9 @@ class IImioIaAes(BaseResource):
                 )
         return test
 
-    @endpoint(serializer_type='json-api', perm='can_access')
+    @endpoint(serializer_type='json-api', perm='can_access', description='Récupérer les enfants pour le parent connecté',
+            parameters={"email":{'description':'Adresse e-mail d\'un parent AES/TS', 'example_value':'demotsaes@imio.be'}
+            })
     def get_children(self, request, **kwargs):
         parent = {
             'nom':'aa',
@@ -150,7 +153,9 @@ class IImioIaAes(BaseResource):
         except:
             return False
 
-    @endpoint(serializer_type='json-api', perm='can_access')
+    @endpoint(serializer_type='json-api', perm='can_access', description='Récupérer les enfants avec leur liste d\'activités',
+            parameters={"email":{'description':'Adresse e-mail d\'un parent AES/TS', 'example_value':'demotsaes@imio.be'}
+            })
     def get_chidren_with_activities(self, request, **kwargs):
         try:
             new_children = []
@@ -163,7 +168,9 @@ class IImioIaAes(BaseResource):
         except:
             return False
 
-    @endpoint(serializer_type='json-api', perm='can_access')
+    @endpoint(serializer_type='json-api', perm='can_access', description='Vérifier qu\'un parent existe bien dans AES',
+            parameters={"email":{'description':'Adresse e-mail d\'un parent AES/TS', 'example_value':'demotsaes@imio.be'}
+            })
     def is_registered_parent(self, request, **kwargs):
         parent = {
             'email':request.GET['email']
@@ -174,7 +181,9 @@ class IImioIaAes(BaseResource):
                 )
         return is_registered_parent
 
-    @endpoint(serializer_type='json-api', perm='can_access')
+    @endpoint(serializer_type='json-api', perm='can_access', description='Récupérer les activités pour un enfant donné',
+            parameters={"child_id":{'description':'Identifiant d\'un enfant', 'example_value':'0'}
+            })
     def get_activities(self, request, **kwargs):
         if request is not None:
             child = {
@@ -188,7 +197,12 @@ class IImioIaAes(BaseResource):
                 )
         return activities
 
-    @endpoint(serializer_type='json-api', perm='can_access')
+    @endpoint(serializer_type='json-api', perm='can_access', description='Récupérer les détails d\'une activité dans une période donnée pour un enfant donné.',
+            parameters={"activity_id":{'description':'Identifiant d\'une activité', 'example_value':'0'},
+                "child_id":{'description':'Identifiant d\'un enfant', 'example_value':'0'},
+                "begining_date_search":{'description':'Début de la période dans laquelle chercher les occurences de l\'activité', 'example_value':'27/11/2018'},
+                "ending_date_search":{'description':'Fin de la période dans laquelle chercher les occurences de l\'activité', 'example_value':'31/12/2019'}
+            })
     def get_activity_details(self, request, **kwargs):
         dt_begin = datetime.strptime(request.GET['begining_date_search'], '%d/%m/%Y')
         dt_end = datetime.strptime(request.GET['ending_date_search'], '%d/%m/%Y')
@@ -206,7 +220,7 @@ class IImioIaAes(BaseResource):
                 )
         return disponibilities
 
-    @endpoint(serializer_type='json-api', perm='can_access', methods=['post'])
+    @endpoint(serializer_type='json-api', perm='can_access', methods=['post'], description='Enregistrement d\'un enfant à une activité')
     def add_registration_child(self, request, *args, **kwargs):
         data = dict([(x, request.GET[x]) for x in request.GET.keys()])
         if request.body:
