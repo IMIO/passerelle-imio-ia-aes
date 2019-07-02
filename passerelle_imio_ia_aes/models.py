@@ -36,7 +36,6 @@
 import base64
 import json
 import magic
-import suds
 # e8f3c0686114ef12423c41b0eb99f939d455a2b3b470f3b509e0e3883dacc7e2
 # ?email=info@immoassist.com&full=on&filter=all&algo=sha256&timestamp=2018-04-11T15:03:51Z&orig=immoassist&signature=rNG7271bs30MYvGYbYrjcNuJGHXfcc8eXocDZ4cv4Mo%3d
 # https://demo-formulaires.guichet-citoyen.be/tests-et-bac-a-sable/demo-cb-aes/1/jump/trigger/validate
@@ -55,9 +54,8 @@ from passerelle.utils.jsonresponse import APIError
 
 from xmlrpclib import ServerProxy
 
-from suds.xsd.doctor import ImportDoctor, Import
-from suds.transport.http import HttpAuthenticated
 
+import xmlrpclib, httplib
 import logging
 
 def get_client(model):
@@ -87,6 +85,22 @@ class FileNotFoundError(Exception):
 # http://local-formulaires.example.net/backoffice/management/demo-cb-aes/1/
 
 # http://local-formulaires.example.net/travaux/demo-cb-aes/1/jump/trigger/validate
+
+
+class ProxiedTransport(xmlrpclib.Transport):
+    def set_proxy(self, proxy):
+        self.proxy = proxy
+
+    def make_connection(self, host):
+        self.realhost = host
+        h = httplib.HTTPConnection(self.proxy)
+        return h
+
+    def send_request(self, connection, handler, request_body):
+        connection.putrequest("POST", 'http://%s%s' % (self.realhost, handler))
+
+    def send_host(self, connection, host):
+        connection.putheader('Host', self.realhost)
 
 logger = logging.getLogger(__name__)
 class IImioIaAes(BaseResource):
@@ -124,16 +138,75 @@ class IImioIaAes(BaseResource):
         return user_id
 
     def get_aes_server(self):
-        server = ServerProxy('{}/xmlrpc/2/object'.format(self.server_url))
+        server = ServerProxy('{}/xmlrpc/2/object'.format(self.server_url), allow_none=True)
         return server
 
     @endpoint(serializer_type='json-api', perm='can_access', description='Tester la connexion avec AES')
     def tst_connexion(self, request, **kwargs):
-        test = self.get_aes_server().execute_kw(
+        test = None
+        try:
+            test = self.get_aes_server().execute_kw(
                 self.database_name, self.get_aes_user_id(), self.password,
                 'aes_api.aes_api','hello_world', []
                 )
+        except:
+            p = ProxiedTransport()
+            p.set_proxy('10.9.200.215:9069')
+            # server = xmlrpclib.ServerProxy('http://time.xmlrpc.com/RPC2', transport=p)
+            server = ServerProxy('{}/xmlrpc/2/object'.format(self.server_url), transport=p)
+            test = server.execute_kw(self.database_name, self.get_aes_user_id(), self.password, 'aes_api.aes_api','hello_world',[])
+            # print server.currentTime.getCurrentTime()
         return test
+
+    @endpoint(serializer_type='json-api', perm='can_access', description='kamoulox',
+            parameters={"child_id":{'description':'Identifiant d\'un enfant', 'example_value':'786'}
+            })
+    def get_child_health_sheet(self, request, **kwargs):
+        if request is not None:
+            child = {
+                'id':request.GET['child_id']
+                }
+        else:
+            child = kwargs
+        health_sheet = self.get_aes_server().execute_kw(
+                self.database_name, self.get_aes_user_id(), self.password,
+                'aes_api.aes_api','get_child_health_sheet', [child]
+                )
+        return {"data":health_sheet}
+
+    @endpoint(serializer_type='json-api', perm='can_access', description='Enregistrement d\'un menu pour un enfant',
+            parameters={"meals":{'description':'Liste des repas et leurs dates', 'example_value':['_03-07-2019_fruit', '_04-07-2019_potage', '_04-07-2019_repas', 
+                '_02-07-2019_potage', '_02-07-2019_repas']},
+                "child_id":{'description':'Identifiant d\'un enfant', 'example_value':'786'},
+                "form_id":{'description':'Num de demande', 'exemple_value':'42'}}
+            )
+    def post_child_meal(self, request, *args, **kwargs):
+        meals = request.GET['meals'].split(',') if request.GET('meals') is not None else []
+        child_id = request.GET['child_id']
+        form_id = request.GET['formid']
+        meals_for_child = {
+                'child_meals':meals,
+                'child_id':child_id,
+                'form_id':form_id
+                }
+        is_add = self.get_aes_server().execute_kw(
+                self.database_name, self.get_aes_user_id(), self.password,
+                'aes_api.aes_api','post_child_meal', [meals_for_child]
+                )
+        return is_add
+
+    @endpoint(serializer_type='json-api', perm='can_access', methods=['post',], description='mise a jour fiche sante')
+    def post_child_health_sheet(self, request, *args, **kwargs):
+        try:
+            occurences_load = json.loads(request.body)
+            fields = occurences_load.get('fields')
+        except ValueError as e:
+            raise ParameterTypeError(e.message)
+        is_update =  self.get_aes_server().execute_kw(
+                self.database_name, self.get_aes_user_id(), self.password,
+                'aes_api.aes_api','post_child_health_sheet', [fields]
+                )
+        return is_update
 
     @endpoint(serializer_type='json-api', perm='can_access', description='Récupérer les enfants pour le parent connecté',
             parameters={"email":{'description':'Adresse e-mail d\'un parent AES/TS', 'example_value':'demotsaes@imio.be'}
@@ -142,7 +215,7 @@ class IImioIaAes(BaseResource):
         parent = {
             'nom':'aa',
             'prenom':'aaa',
-            'email':request.GET['email']
+            'email':request.GET['mail']
             }
         try:
             children = self.get_aes_server().execute_kw(
