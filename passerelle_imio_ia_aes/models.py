@@ -261,7 +261,7 @@ class IImioIaAes(BaseResource):
         try:
             if request is not None:
                 child = {
-                    'id':request.GET['child_id']
+                    'id':request.GET['ws_child_id']
                     }
             else:
                 child = kwargs
