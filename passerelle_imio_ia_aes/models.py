@@ -282,8 +282,8 @@ class IImioIaAes(BaseResource):
     def get_activity_details(self, request, **kwargs):
         dt_begin = datetime.strptime(request.GET['begining_date_search'], '%d/%m/%Y')
         dt_end = datetime.strptime(request.GET['ending_date_search'], '%d/%m/%Y')
-        activity = request.GET['activity_id']
-        child_id  = request.GET['child_id']
+        activity = request.GET['ws_activity_id']
+        child_id  = request.GET['ws_child_id']
         get_disponibilities = {
                 'activity':activity,
                 'child_id':child_id, 
