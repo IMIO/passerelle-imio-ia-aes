@@ -32,31 +32,31 @@
 #https://demo-formulaires.guichet-citoyen.be/tests-et-bac-a-sable/demo-cb-aes/1/jump/trigger/validate
 
 #https://doc-publik.entrouvert.com/tech/connecteurs/developpement-d-un-connecteur/#Journalisation
-
-import base64
-import json
-import magic
 # e8f3c0686114ef12423c41b0eb99f939d455a2b3b470f3b509e0e3883dacc7e2
 # ?email=info@immoassist.com&full=on&filter=all&algo=sha256&timestamp=2018-04-11T15:03:51Z&orig=immoassist&signature=rNG7271bs30MYvGYbYrjcNuJGHXfcc8eXocDZ4cv4Mo%3d
 # https://demo-formulaires.guichet-citoyen.be/tests-et-bac-a-sable/demo-cb-aes/1/jump/trigger/validate
 # ?algo=sha256&timestamp=2018-05-17T10:13:24Z&orig=aes&signature=ZmQxNTQzZDY0ZTM5YzU2N2FkZjFmYTEyOTdlZjBiOWU2ODhkZTVjYmNhODU2MmVjZTg0Yzk3YzRiYmViNWIzZQ==
-from requests.exceptions import ConnectionError
-from datetime import date, datetime
-from django.db import models
+
+import base64
+import datetime
+import json
+import logging
+import magic
+import random
+import xmlrpclib, httplib
+
+from decimal import Decimal
 from django.core.urlresolvers import reverse
 from django.db import models
-from django.utils.translation import ugettext_lazy as _
 from django.http import HttpResponse, Http404
-
+from django.utils import timezone
+from django.utils.translation import ugettext_lazy as _
 from passerelle.base.models import BaseResource
 from passerelle.utils.api import endpoint
 from passerelle.utils.jsonresponse import APIError
-
+from requests.exceptions import ConnectionError
 from xmlrpclib import ServerProxy
 
-
-import xmlrpclib, httplib
-import logging
 
 def get_client(model):
     try:
@@ -81,9 +81,7 @@ class FileNotFoundError(Exception):
     http_status = 404
 
 # https://192.168.252.14/inscriptions/newsletter/14/jump/trigger/validate
-
 # http://local-formulaires.example.net/backoffice/management/demo-cb-aes/1/
-
 # http://local-formulaires.example.net/travaux/demo-cb-aes/1/jump/trigger/validate
 
 
@@ -158,7 +156,7 @@ class IImioIaAes(BaseResource):
             # print server.currentTime.getCurrentTime()
         return test
 
-    @endpoint(serializer_type='json-api', perm='can_access', description='kamoulox',
+    @endpoint(serializer_type='json-api', perm='can_access', description='Récupération de la fiche santé d\'un enfant',
             parameters={"child_id":{'description':'Identifiant d\'un enfant', 'example_value':'786'}
             })
     def get_child_health_sheet(self, request, **kwargs):
@@ -306,3 +304,81 @@ class IImioIaAes(BaseResource):
                 'aes_api.aes_api','add_registration_child', [occurences_load]
                 )
         return is_registration_child
+
+    # generate a serie of stub invoices
+    invoices = {}
+    for i in range(15):
+        now = timezone.now()
+        id_ = '%d%04d' % (now.year, i+1)
+        invoices[id_] = {
+            'id': id_,
+            'display_id': id_,
+            'total_amount': Decimal(random.randint(100, 10000)) / 100,
+            'has_pdf': bool(i%3),
+            'created': (now - datetime.timedelta(days=20) + datetime.timedelta(days=i)).date(),
+            'label': 'Label %s' % id_,
+            'pay_limit_date': (now + datetime.timedelta(days=2+random.randint(0, 10))).date(),
+            'online_payment': bool(i%2),
+            'paid': False,
+        }
+        if i < 5:
+            invoices[id_]['payment_date'] = invoices[id_]['created'] + datetime.timedelta(days=1+random.randint(0, 3))
+            invoices[id_]['online_payment'] = False
+            invoices[id_]['paid'] = True
+        elif invoices[id_]['online_payment'] is False:
+            invoices[id_]['no_online_payment_reason'] = random.choice(['autobilling', 'litigation'])
+
+        invoices[id_]['amount'] = invoices[id_]['total_amount']
+
+    def get_invoices(self):
+        return self.invoices.values()
+
+    def get_invoice(self, invoice_id):
+        return self.invoices.get(invoice_id)
+
+    @endpoint(name='invoices', pattern='^history/$',
+            description=_('Get list of paid invoices'),
+            example_pattern='history/')
+    def invoices_history(self, request, NameID=None, **kwargs):
+        return {'data': [x for x in self.get_invoices() if x.get('payment_date')]}
+
+    @endpoint(name='invoices',
+            description=_('Get list of unpaid invoices'))
+    def invoices_list(self, request, NameID=None, **kwargs):
+        return {'data': [x for x in self.get_invoices() if not x.get('payment_date')]}
+
+    @endpoint(name='invoice', pattern='^(?P<invoice_id>\w+)/?$',
+            description=_('Get invoice details'),
+            example_pattern='{invoice_id}/',
+            parameters={
+                'invoice_id': {
+                    'description': _('Invoice identifier'),
+                    'example_value': invoices.keys()[0],
+                }})
+    def invoice(self, request, invoice_id, NameID=None, **kwargs):
+        return {'data': self.get_invoice(invoice_id)}
+
+    @endpoint(name='invoice', pattern='^(?P<invoice_id>\w+)/pdf/?$',
+            description=_('Get invoice as a PDF file'),
+            example_pattern='{invoice_id}/pdf/',
+            parameters={
+                'invoice_id': {
+                    'description': _('Invoice identifier'),
+                    'example_value': invoices.keys()[0],
+                }})
+    def invoice_pdf(self, request, invoice_id, NameID=None, **kwargs):
+        response = HttpResponse(content_type='application/pdf')
+        response['Content-Disposition'] = 'attachment; filename="%s.pdf"' % invoice_id
+        response.write('')
+        return response
+
+    @endpoint(name='invoice', perm='can_access', methods=['post'], pattern='^(?P<invoice_id>\w+)/pay/?$',
+            description=_('Pay invoice'),
+            example_pattern='{invoice_id}/pay/',
+            parameters={
+                'invoice_id': {
+                    'description': _('Invoice identifier'),
+                    'example_value': invoices.keys()[0],
+                }})
+    def invoice_pay(self, request, invoice_id, NameID=None, **kwargs):
+        return {'data': None}
