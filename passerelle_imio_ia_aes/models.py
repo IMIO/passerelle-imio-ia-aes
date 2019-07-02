@@ -258,17 +258,20 @@ class IImioIaAes(BaseResource):
             parameters={"child_id":{'description':'Identifiant d\'un enfant', 'example_value':'0'}
             })
     def get_activities(self, request, **kwargs):
-        if request is not None:
-            child = {
-                'id':request.GET['child_id']
-                }
-        else:
-            child = kwargs
-        activities = self.get_aes_server().execute_kw(
-                self.database_name, self.get_aes_user_id(), self.password,
-                'aes_api.aes_api','get_activities', [child]
-                )
-        return activities
+        try:
+            if request is not None:
+                child = {
+                    'id':request.GET['child_id']
+                    }
+            else:
+                child = kwargs
+            activities = self.get_aes_server().execute_kw(
+                    self.database_name, self.get_aes_user_id(), self.password,
+                    'aes_api.aes_api','get_activities', [child]
+                    )
+            return activities
+        except ValueError as e:
+            raise ParameterTypeError(e.message)
 
     @endpoint(serializer_type='json-api', perm='can_access', description='Récupérer les détails d\'une activité dans une période donnée pour un enfant donné.',
             parameters={"activity_id":{'description':'Identifiant d\'une activité', 'example_value':'0'},
