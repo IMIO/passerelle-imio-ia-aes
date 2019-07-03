@@ -172,24 +172,19 @@ class IImioIaAes(BaseResource):
                 )
         return {"data":health_sheet}
 
-    @endpoint(serializer_type='json-api', perm='can_access', description='Enregistrement d\'un menu pour un enfant',
+    @endpoint(serializer_type='json-api', perm='can_access', description='Enregistrement d\'un menu pour un enfant', methods=['post',],
             parameters={"meals":{'description':'Liste des repas et leurs dates', 'example_value':['_03-07-2019_fruit', '_04-07-2019_potage', '_04-07-2019_repas', 
                 '_02-07-2019_potage', '_02-07-2019_repas']},
                 "child_id":{'description':'Identifiant d\'un enfant', 'example_value':'786'},
                 "form_id":{'description':'Num de demande', 'exemple_value':'42'}}
             )
     def post_child_meal(self, request, *args, **kwargs):
-        meals = request.GET['meals'].split(',') if request.GET('meals') is not None else []
-        child_id = request.GET['child_id']
-        form_id = request.GET['formid']
-        meals_for_child = {
-                'child_meals':meals,
-                'child_id':child_id,
-                'form_id':form_id
-                }
+        data = dict([(x, request.GET[x]) for x in request.GET.keys()])
+        if request.body:
+            occurences_load = json.loads(request.body)
         is_add = self.get_aes_server().execute_kw(
                 self.database_name, self.get_aes_user_id(), self.password,
-                'aes_api.aes_api','post_child_meal', [meals_for_child]
+                'aes_api.aes_api','post_child_meal', [occurences_load]
                 )
         return is_add
 
@@ -207,7 +202,7 @@ class IImioIaAes(BaseResource):
         return is_update
 
     @endpoint(serializer_type='json-api', perm='can_access', description='Récupérer les enfants pour le parent connecté',
-            parameters={"email":{'description':'Adresse e-mail d\'un parent AES/TS', 'example_value':'demotsaes@imio.be'}
+            parameters={"mail":{'description':'Adresse e-mail d\'un parent AES/TS', 'example_value':'demotsaes@imio.be'}
             })
     def get_children(self, request, **kwargs):
         parent = {
@@ -225,7 +220,7 @@ class IImioIaAes(BaseResource):
             return False
 
     @endpoint(serializer_type='json-api', perm='can_access', description='Récupérer les enfants avec leur liste d\'activités',
-            parameters={"email":{'description':'Adresse e-mail d\'un parent AES/TS', 'example_value':'demotsaes@imio.be'}
+            parameters={"mail":{'description':'Adresse e-mail d\'un parent AES/TS', 'example_value':'demotsaes@imio.be'}
             })
     def get_chidren_with_activities(self, request, **kwargs):
         try:
