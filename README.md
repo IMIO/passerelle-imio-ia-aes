@@ -18,6 +18,10 @@ Usage
    - Title/description: whatever you want
    - Certificate check: uncheck if the service has no valid certificate
 
+ - be carefull : To use some method with AES, they are two environment variables : 
+                 settings.AUTHENTIC_URL, settings.AES_LOGIN, settings.AES_PASSWORD
+                 Register in passerelle settings.
+
 
 Usage in w.c.s.
 ---------------
