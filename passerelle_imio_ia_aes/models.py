@@ -39,6 +39,7 @@
 
 import base64
 import datetime
+import io as BytesIO
 import json
 import logging
 import magic
@@ -138,6 +139,10 @@ class IImioIaAes(BaseResource):
     def get_aes_server(self):
         server = ServerProxy('{}/xmlrpc/2/object'.format(self.server_url), allow_none=True)
         return server
+
+    def get_aes_report(self):
+        report = ServerProxy('{}/xmlrpc/2/report'.format(self.server_url))
+        return report
 
     @endpoint(serializer_type='json-api', perm='can_access', description='Tester la connexion avec AES')
     def tst_connexion(self, request, **kwargs):
@@ -340,7 +345,21 @@ class IImioIaAes(BaseResource):
     @endpoint(name='invoices',
             description=_('Get list of unpaid invoices'))
     def invoices_list(self, request, NameID=None, **kwargs):
-        return {'data': [x for x in self.get_invoices() if not x.get('payment_date')]}
+        r = requests.get('{}/api/users/{}'.format(settings.AUTHENTIC_URL, request.GET.get('NameID')), auth=(settings.AES_LOGIN, settings.AES_PASSWORD))
+        connected_user_email = r.json().get('email')
+        parent = {
+            'email':connected_user_email
+            }
+        invoices_datas = self.get_aes_server().execute_kw(
+                self.database_name, self.get_aes_user_id(), self.password,
+                'aes_api.aes_api','get_invoices', [parent]
+                )
+        for data in invoices_datas['data']:
+            if not data.get('payment_date'):
+                data['created'] = datetime.datetime.strptime(data['created'], '%Y-%m-%d %H:%M:%S').date()
+                data['pay_limit_date'] = datetime.datetime.strptime(data['pay_limit_date'], '%Y-%m-%d').date()
+        # return {'data': [x for x in self.get_invoices() if not x.get('payment_date')]}
+        return invoices_datas
 
     @endpoint(name='invoice', pattern='^(?P<invoice_id>\w+)/?$',
             description=_('Get invoice details'),
@@ -362,9 +381,23 @@ class IImioIaAes(BaseResource):
                     'example_value': invoices.keys()[0],
                 }})
     def invoice_pdf(self, request, invoice_id, NameID=None, **kwargs):
-        response = HttpResponse(content_type='application/pdf')
-        response['Content-Disposition'] = 'attachment; filename="%s.pdf"' % invoice_id
-        response.write('')
+        aes_invoice_id = self.get_aes_server().execute_kw(self.database_name, self.get_aes_user_id(), self.password, 'extraschool.invoice', 'search', [[('number', '=', invoice_id)]])
+        pdf = self.get_aes_report().render_report(
+                self.database_name, self.get_aes_user_id(), self.password,
+                'extraschool.invoice_report_layout', aes_invoice_id
+                )
+        b64content = pdf.get('result')
+
+        buffer = BytesIO.BytesIO()
+        content = base64.b64decode(b64content)
+        buffer.write(content)
+
+        response = HttpResponse(
+            buffer.getvalue(),
+            content_type="application/pdf",
+        )
+        # inline to load pdf in browser / attachment to download pdf as a file.
+        response['Content-Disposition'] = 'attachment; filename="{}.pdf"'.format(invoice_id)
         return response
 
     @endpoint(name='invoice', perm='can_access', methods=['post'], pattern='^(?P<invoice_id>\w+)/pay/?$',
