@@ -44,6 +44,7 @@ import json
 import logging
 import magic
 import random
+import requests
 import xmlrpclib, httplib
 
 from decimal import Decimal
@@ -52,6 +53,7 @@ from django.db import models
 from django.http import HttpResponse, Http404
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
+from passerelle import settings
 from passerelle.base.models import BaseResource
 from passerelle.utils.api import endpoint
 from passerelle.utils.jsonresponse import APIError
@@ -330,21 +332,8 @@ class IImioIaAes(BaseResource):
 
         invoices[id_]['amount'] = invoices[id_]['total_amount']
 
-    def get_invoices(self):
-        return self.invoices.values()
-
-    def get_invoice(self, invoice_id):
-        return self.invoices.get(invoice_id)
-
-    @endpoint(name='invoices', pattern='^history/$',
-            description=_('Get list of paid invoices'),
-            example_pattern='history/')
-    def invoices_history(self, request, NameID=None, **kwargs):
-        return {'data': [x for x in self.get_invoices() if x.get('payment_date')]}
-
-    @endpoint(name='invoices',
-            description=_('Get list of unpaid invoices'))
-    def invoices_list(self, request, NameID=None, **kwargs):
+    def get_invoices(self, request, **kwargs):
+        NameID = request.GET.get('NameID') or request.GET('NameID')
         r = requests.get('{}/api/users/{}'.format(settings.AUTHENTIC_URL, request.GET.get('NameID')), auth=(settings.AES_LOGIN, settings.AES_PASSWORD))
         connected_user_email = r.json().get('email')
         parent = {
@@ -355,11 +344,25 @@ class IImioIaAes(BaseResource):
                 'aes_api.aes_api','get_invoices', [parent]
                 )
         for data in invoices_datas['data']:
-            if not data.get('payment_date'):
                 data['created'] = datetime.datetime.strptime(data['created'], '%Y-%m-%d %H:%M:%S').date()
                 data['pay_limit_date'] = datetime.datetime.strptime(data['pay_limit_date'], '%Y-%m-%d').date()
-        # return {'data': [x for x in self.get_invoices() if not x.get('payment_date')]}
-        return invoices_datas
+        return invoices_datas.get('data')
+
+    def get_invoice(self, request, invoice_id):
+        invoices = self.get_invoices(request)
+        return [invoice for invoice in invoices if invoice.get('id') == invoice_id][0]
+
+    @endpoint(name='invoices', pattern='^history/$',
+            description=_('Get list of paid invoices'),
+            example_pattern='history/')
+    def invoices_history(self, request, NameID=None, **kwargs):
+        return {'data': [x for x in self.get_invoices(request) if x.get('payment_date')]}
+
+    @endpoint(name='invoices',
+            description=_('Get list of unpaid invoices'),
+            parameters={"NameID":{'description':'auth NameID', 'example_value':'b663530a0c0446a796782b9ea2d38c0c'}})
+    def invoices_active(self, request, NameID=None, **kwargs):
+        return {'data': [x for x in self.get_invoices(request) if not x.get('payment_date')]}
 
     @endpoint(name='invoice', pattern='^(?P<invoice_id>\w+)/?$',
             description=_('Get invoice details'),
@@ -370,7 +373,7 @@ class IImioIaAes(BaseResource):
                     'example_value': invoices.keys()[0],
                 }})
     def invoice(self, request, invoice_id, NameID=None, **kwargs):
-        return {'data': self.get_invoice(invoice_id)}
+        return {'data': self.get_invoice(request, invoice_id)}
 
     @endpoint(name='invoice', pattern='^(?P<invoice_id>\w+)/pdf/?$',
             description=_('Get invoice as a PDF file'),
@@ -381,7 +384,7 @@ class IImioIaAes(BaseResource):
                     'example_value': invoices.keys()[0],
                 }})
     def invoice_pdf(self, request, invoice_id, NameID=None, **kwargs):
-        aes_invoice_id = self.get_aes_server().execute_kw(self.database_name, self.get_aes_user_id(), self.password, 'extraschool.invoice', 'search', [[('number', '=', invoice_id)]])
+        aes_invoice_id = self.get_aes_server().execute_kw(self.database_name, self.get_aes_user_id(), self.password, 'extraschool.invoice', 'search', [[('id', '=', invoice_id[3:])]])
         pdf = self.get_aes_report().render_report(
                 self.database_name, self.get_aes_user_id(), self.password,
                 'extraschool.invoice_report_layout', aes_invoice_id
@@ -409,4 +412,9 @@ class IImioIaAes(BaseResource):
                     'example_value': invoices.keys()[0],
                 }})
     def invoice_pay(self, request, invoice_id, NameID=None, **kwargs):
+        response = json.loads(request.body)
+        response['id'] = invoice_id
+        aes_resp = self.get_aes_server().execute_kw(
+                self.database_name, self.get_aes_user_id(), self.password,
+                'aes_api.aes_api','make_payment', [response])
         return {'data': None}
