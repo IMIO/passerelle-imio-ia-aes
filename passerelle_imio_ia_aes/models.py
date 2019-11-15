@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# passerelle-imio-ia-aes - passerelle connector to IA AES IMIO PRODUCTS.
 # Copyright (C) 2016  Entr'ouvert
 #
 # This program is free software: you can redistribute it and/or modify it
@@ -37,6 +36,7 @@
 # https://demo-formulaires.guichet-citoyen.be/tests-et-bac-a-sable/demo-cb-aes/1/jump/trigger/validate
 # ?algo=sha256&timestamp=2018-05-17T10:13:24Z&orig=aes&signature=ZmQxNTQzZDY0ZTM5YzU2N2FkZjFmYTEyOTdlZjBiOWU2ODhkZTVjYmNhODU2MmVjZTg0Yzk3YzRiYmViNWIzZQ==
 
+# import ast
 import base64
 import datetime
 import io as BytesIO
@@ -343,10 +343,14 @@ class IImioIaAes(BaseResource):
                 self.database_name, self.get_aes_user_id(), self.password,
                 'aes_api.aes_api','get_invoices', [parent]
                 )
-        for data in invoices_datas['data']:
+        datas = invoices_datas.get("invoices")
+        for data in datas:
+                if data['total_amount'] is None:
+                    data['total_amount'] = Decimal("0")
+                data['amount'] = data['total_amount']
                 data['created'] = datetime.datetime.strptime(data['created'], '%Y-%m-%d %H:%M:%S').date()
                 data['pay_limit_date'] = datetime.datetime.strptime(data['pay_limit_date'], '%Y-%m-%d').date()
-        return invoices_datas.get('data')
+        return datas
 
     def get_invoice(self, request, invoice_id):
         invoices = self.get_invoices(request)
@@ -356,13 +360,15 @@ class IImioIaAes(BaseResource):
             description=_('Get list of paid invoices'),
             example_pattern='history/')
     def invoices_history(self, request, NameID=None, **kwargs):
-        return {'data': [x for x in self.get_invoices(request) if x.get('payment_date')]}
+        datas = self.get_invoices(request)
+        return {'data': [x for x in datas if x.get('payment_date')]}
 
     @endpoint(name='invoices',
             description=_('Get list of unpaid invoices'),
             parameters={"NameID":{'description':'auth NameID', 'example_value':'b663530a0c0446a796782b9ea2d38c0c'}})
-    def invoices_active(self, request, NameID=None, **kwargs):
-        return {'data': [x for x in self.get_invoices(request) if not x.get('payment_date')]}
+    def invoices_list(self, request, NameID=None, **kwargs):
+        datas = self.get_invoices(request)
+        return {'data': [x for x in datas if not x.get('payment_date')]}
 
     @endpoint(name='invoice', pattern='^(?P<invoice_id>\w+)/?$',
             description=_('Get invoice details'),
@@ -413,8 +419,10 @@ class IImioIaAes(BaseResource):
                 }})
     def invoice_pay(self, request, invoice_id, NameID=None, **kwargs):
         response = json.loads(request.body)
+        # ast.literal_eval(request.body)
         response['id'] = invoice_id
         aes_resp = self.get_aes_server().execute_kw(
                 self.database_name, self.get_aes_user_id(), self.password,
                 'aes_api.aes_api','make_payment', [response])
         return {'data': None}
+
