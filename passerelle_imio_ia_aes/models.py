@@ -468,6 +468,8 @@ class IImioIaAes(BaseResource):
 
     def get_invoices(self, request, **kwargs):
         NameID = request.GET.get("NameID") or request.GET("NameID")
+        # request authentic API.
+        # Pour que combo, via passerelle, puisse envoyer l'adresse e-mail à aes de la personne connectée (authentic).
         r = requests.get(
             "{}/api/users/{}".format(settings.AUTHENTIC_URL, request.GET.get("NameID")),
             auth=(settings.AES_LOGIN, settings.AES_PASSWORD),
