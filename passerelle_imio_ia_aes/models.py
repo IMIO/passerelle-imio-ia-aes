@@ -354,7 +354,7 @@ class IImioIaAes(BaseResource):
     def get_activities(self, request, **kwargs):
         try:
             if request is not None:
-                child = {"id": request.GET["ws_child_id"]}
+                child = {"id": request.GET["child_id"]}
             else:
                 child = kwargs
             activities = self.get_aes_server().execute_kw(
