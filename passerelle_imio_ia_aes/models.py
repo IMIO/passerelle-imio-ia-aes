@@ -289,6 +289,7 @@ class IImioIaAes(BaseResource):
                 "get_children",
                 [parent],
             )
+            chidren["parent"] = request.GET["mail"]
             return children
         except Exception:
             return False
@@ -306,13 +307,16 @@ class IImioIaAes(BaseResource):
     )
     def get_chidren_with_activities(self, request, **kwargs):
         try:
+            data = {}
             new_children = []
             children = self.get_children(request)
             for child in children.get("data"):
                 child_activity = self.get_activities(None, id=child.get("id"))
                 child.update(activities=child_activity.get("data"))
                 new_children.append(child)
-            return {"data": new_children}
+            data["data"] = new_children
+            data["parent"] = request.GET["mail"]
+            return data
         except Exception:
             return False
 
