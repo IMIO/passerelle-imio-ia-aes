@@ -289,7 +289,7 @@ class IImioIaAes(BaseResource):
                 "get_children",
                 [parent],
             )
-            chidren["parent"] = request.GET["mail"]
+            # chidren["parent"] = request.GET["mail"]
             return children
         except Exception:
             return False
