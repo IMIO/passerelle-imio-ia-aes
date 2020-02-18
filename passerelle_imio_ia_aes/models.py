@@ -212,7 +212,7 @@ class IImioIaAes(BaseResource):
         serializer_type="json-api",
         perm="can_access",
         description="Enregistrement d'un menu pour un enfant",
-        methods=["post", ],
+        methods=["post",],
         parameters={
             "meals": {
                 "description": "Liste des repas et leurs dates",
@@ -248,7 +248,7 @@ class IImioIaAes(BaseResource):
     @endpoint(
         serializer_type="json-api",
         perm="can_access",
-        methods=["post", ],
+        methods=["post",],
         description="mise a jour fiche sante",
     )
     def post_child_health_sheet(self, request, *args, **kwargs):
@@ -319,6 +319,27 @@ class IImioIaAes(BaseResource):
             return data
         except Exception:
             return False
+
+
+    @endpoint(
+        serializer_type="json-api",
+        perm="can_access",
+        methods=["post"],
+        description="Enregistre un nouveau parent",
+    )
+    def parent_registration(self, request, **kwargs):
+        data = dict([(x, request.GET[x]) for x in request.GET.keys()])
+        if request.body:
+            parent = json.loads(request.body)
+        registration_id = self.get_aes_server().execute_kw(
+            self.database_name,
+            self.get_aes_user_id(),
+            self.password,
+            "extraschool.parent",
+            "create",
+            [parent]
+        )
+        return registration_id
 
     @endpoint(
         serializer_type="json-api",
@@ -489,9 +510,7 @@ class IImioIaAes(BaseResource):
             if data["total_amount"] is None:
                 data["total_amount"] = Decimal("0")
             data["amount"] = data["total_amount"]
-            data["created"] = dt.strptime(
-                data["created"], "%Y-%m-%d %H:%M:%S"
-            ).date()
+            data["created"] = dt.strptime(data["created"], "%Y-%m-%d %H:%M:%S").date()
             data["pay_limit_date"] = dt.strptime(
                 data["pay_limit_date"], "%Y-%m-%d"
             ).date()
