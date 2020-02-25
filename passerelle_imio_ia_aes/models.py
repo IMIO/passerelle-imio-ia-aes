@@ -457,17 +457,12 @@ class IImioIaAes(BaseResource):
         )
         return is_registration_child
 
-    # child_id, start_date, end_date):
-    # {"data": [{"9": {"2020-02-24": ["Tir \u00e0 l'arc"],
-    #                 "2020-02-25": ["Paintball", "Electricit\u00e9"],
-    #                 "2020-02-26": ["Walibi", "Collage", "Octogone"],
-    #
     @endpoint(
         serializer_type="json-api",
         perm="can_access",
-        description="Recuperation des semaines de plaines et des activites de la plaine",
+        description="Plaines (brutes) retournées par aes",
     )
-    def get_plaines(self, request, **kwargs):
+    def get_raw_plaines(self, request, **kwargs):
         occurences_load = None
         data = dict([(x, request.GET[x]) for x in request.GET.keys()])
         if request.body:
@@ -479,7 +474,16 @@ class IImioIaAes(BaseResource):
             "aes_api.aes_api",
             "get_plaine",
             [occurences_load],
-        )["data"]
+        )
+        return list_plaines_pp
+
+    @endpoint(
+        serializer_type="json-api",
+        perm="can_access",
+        description="Plaines et activités de la plaine prêtent pour multiselect wcs.",
+    )
+    def get_plaines(self, request, **kwargs):
+        list_plaines_pp = self.get_raw_plaines(request)["data"]
         plaines = []
         for dic_sem_plaine in list_plaines_pp:
             for k, v in dic_sem_plaine.items():
@@ -490,11 +494,12 @@ class IImioIaAes(BaseResource):
                     cpt_activite = 0
                     for activite in lst_activites:
                         select = {}
-                        select["id"] = "_{}_{}_{}".format(week, jour, cpt_activite)
-                        select["text"] = activite
+                        for act_id, act_label in activite.items():
+                            select["id"] = "_{}_{}_{}".format(week, jour, act_id)
+                            select["text"] = act_label
                         plaines.append(select)
                         cpt_activite = cpt_activite + 1
-        return {"data": sorted(plaines, key=lambda k: k["id"])}
+        return {"data":sorted(plaines, key=lambda k:k["id"])}
 
     # generate a serie of stub invoices
     invoices = {}
