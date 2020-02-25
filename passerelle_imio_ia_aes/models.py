@@ -346,8 +346,12 @@ class IImioIaAes(BaseResource):
         description="Vérifier qu'un parent existe bien dans AES",
         parameters={
             "email": {
-                "description": "Adresse e-mail d'un parent AES/TS",
+                "description": "Adresse e-mail du parent",
                 "example_value": "demotsaes@imio.be",
+            },
+            "nrn": {
+                "description": "Numéro de registre national du parent",
+                "example_value": "00000000097",
             }
         },
     )
