@@ -454,6 +454,45 @@ class IImioIaAes(BaseResource):
         )
         return is_registration_child
 
+    # child_id, start_date, end_date):
+    # {"data": [{"9": {"2020-02-24": ["Tir \u00e0 l'arc"],
+    #                 "2020-02-25": ["Paintball", "Electricit\u00e9"],
+    #                 "2020-02-26": ["Walibi", "Collage", "Octogone"],
+    #
+    @endpoint(
+        serializer_type="json-api",
+        perm="can_access",
+        description="Recuperation des semaines de plaines et des activites de la plaine",
+    )
+    def get_plaines(self, request, **kwargs):
+        occurences_load = None
+        data = dict([(x, request.GET[x]) for x in request.GET.keys()])
+        if request.body:
+            occurences_load = json.loads(request.body)
+        list_plaines_pp = self.get_aes_server().execute_kw(
+            self.database_name,
+            self.get_aes_user_id(),
+            self.password,
+            "aes_api.aes_api",
+            "get_plaine",
+            [occurences_load],
+        )["data"]
+        plaines = []
+        for dic_sem_plaine in list_plaines_pp:
+            for k, v in dic_sem_plaine.items():
+                week = "S{}".format(k)
+                for key, value in v.items():
+                    jour = key
+                    lst_activites = value
+                    cpt_activite = 0
+                    for activite in lst_activites:
+                        select = {}
+                        select["id"] = "_{}_{}_{}".format(week, jour, cpt_activite)
+                        select["text"] = activite
+                        plaines.append(select)
+                        cpt_activite = cpt_activite + 1
+        return {"data": sorted(plaines, key=lambda k: k["id"])}
+
     # generate a serie of stub invoices
     invoices = {}
     for i in range(15):
