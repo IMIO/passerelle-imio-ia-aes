@@ -320,7 +320,6 @@ class IImioIaAes(BaseResource):
         except Exception:
             return False
 
-
     @endpoint(
         serializer_type="json-api",
         perm="can_access",
@@ -353,7 +352,7 @@ class IImioIaAes(BaseResource):
         },
     )
     def is_registered_parent(self, request, **kwargs):
-        parent = {"email": request.GET["email"]}
+        parent = {"email": request.GET["email"], "nrn": request.GET["nrn"]}
         is_registered_parent = self.get_aes_server().execute_kw(
             self.database_name,
             self.get_aes_user_id(),
