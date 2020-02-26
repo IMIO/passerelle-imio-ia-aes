@@ -272,14 +272,14 @@ class IImioIaAes(BaseResource):
         perm="can_access",
         description="Récupérer les enfants pour le parent connecté",
         parameters={
-            "mail": {
+            "email": {
                 "description": "Adresse e-mail d'un parent AES/TS",
                 "example_value": "demotsaes@imio.be",
             }
         },
     )
     def get_children(self, request, **kwargs):
-        parent = {"nom": "aa", "prenom": "aaa", "email": request.GET["mail"]}
+        parent = {"email": request.GET["email"]}
         try:
             children = self.get_aes_server().execute_kw(
                 self.database_name,
