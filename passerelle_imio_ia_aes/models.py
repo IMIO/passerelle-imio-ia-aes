@@ -280,6 +280,8 @@ class IImioIaAes(BaseResource):
     )
     def get_children(self, request, **kwargs):
         parent = {"email": request.GET["email"]}
+        if parent["email"] == "":
+            return False
         try:
             children = self.get_aes_server().execute_kw(
                 self.database_name,
@@ -336,7 +338,7 @@ class IImioIaAes(BaseResource):
             self.password,
             "extraschool.parent",
             "create",
-            [parent]
+            [parent],
         )
         return registration_id
 
@@ -352,11 +354,27 @@ class IImioIaAes(BaseResource):
             "nrn": {
                 "description": "Numéro de registre national du parent",
                 "example_value": "00000000097",
-            }
+            },
         },
     )
     def is_registered_parent(self, request, **kwargs):
-        parent = {"email": request.GET["email"], "nrn": request.GET["nrn"]}
+        import urllib
+
+        # NameID = request.GET.get("NameID") or request.GET("NameID")
+        r = requests.get(
+            "{}/api/users/?email={}".format(
+                settings.AUTHENTIC_URL, urllib.quote_plus(request.GET["email"])
+            ),
+            auth=(settings.AES_LOGIN, settings.AES_PASSWORD),
+        )
+        nrn = (
+            r.json().get("results")[0].get("niss")
+            if r is not None
+            else request.GET["nrn"]
+        )
+        parent = {"email": request.GET["email"], "nrn": nrn}
+        if parent["email"] == "":
+            return False
         is_registered_parent = self.get_aes_server().execute_kw(
             self.database_name,
             self.get_aes_user_id(),
@@ -460,20 +478,103 @@ class IImioIaAes(BaseResource):
     @endpoint(
         serializer_type="json-api",
         perm="can_access",
-        description="Plaines (brutes) retournées par aes",
+        description="Formatages des infos de journees de plaines d'un enfant du guichet pour envoyer a AES.",
+        parameters={
+            "child_id": {
+                "description": "Identifiant d'un enfant",
+                "example_value": "1",
+            },
+            "data": {
+                "description": "Selected items",
+                "example_value": "_S28_2020-07-06_48_4,_S28_2020-07-06_48_5,_S28_2020-07-07_49_6,_S28_2020-07-09_51_7,_S28_2020-07-10_52_8",
+            },
+        },
     )
-    def get_raw_plaines(self, request, **kwargs):
-        occurences_load = None
-        data = dict([(x, request.GET[x]) for x in request.GET.keys()])
+    def add_registration_child_plaine_output(self, request, *args, **kwargs):
         if request.body:
             occurences_load = json.loads(request.body)
+        else:
+            occurences_load = kwargs
+        if not isinstance(occurences_load.get("data"), list):
+            occurences_load["data"] = occurences_load.get("data").split(",")
+        formated_data = {}
+        for d in occurences_load.get("data"):
+            journee_id = d.split("_")[3]
+            subactivity_id = int(d.split("_")[4])
+            if journee_id in formated_data.keys():
+                (formated_data[journee_id]).append(subactivity_id)
+            else:
+                formated_data[journee_id] = [subactivity_id]
+        lst_datas = []
+        for k, v in formated_data.items():
+            dic = {}
+            dic[k] = v
+            lst_datas.append(dic)
+        occurences_load["data"] = lst_datas
+        return occurences_load
+
+    @endpoint(
+        serializer_type="json-api",
+        perm="can_access",
+        methods=["post"],
+        description="Enregistrement d'un enfant aux journees de plaines et aux sous-act",
+        parameters={
+            "child_id": {
+                "description": "Identifiant d'un enfant",
+                "example_value": "1",
+            },
+            "data": {
+                "description": "Selected items",
+                "example_value": "_S28_2020-07-06_48_4,_S28_2020-07-06_48_5,_S28_2020-07-07_49_6,_S28_2020-07-09_51_7,_S28_2020-07-10_52_8",
+            },
+        },
+    )
+    def add_registration_child_plaine(self, request, *args, **kwargs):
+        occurences_load = self.add_registration_child_plaine_output(
+            request, args, kwargs
+        )
+        is_registration_child = self.get_aes_server().execute_kw(
+            self.database_name,
+            self.get_aes_user_id(),
+            self.password,
+            "aes_api.aes_api",
+            "add_registration_child_plaine",
+            [occurences_load],
+        )
+        return is_registration_child
+
+    @endpoint(
+        serializer_type="json-api",
+        perm="can_access",
+        description="Plaines (brutes) retournées par aes",
+        parameters={
+            "child_id": {
+                "description": "Identifiant d'un enfant",
+                "example_value": "1",
+            },
+            "begining_date_search": {
+                "description": "Début de la période dans laquelle chercher les occurences de l'activité",
+                "example_value": "01/01/2020",
+            },
+            "ending_date_search": {
+                "description": "Fin de la période dans laquelle chercher les occurences de l'activité",
+                "example_value": "31/12/2020",
+            },
+        },
+    )
+    def get_raw_plaines(self, request, **kwargs):
+        # data = {"ending_date_search":request.GET["ending_date_search"],"child_id":request.GET["child_id"],"begining_date_search":request.GET["begining_date_search"]}
+        # if request.body:
+        # data = json.loads(request.body)
+        # else:
+        data = dict([(x, request.GET[x]) for x in request.GET.keys()])
         list_plaines_pp = self.get_aes_server().execute_kw(
             self.database_name,
             self.get_aes_user_id(),
             self.password,
             "aes_api.aes_api",
             "get_plaine",
-            [occurences_load],
+            [data],
         )
         return list_plaines_pp
 
@@ -481,6 +582,20 @@ class IImioIaAes(BaseResource):
         serializer_type="json-api",
         perm="can_access",
         description="Plaines et activités de la plaine prêtent pour multiselect wcs.",
+        parameters={
+            "child_id": {
+                "description": "Identifiant d'un enfant",
+                "example_val" "ue": "0",
+            },
+            "begining_date_search": {
+                "description": "Début de la période dans laquelle chercher les occurences de l'activité",
+                "example_value": "01/01/2020",
+            },
+            "ending_date_search": {
+                "description": "Fin de la période dans laquelle chercher les occurences de l'activité",
+                "example_value": "31/12/2020",
+            },
+        },
     )
     def get_plaines(self, request, **kwargs):
         list_plaines_pp = self.get_raw_plaines(request)["data"]
@@ -499,7 +614,7 @@ class IImioIaAes(BaseResource):
                             select["text"] = act_label
                         plaines.append(select)
                         cpt_activite = cpt_activite + 1
-        return {"data":sorted(plaines, key=lambda k:k["id"])}
+        return {"data": sorted(plaines, key=lambda k: k["id"])}
 
     # generate a serie of stub invoices
     invoices = {}
