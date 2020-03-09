@@ -270,6 +270,70 @@ class IImioIaAes(BaseResource):
     @endpoint(
         serializer_type="json-api",
         perm="can_access",
+        description="get implantation scholaire",
+    )
+    def get_schoolimplantation(self, request, **kwargs):
+        schools = self.get_aes_server().execute_kw(
+            self.database_name,
+            self.get_aes_user_id(),
+            self.password,
+            "extraschool.schoolimplantation",
+            "search_read",
+            [[]],
+            {"fields": ["name"]},
+        )
+        lst_schools = []
+        for school in schools:
+            d = school
+            d["text"] = d.pop("name")
+            lst_schools.append(d)
+        return {"data": lst_schools}
+
+    @endpoint(
+        serializer_type="json-api", perm="can_access", description="get levels",
+    )
+    def get_levels(self, request, **kwargs):
+        levels = self.get_aes_server().execute_kw(
+            self.database_name,
+            self.get_aes_user_id(),
+            self.password,
+            "extraschool.level",
+            "search_read",
+            [[]],
+            {"fields": ["name"]},
+        )
+        lst_levels = []
+        for level in levels:
+            l = level
+            l["text"] = l.pop("name")
+            lst_levels.append(l)
+        return {"data": lst_levels}
+
+    @endpoint(
+        serializer_type="json-api",
+        perm="can_access",
+        description="get child types (cpas, aucun)",
+    )
+    def get_child_types(self, request, **kwargs):
+        childtypes = self.get_aes_server().execute_kw(
+            self.database_name,
+            self.get_aes_user_id(),
+            self.password,
+            "extraschool.childtype",
+            "search_read",
+            [[]],
+            {"fields": ["name"]},
+        )
+        lst_childtypes = []
+        for childtype in childtypes:
+            c = childtype
+            c["text"] = c.pop("name")
+            lst_childtypes.append(c)
+        return {"data": lst_childtypes}
+
+    @endpoint(
+        serializer_type="json-api",
+        perm="can_access",
         description="Récupérer les enfants pour le parent connecté",
         parameters={
             "email": {
@@ -339,6 +403,57 @@ class IImioIaAes(BaseResource):
             "extraschool.parent",
             "create",
             [parent],
+        )
+        return registration_id
+
+    def get_parent_id(self, params):
+        parent_id = self.get_aes_server().execute_kw(
+            self.database_name,
+            self.get_aes_user_id(),
+            self.password,
+            "aes_api.aes_api",
+            "get_parent_id",
+            [params],
+        )
+        return parent_id
+
+    @endpoint(
+        serializer_type="json-api",
+        perm="can_access",
+        methods=["post"],
+        description="Enregistre un nouvel enfant",
+    )
+    def child_registration(self, request, **kwargs):
+        if request.body:
+            params = json.loads(request.body)
+        parent_id = self.get_parent_id(params)
+        import ipdb
+
+        ipdb.set_trace()
+        parentid = {u"parentid": unicode(parent_id.get("id"))}
+        params.update(parentid)
+        params = {
+            key: value
+            for (key, value) in params.items()
+            if key
+            in [
+                "childtypeid",
+                "firstname",
+                "lastname",
+                "schoolimplantation",
+                "levelid",
+                "parentid",
+                "birthdate",
+                "rn",
+            ]
+        }
+        registration_id = self.get_aes_server().execute_kw(
+            self.database_name,
+            self.get_aes_user_id(),
+            self.password,
+            "extraschool.child",
+            "create",
+            [params],
         )
         return registration_id
 
@@ -486,7 +601,7 @@ class IImioIaAes(BaseResource):
             },
             "data": {
                 "description": "Selected items",
-                "example_value": "_S28_2020-07-06_48_4,_S28_2020-07-06_48_5,_S28_2020-07-07_49_6,_S28_2020-07-09_51_7,_S28_2020-07-10_52_8",
+                "example_value": "_S28_2020-07-06_48_4,_S28_2020-07-06_48_5,_S28_2020-07-07_49_6,_S28_2020-07-09_51,_S28_2020-07-10_52_8",
             },
         },
     )
@@ -499,12 +614,17 @@ class IImioIaAes(BaseResource):
             occurences_load["data"] = occurences_load.get("data").split(",")
         formated_data = {}
         for d in occurences_load.get("data"):
+            len_array = len(d.split("_"))
             journee_id = d.split("_")[3]
-            subactivity_id = int(d.split("_")[4])
-            if journee_id in formated_data.keys():
-                (formated_data[journee_id]).append(subactivity_id)
+            if len_array == 5:
+                subactivity_id = int(d.split("_")[4])
+                if journee_id in formated_data.keys():
+                    (formated_data[journee_id]).append(subactivity_id)
+                else:
+                    formated_data[journee_id] = [subactivity_id]
             else:
-                formated_data[journee_id] = [subactivity_id]
+                # Aucune sous-activite
+                formated_data[journee_id] = []
         lst_datas = []
         for k, v in formated_data.items():
             dic = {}
@@ -543,6 +663,21 @@ class IImioIaAes(BaseResource):
         )
         return is_registration_child
 
+    def get_week_theme(self, activity_id, week_number):
+        debug = False
+        if debug == True:
+            return {"data": [{"name": "Theme Label"}]}
+        data = {"activity_id": activity_id, "week_number": week_number}
+        theme = self.get_aes_server().execute_kw(
+            self.database_name,
+            self.get_aes_user_id(),
+            self.password,
+            "aes_api.aes_api",
+            "get_week_theme",
+            [data],
+        )
+        return theme
+
     @endpoint(
         serializer_type="json-api",
         perm="can_access",
@@ -563,10 +698,7 @@ class IImioIaAes(BaseResource):
         },
     )
     def get_raw_plaines(self, request, **kwargs):
-        # data = {"ending_date_search":request.GET["ending_date_search"],"child_id":request.GET["child_id"],"begining_date_search":request.GET["begining_date_search"]}
-        # if request.body:
-        # data = json.loads(request.body)
-        # else:
+        # {"data":[{"28": {"2020-07-08_50": [], "2020-07-06_48": [{"4": "Kayak"}, {"5": "Poney"}], "2020-07-07_49": [{"6": "BBQ"}], "2020-07-09_51": [{"7": "AquaGym"}], "2020-07-10_52": [{"8": "Escalade"}]}, "29":
         data = dict([(x, request.GET[x]) for x in request.GET.keys()])
         list_plaines_pp = self.get_aes_server().execute_kw(
             self.database_name,
@@ -579,9 +711,71 @@ class IImioIaAes(BaseResource):
         return list_plaines_pp
 
     @endpoint(
-        serializer_type="json-api",
         perm="can_access",
         description="Plaines et activités de la plaine prêtent pour multiselect wcs.",
+        parameters={
+            "child_id": {
+                "description": "Identifiant d'un enfant",
+                "example_value": "1",
+            },
+            "begining_date_search": {
+                "description": "Début de la période dans laquelle chercher les occurences de l'activité",
+                "example_value": "01/01/2020",
+            },
+            "ending_date_search": {
+                "description": "Fin de la période dans laquelle chercher les occurences de l'activité",
+                "example_value": "31/12/2020",
+            },
+        },
+    )
+    def get_plaines(self, request, **kwargs):
+        list_plaines_pp = self.get_raw_plaines(request)["data"]
+        plaines = []
+        themes = []
+        for dic_sem_plaine in list_plaines_pp:
+            # k = semaine calendrier => 27, 28,...
+            # v = {"2020-07-03_47": [], "2020-07-02_46": [], "2020-07-01_45": []}
+            for k, v in dic_sem_plaine.items():
+                week = k
+                week_label = "S{}".format(k)
+                theme_label = None
+                # key = 2020-07-03_47 (date suivis du n occurence)
+                # value = [{"4": "Kayak"}, {"5": "Poney"}] liste de sous-activite
+                for key, value in v.items():
+                    if theme_label is None:
+                        theme_label = (
+                            self.get_week_theme(key.split("_")[1], week)
+                            .get("data")[0]
+                            .get("name")
+                        )
+                    jour = key
+                    lst_activites = value
+                    cpt_activite = 0
+                    if len(lst_activites) == 0:
+                        select = {}
+                        select["id"] = "_{}_{}".format(week_label, jour)
+                        select["text"] = "_{} : {}".format(
+                            week_label, jour.split("_")[0].replace("-", "/")
+                        )
+                        plaines.append(select)
+                    else:
+                        for activite in lst_activites:
+                            select = {}
+                            for act_id, act_label in activite.items():
+                                select["id"] = "_{}_{}_{}".format(
+                                    week_label, jour, act_id
+                                )
+                                select["text"] = act_label
+                            plaines.append(select)
+                            cpt_activite = cpt_activite + 1
+                themes.append({"week": week, "label": theme_label})
+        # return {"data":sorted(plaines, key=lambda k:k["id"]),"themes":themes}
+        return {"data": sorted(plaines, key=lambda k: k["id"]), "themes": themes}
+
+    @endpoint(
+        serializer_type="json-api",
+        perm="can_access",
+        description="Plaines (rich) et activités de la plaine prêtent pour multiselect wcs.",
         parameters={
             "child_id": {
                 "description": "Identifiant d'un enfant",
@@ -597,12 +791,12 @@ class IImioIaAes(BaseResource):
             },
         },
     )
-    def get_plaines(self, request, **kwargs):
+    def get_rich_plaines(self, request, **kwargs):
         list_plaines_pp = self.get_raw_plaines(request)["data"]
         plaines = []
         for dic_sem_plaine in list_plaines_pp:
             for k, v in dic_sem_plaine.items():
-                week = "S{}".format(k)
+                week = "Semaine {}".format(k)
                 for key, value in v.items():
                     jour = key
                     lst_activites = value
@@ -611,7 +805,9 @@ class IImioIaAes(BaseResource):
                         select = {}
                         for act_id, act_label in activite.items():
                             select["id"] = "_{}_{}_{}".format(week, jour, act_id)
-                            select["text"] = act_label
+                            select["text"] = "{} : Actvitites ({})".format(
+                                week, act_label
+                            )
                         plaines.append(select)
                         cpt_activite = cpt_activite + 1
         return {"data": sorted(plaines, key=lambda k: k["id"])}
