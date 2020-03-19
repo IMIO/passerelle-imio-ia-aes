@@ -44,12 +44,11 @@ import io as BytesIO
 import json
 import logging
 import random
+import requests
 import xmlrpclib
+
 from decimal import Decimal
 from xmlrpclib import ServerProxy
-
-import requests
-
 from datetime import datetime as dt
 from django.db import models
 from django.http import HttpResponse
@@ -427,9 +426,6 @@ class IImioIaAes(BaseResource):
         if request.body:
             params = json.loads(request.body)
         parent_id = self.get_parent_id(params)
-        import ipdb
-
-        ipdb.set_trace()
         parentid = {u"parentid": unicode(parent_id.get("id"))}
         params.update(parentid)
         params = {
@@ -819,6 +815,25 @@ class IImioIaAes(BaseResource):
                         plaines.append(select)
                         cpt_activite = cpt_activite + 1
         return {"data": sorted(plaines, key=lambda k: k["id"])}
+
+    @endpoint(
+        serializer_type="json-api",
+        perm="can_access",
+        methods=["post",],
+        description="validate form",
+    )
+    def validate_form(self, request):
+        if request.body:
+            data = json.loads(request.body)
+        self.get_aes_server().execute_kw(
+            self.database_name,
+            self.get_aes_user_id(),
+            self.password,
+            "aes_api.aes_api",
+            "validate_form",
+            [data],
+        )
+        return True
 
     # generate a serie of stub invoices
     invoices = {}
