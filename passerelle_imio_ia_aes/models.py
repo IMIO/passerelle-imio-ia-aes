@@ -16,7 +16,8 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 # Decorateurs des endpoints:
-# serializer_type='json-api' : Permet de serializer la reponse directement dans un data + format automatique pour un raise exception.
+# serializer_type='json-api' : Permet de serializer la reponse directement dans un data +
+# format automatique pour un raise exception.
 
 # Doc Entr'ouvert : authentificaiton pour utiliser les apis.
 # https://doc-publik.entrouvert.com/tech/wcs/api-webservices/authentification/
@@ -211,7 +212,7 @@ class IImioIaAes(BaseResource):
         serializer_type="json-api",
         perm="can_access",
         description="Enregistrement d'un menu pour un enfant",
-        methods=["post",],
+        methods=["post", ],
         parameters={
             "meals": {
                 "description": "Liste des repas et leurs dates",
@@ -392,7 +393,6 @@ class IImioIaAes(BaseResource):
         description="Enregistre un nouveau parent",
     )
     def parent_registration(self, request, **kwargs):
-        data = dict([(x, request.GET[x]) for x in request.GET.keys()])
         if request.body:
             parent = json.loads(request.body)
         registration_id = self.get_aes_server().execute_kw(
@@ -597,7 +597,7 @@ class IImioIaAes(BaseResource):
             },
             "data": {
                 "description": "Selected items",
-                "example_value": "_S28_2020-07-06_48_4,_S28_2020-07-06_48_5,_S28_2020-07-07_49_6,_S28_2020-07-09_51,_S28_2020-07-10_52_8",
+                "example_value": "_S28_2020-07-06_48_4,_S28_2020-07-06_48_5,_S28_2020-07-07_49_6,_S28_2020-07-09_51_8",
             },
         },
     )
@@ -641,7 +641,7 @@ class IImioIaAes(BaseResource):
             },
             "data": {
                 "description": "Selected items",
-                "example_value": "_S28_2020-07-06_48_4,_S28_2020-07-06_48_5,_S28_2020-07-07_49_6,_S28_2020-07-09_51_7,_S28_2020-07-10_52_8",
+                "example_value": "_S28_2020-07-06_48_4,_S28_2020-07-06_48_5,_S28_2020-07-07_49_6,_S28_2020-07-09_51_7",
             },
         },
     )
@@ -661,7 +661,7 @@ class IImioIaAes(BaseResource):
 
     def get_week_theme(self, activity_id, week_number):
         debug = False
-        if debug == True:
+        if debug is True:
             return {"data": [{"name": "Theme Label"}]}
         data = {"activity_id": activity_id, "week_number": week_number}
         theme = self.get_aes_server().execute_kw(
@@ -694,7 +694,6 @@ class IImioIaAes(BaseResource):
         },
     )
     def get_raw_plaines(self, request, **kwargs):
-        # {"data":[{"28": {"2020-07-08_50": [], "2020-07-06_48": [{"4": "Kayak"}, {"5": "Poney"}], "2020-07-07_49": [{"6": "BBQ"}], "2020-07-09_51": [{"7": "AquaGym"}], "2020-07-10_52": [{"8": "Escalade"}]}, "29":
         data = dict([(x, request.GET[x]) for x in request.GET.keys()])
         list_plaines_pp = self.get_aes_server().execute_kw(
             self.database_name,
@@ -819,7 +818,7 @@ class IImioIaAes(BaseResource):
     @endpoint(
         serializer_type="json-api",
         perm="can_access",
-        methods=["post",],
+        methods=["post", ],
         description="validate form",
     )
     def validate_form(self, request):
@@ -869,7 +868,6 @@ class IImioIaAes(BaseResource):
         invoices[id_]["amount"] = invoices[id_]["total_amount"]
 
     def get_invoices(self, request, **kwargs):
-        NameID = request.GET.get("NameID") or request.GET("NameID")
         # request authentic API.
         # Pour que combo, via passerelle, puisse envoyer l'adresse e-mail à aes de la personne connectée (authentic).
         r = requests.get(
