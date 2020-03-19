@@ -616,7 +616,7 @@ class IImioIaAes(BaseResource):
         for d in occurences_load.get("data"):
             len_array = len(d.split("_"))
             journee_id = d.split("_")[3]
-            if len_array == 5:
+            if len_array == 6:
                 subactivity_id = int(d.split("_")[4])
                 if journee_id in formated_data.keys():
                     (formated_data[journee_id]).append(subactivity_id)
@@ -742,32 +742,40 @@ class IImioIaAes(BaseResource):
                 # key = 2020-07-03_47 (date suivis du n occurence)
                 # value = [{"4": "Kayak"}, {"5": "Poney"}] liste de sous-activite
                 for key, value in v.items():
-                    if theme_label is None:
-                        theme_label = (
-                            self.get_week_theme(key.split("_")[1], week)
-                            .get("data")[0]
-                            .get("name")
-                        )
-                    jour = key
-                    lst_activites = value
-                    cpt_activite = 0
-                    if len(lst_activites) == 0:
-                        select = {}
-                        select["id"] = "_{}_{}".format(week_label, jour)
-                        select["text"] = "_{} : {}".format(
-                            week_label, jour.split("_")[0].replace("-", "/")
-                        )
-                        plaines.append(select)
+                    if key == "available":
+                        pass
                     else:
-                        for activite in lst_activites:
+                        if theme_label is None:
+                            theme_label = (
+                                self.get_week_theme(key.split("_")[1], week)
+                                .get("data")[0]
+                                .get("name")
+                            )
+                        jour = key
+                        lst_activites = value
+                        cpt_activite = 0
+                        available = (
+                            "available" if v.get("available") is True else "unaivalable"
+                        )
+                        if len(lst_activites) == 0:
                             select = {}
-                            for act_id, act_label in activite.items():
-                                select["id"] = "_{}_{}_{}".format(
-                                    week_label, jour, act_id
-                                )
-                                select["text"] = act_label
+                            select["id"] = "_{}_{}_{}".format(
+                                week_label, jour, available
+                            )
+                            select["text"] = "_{} : {}".format(
+                                week_label, jour.split("_")[0].replace("-", "/")
+                            )
                             plaines.append(select)
-                            cpt_activite = cpt_activite + 1
+                        else:
+                            for activite in lst_activites:
+                                select = {}
+                                for act_id, act_label in activite.items():
+                                    select["id"] = "_{}_{}_{}_{}".format(
+                                        week_label, jour, act_id, available
+                                    )
+                                    select["text"] = act_label
+                                plaines.append(select)
+                                cpt_activite = cpt_activite + 1
                 themes.append({"week": week, "label": theme_label})
         # return {"data":sorted(plaines, key=lambda k:k["id"]),"themes":themes}
         return {"data": sorted(plaines, key=lambda k: k["id"]), "themes": themes}
