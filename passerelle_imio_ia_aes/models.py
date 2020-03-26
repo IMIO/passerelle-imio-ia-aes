@@ -405,14 +405,24 @@ class IImioIaAes(BaseResource):
         )
         return registration_id
 
-    def get_parent_id(self, params):
+    @endpoint(
+        serializer_type="json-api",
+        perm="can_access",
+        description="Recupere l'id d'un parent dans aes",
+    )
+    def get_parent_id(self, request, email=None, nrn=None):
+        if request.body:
+            params = json.loads(request.body)
+            data = {"email":params.get("email"), "nrn":params.get("nrn")}
+        else:
+            data = dict([(x, request.GET[x]) for x in request.GET.keys()])
         parent_id = self.get_aes_server().execute_kw(
             self.database_name,
             self.get_aes_user_id(),
             self.password,
             "aes_api.aes_api",
             "get_parent_id",
-            [params],
+            [data]
         )
         return parent_id
 
