@@ -844,6 +844,45 @@ class IImioIaAes(BaseResource):
         )
         return True
 
+    @endpoint(
+        serializer_type="json-api",
+        perm="can_access",
+        methods=["post", ],
+        description="Envoi les demandes clôturées à AES pour un parent pour une période donnée",
+    )
+    def close_plaines_reservation(self, request):
+        if request.body:
+            data = json.loads(request.body)
+        pay = self.get_aes_server().execute_kw(
+            self.database_name,
+            self.get_aes_user_id(),
+            self.password,
+            "aes_api.aes_api",
+            "close_plaine_reservation",
+            [data],
+        )
+        return pay
+
+    @endpoint(
+        serializer_type="json-api",
+        perm="can_access",
+        methods=["post", ],
+        description="Libération des places en cas de non paiement dans un délais de n jours.",
+    )
+    def free_up_places(self, request):
+        if request.body:
+            data = json.loads(request.body)
+        self.get_aes_server().execute_kw(
+            self.database_name,
+            self.get_aes_user_id(),
+            self.password,
+            "aes_api.aes_api",
+            "free_up_places",
+            [data],
+        )
+        return True
+
+
     # generate a serie of stub invoices
     invoices = {}
     for i in range(15):
