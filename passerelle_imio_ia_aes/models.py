@@ -153,7 +153,7 @@ class IImioIaAes(BaseResource):
         perm="can_access",
         description="Tester la connexion avec AES",
     )
-    def tst_connexion(self, request, **kwargs):
+    def tst_connexion(self, request):
         test = None
         try:
             test = self.get_aes_server().execute_kw(
@@ -272,7 +272,7 @@ class IImioIaAes(BaseResource):
         perm="can_access",
         description="get implantation scholaire",
     )
-    def get_schoolimplantation(self, request, **kwargs):
+    def get_schoolimplantation(self, request):
         schools = self.get_aes_server().execute_kw(
             self.database_name,
             self.get_aes_user_id(),
@@ -292,7 +292,7 @@ class IImioIaAes(BaseResource):
     @endpoint(
         serializer_type="json-api", perm="can_access", description="get levels",
     )
-    def get_levels(self, request, **kwargs):
+    def get_levels(self, request):
         levels = self.get_aes_server().execute_kw(
             self.database_name,
             self.get_aes_user_id(),
@@ -314,7 +314,7 @@ class IImioIaAes(BaseResource):
         perm="can_access",
         description="get child types (cpas, aucun)",
     )
-    def get_child_types(self, request, **kwargs):
+    def get_child_types(self, request):
         childtypes = self.get_aes_server().execute_kw(
             self.database_name,
             self.get_aes_user_id(),
@@ -355,7 +355,6 @@ class IImioIaAes(BaseResource):
                 "get_children",
                 [parent],
             )
-            # chidren["parent"] = request.GET["mail"]
             return children
         except Exception:
             return False
@@ -435,7 +434,7 @@ class IImioIaAes(BaseResource):
     def child_registration(self, request, **kwargs):
         if request.body:
             params = json.loads(request.body)
-        parent_id = self.get_parent_id(params)
+        parent_id = self.get_parent_id(request)
         parentid = {u"parentid": unicode(parent_id.get("id"))}
         params.update(parentid)
         params = {
