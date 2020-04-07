@@ -212,7 +212,7 @@ class IImioIaAes(BaseResource):
         serializer_type="json-api",
         perm="can_access",
         description="Enregistrement d'un menu pour un enfant",
-        methods=["post", ],
+        methods=["post",],
         parameters={
             "meals": {
                 "description": "Liste des repas et leurs dates",
@@ -412,7 +412,7 @@ class IImioIaAes(BaseResource):
     def get_parent_id(self, request, email=None, nrn=None):
         if request.body:
             params = json.loads(request.body)
-            data = {"email":params.get("email"), "nrn":params.get("nrn")}
+            data = {"email": params.get("email"), "nrn": params.get("nrn")}
         else:
             data = dict([(x, request.GET[x]) for x in request.GET.keys()])
         parent_id = self.get_aes_server().execute_kw(
@@ -421,7 +421,7 @@ class IImioIaAes(BaseResource):
             self.password,
             "aes_api.aes_api",
             "get_parent_id",
-            [data]
+            [data],
         )
         return parent_id
 
@@ -827,7 +827,7 @@ class IImioIaAes(BaseResource):
     @endpoint(
         serializer_type="json-api",
         perm="can_access",
-        methods=["post", ],
+        methods=["post",],
         description="validate form",
     )
     def validate_form(self, request):
@@ -846,7 +846,7 @@ class IImioIaAes(BaseResource):
     @endpoint(
         serializer_type="json-api",
         perm="can_access",
-        methods=["post", ],
+        methods=["post",],
         description="Envoi les demandes clôturées à AES pour un parent pour une période donnée",
     )
     def close_plaines_reservation(self, request):
@@ -865,7 +865,7 @@ class IImioIaAes(BaseResource):
     @endpoint(
         serializer_type="json-api",
         perm="can_access",
-        methods=["post", ],
+        methods=["post",],
         description="Libération des places en cas de non paiement dans un délais de n jours.",
     )
     def free_up_places(self, request):
@@ -881,6 +881,31 @@ class IImioIaAes(BaseResource):
         )
         return True
 
+    @endpoint(
+        serializer_type="json-api",
+        methods=["post",],
+        perm="can_access",
+        description="Signal que le paiement a ete effectue",
+    )
+    def pay_prepaid(self, request, amount=None, parent_id=None, form_id=None):
+        if request.body:
+            params = json.loads(request.body)
+        else:
+            params = dict([(x, request.GET[x]) for x in request.GET.keys()])
+        data = {
+            "amount": float(str(params.get("amount")).replace(",", ".")),
+            "parent_id": int(params.get("parent_id")),
+            "form_id": params.get("form_id"),
+        }
+        response = self.get_aes_server().execute_kw(
+            self.database_name,
+            self.get_aes_user_id(),
+            self.password,
+            "aes_api.aes_api",
+            "pay_prepaid",
+            [data],
+        )
+        return response
 
     # generate a serie of stub invoices
     invoices = {}
