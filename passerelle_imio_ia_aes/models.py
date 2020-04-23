@@ -46,17 +46,19 @@ import json
 import logging
 import random
 import requests
+import urlparse
 import xmlrpclib
 
 from decimal import Decimal
 from xmlrpclib import ServerProxy
 from datetime import datetime as dt
+from django.conf import settings
 from django.db import models
 from django.http import HttpResponse
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
-from passerelle import settings
 from passerelle.base.models import BaseResource
+from passerelle.base.signature import sign_url
 from passerelle.utils.api import endpoint
 
 
@@ -480,13 +482,13 @@ class IImioIaAes(BaseResource):
     def is_registered_parent(self, request, **kwargs):
         import urllib
 
-        # NameID = request.GET.get("NameID") or request.GET("NameID")
-        r = requests.get(
-            "{}/api/users/?email={}".format(
-                settings.AUTHENTIC_URL, urllib.quote_plus(request.GET["email"])
-            ),
-            auth=(settings.AES_LOGIN, settings.AES_PASSWORD),
-        )
+        idp_service = list(settings.KNOWN_SERVICES['authentic'].values())[0]
+        api_url = sign_url(
+                urlparse.urljoin(
+                    idp_service['url'],
+                    'api/users/?email=%s&orig=%s' % (urllib.quote_plus(request.GET["email"]), idp_service.get('orig'))),
+                key=idp_service.get('secret'))
+        r = self.requests.get(api_url)
         nrn = (
             r.json().get("results")[0].get("niss")
             if r is not None
