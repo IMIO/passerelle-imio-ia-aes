@@ -40,18 +40,28 @@
 # import ast
 import base64
 import datetime
-import httplib
+try:
+    import http.client
+except ImportError:
+    import httplib
 import io as BytesIO
 import json
 import logging
 import random
 import requests
-import urlparse
-import xmlrpclib
+try:
+    from urllib.parse import urlparse
+except ImportError:
+    import urlparse
+try:
+    import xmlrpc.client
+    from xmlrpc.client import ServerProxy
+except ImportError:
+    import xmlrpclib
+    from xmlrpclib import ServerProxy
 
-from decimal import Decimal
-from xmlrpclib import ServerProxy
 from datetime import datetime as dt
+from decimal import Decimal
 from django.conf import settings
 from django.db import models
 from django.http import HttpResponse
@@ -670,10 +680,29 @@ class IImioIaAes(BaseResource):
         )
         return is_registration_child
 
-    def get_week_theme(self, activity_id, week_number):
+    @endpoint(
+        serializer_type="json-api",
+        perm="can_access",
+        description="get week theme",
+        parameters={
+            "activity_id": {
+                "description": "Identifiant d'une activite",
+                "example_value": "3415",
+            },
+            "week_number": {
+                "description": "numero de la semaine dans l'annee",
+                "example_value": "28",
+            },
+        },
+    )
+    def get_week_theme(self, request, activity_id, week_number):
         debug = False
         if debug is True:
             return {"data": [{"name": "Theme Label"}]}
+        if getattr(request, "body", None) is not None:
+            params = json.loads(request.body)
+            activity_id = params.get("activity_id")
+            week_number = params.get("week_number")
         data = {"activity_id": activity_id, "week_number": week_number}
         theme = self.get_aes_server().execute_kw(
             self.database_name,
@@ -753,7 +782,7 @@ class IImioIaAes(BaseResource):
                     else:
                         if theme_label is None:
                             theme_label = (
-                                self.get_week_theme(key.split("_")[1], week)
+                                self.get_week_theme(None, key.split("_")[1], week)
                                 .get("data")[0]
                                 .get("name")
                             )
