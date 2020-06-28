@@ -58,6 +58,7 @@ try:
     from xmlrpc.client import ServerProxy
 except ImportError:
     import xmlrpclib
+    # noinspection PyCompatibility
     from xmlrpclib import ServerProxy
 
 from datetime import datetime as dt
