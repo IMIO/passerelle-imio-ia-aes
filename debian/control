@@ -5,7 +5,7 @@ Priority: optional
 Build-Depends: python-setuptools, python3-setuptools, python-all, python3-all, debhelper (>= 9), dh-python, python-django, python3-django
 Standards-Version: 3.9.1
 
-Package: python-passerelle-imio-ia-aes
+Package: python3-passerelle-imio-ia-aes
 Architecture: all
 Depends: ${misc:Depends}, ${python:Depends}
 Description: Passerelle connector to ia.Aes

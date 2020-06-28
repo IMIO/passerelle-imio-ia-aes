@@ -1,4 +1,8 @@
 #!/usr/bin/make -f
 
+export PYBUILD_NAME=passerelle-imio-ia-aes
+
 %:
-	dh $@ --with python2
+	dh $@ --with python2,python3 --buildsystem=pybuild
+
+override_dh_auto_test:
