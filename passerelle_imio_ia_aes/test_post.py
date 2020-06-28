@@ -50,4 +50,4 @@ def sign_string(s, key, algo='sha256', timedelta=30):
     return hash.digest()
 
 query_full = sign_url(query_string, key, orig)
-print requests.post(query_full)
+print(requests.post(query_full))
