@@ -1,4 +1,11 @@
-from xmlrpclib import ServerProxy
+
+try:
+    import xmlrpc.client
+    from xmlrpc.client import ServerProxy
+except ImportError:
+    import xmlrpclib
+    # noinspection PyCompatibility
+    from xmlrpclib import ServerProxy
 
 SERVER = 'https://stagingv9-aes.imio.be' #'http://192.168.7.187:8069'
 DATABASE = 'stagingv9_extraschool' #'aes_hannut'
@@ -31,4 +38,4 @@ str_hello_world = server.execute(
     'extraschool.parent', 'helloworld', [{'anus':'dtc'}]
 )
 
-print str_hello_world
+print(str_hello_world)
