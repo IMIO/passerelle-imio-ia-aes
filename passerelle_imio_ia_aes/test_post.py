@@ -1,7 +1,10 @@
 import requests, base64, hmac, hashlib, datetime
 import random
 import urllib
-import urlparse
+try:
+    import urlparse
+except ImportError:
+    from urllib.parse import urlparse
 from hashlib import sha256
 # https://git.entrouvert.org/wcs.git/tree/wcs/api_utils.py
 
