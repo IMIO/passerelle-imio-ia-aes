@@ -1,12 +1,20 @@
 Changelog
 =========
 
-0.0.3a
+0.2.4a
 ------------------
 
-- Fix imports for python3 AND python2 compatibily.
+- change install requirement from 'passerelle' to 'python3-passerelle' in setup.py
+- change programming language in setup.py
+- adapt dependencies in ./debian/control 
 
 0.2.2r
 ------------------
 
 - firsts commits and only python2.x
+
+
+0.0.3a
+------------------
+
+- Fix imports for python3 AND python2 compatibily.
