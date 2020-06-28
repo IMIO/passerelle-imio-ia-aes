@@ -1,6 +1,12 @@
 Changelog
 =========
 
+
+0.2.5a
+------------------
+
+- Adapt package name and build-depends and debian/rules for Passerelle Python 3
+
 0.2.4a
 ------------------
 
