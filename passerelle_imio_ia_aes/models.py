@@ -67,6 +67,7 @@ from django.conf import settings
 from django.db import models
 from django.http import HttpResponse
 from django.utils import timezone
+from django.utils.encoding import force_text
 from django.utils.translation import ugettext_lazy as _
 from passerelle.base.models import BaseResource
 from passerelle.base.signature import sign_url
@@ -74,7 +75,7 @@ from passerelle.utils.api import endpoint
 
 
 def format_type(t):
-    return {"id": unicode(t), "text": unicode(t)}
+    return {"id": force_text(t), "text": force_text(t)}
 
 
 def format_file(f):
@@ -448,7 +449,7 @@ class IImioIaAes(BaseResource):
         if request.body:
             params = json.loads(request.body)
         parent_id = self.get_parent_id(request)
-        parentid = {u"parentid": unicode(parent_id.get("id"))}
+        parentid = {u"parentid": force_text(parent_id.get("id"))}
         params.update(parentid)
         params = {
             key: value
