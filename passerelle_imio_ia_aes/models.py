@@ -53,13 +53,10 @@ try:
     from urllib.parse import urlparse
 except ImportError:
     import urlparse
-try:
-    import xmlrpc.client
-    from xmlrpc.client import ServerProxy
-except ImportError:
-    import xmlrpclib
-    # noinspection PyCompatibility
-    from xmlrpclib import ServerProxy
+
+import xmlrpc.client
+from xmlrpc.client import ServerProxy
+
 
 from datetime import datetime as dt
 from decimal import Decimal
@@ -95,7 +92,7 @@ class FileNotFoundError(Exception):
 # http://local-formulaires.example.net/travaux/demo-cb-aes/1/jump/trigger/validate
 
 
-class ProxiedTransport(xmlrpclib.Transport):
+class ProxiedTransport(xmlrpc.client.Transport):
     def set_proxy(self, proxy):
         self.proxy = proxy
 
@@ -1037,7 +1034,7 @@ class IImioIaAes(BaseResource):
         parameters={
             "invoice_id": {
                 "description": _("Invoice identifier"),
-                "example_value": invoices.keys()[0],
+                "example_value": list(invoices)[0],
             }
         },
     )
@@ -1052,7 +1049,7 @@ class IImioIaAes(BaseResource):
         parameters={
             "invoice_id": {
                 "description": _("Invoice identifier"),
-                "example_value": invoices.keys()[0],
+                "example_value": list(invoices)[0],
             }
         },
     )
@@ -1095,7 +1092,7 @@ class IImioIaAes(BaseResource):
         parameters={
             "invoice_id": {
                 "description": _("Invoice identifier"),
-                "example_value": invoices.keys()[0],
+                "example_value": list(invoices)[0],
             }
         },
     )

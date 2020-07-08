@@ -1,6 +1,11 @@
 Changelog
 =========
 
+0.2.7b
+------------------
+
+- Fix models to python3 compatibility and drop python2 : import xmlrpc and object to list
+
 0.2.7a
 ------------------
 
