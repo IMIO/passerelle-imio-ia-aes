@@ -1,6 +1,10 @@
 Changelog
 =========
 
+0.2.7a
+------------------
+
+- Adapt Jenkinsfile to install package python3/dist-package instead of python2
 
 0.2.5a
 ------------------
