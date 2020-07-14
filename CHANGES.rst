@@ -1,7 +1,13 @@
 Changelog
 =========
 
-0.2.7b
+0.2.7c
+------------------
+
+- Fix test_connexion endpoint
+  [boulch]
+
+  0.2.7b
 ------------------
 
 - Fix models to python3 compatibility and drop python2 : import xmlrpc and object to list
