@@ -167,32 +167,14 @@ class IImioIaAes(BaseResource):
         description="Tester la connexion avec AES",
     )
     def tst_connexion(self, request):
-        test = None
-        try:
-            test = self.get_aes_server().execute_kw(
-                self.database_name,
-                self.get_aes_user_id(),
-                self.password,
-                "aes_api.aes_api",
-                "hello_world",
-                [],
-            )
-        except Exception:
-            p = ProxiedTransport()
-            p.set_proxy("10.9.200.215:9069")
-            # server = xmlrpclib.ServerProxy('http://time.xmlrpc.com/RPC2', transport=p)
-            server = ServerProxy(
-                "{}/xmlrpc/2/object".format(self.server_url), transport=p
-            )
-            test = server.execute_kw(
-                self.database_name,
-                self.get_aes_user_id(),
-                self.password,
-                "aes_api.aes_api",
-                "hello_world",
-                [],
-            )
-            # print server.currentTime.getCurrentTime()
+        test = self.get_aes_server().execute_kw(
+               self.database_name,
+               self.get_aes_user_id(),
+               self.password,
+               "aes_api.aes_api",
+               "hello_world",
+               [],
+        )
         return test
 
     @endpoint(
