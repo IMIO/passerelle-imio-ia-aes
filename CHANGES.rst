@@ -1,6 +1,15 @@
 Changelog
 =========
 
+0.2.7b
+------------------
+
+- Fix models to python3 compatibility and drop python2 : import xmlrpc and object to list
+
+0.2.7a
+------------------
+
+- Adapt Jenkinsfile to install package python3/dist-package instead of python2
 
 0.2.5a
 ------------------

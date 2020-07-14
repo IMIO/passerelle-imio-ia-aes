@@ -53,13 +53,10 @@ try:
     from urllib.parse import urlparse
 except ImportError:
     import urlparse
-try:
-    import xmlrpc.client
-    from xmlrpc.client import ServerProxy
-except ImportError:
-    import xmlrpclib
-    # noinspection PyCompatibility
-    from xmlrpclib import ServerProxy
+
+import xmlrpc.client
+from xmlrpc.client import ServerProxy
+
 
 from datetime import datetime as dt
 from decimal import Decimal
@@ -67,6 +64,7 @@ from django.conf import settings
 from django.db import models
 from django.http import HttpResponse
 from django.utils import timezone
+from django.utils.encoding import force_text
 from django.utils.translation import ugettext_lazy as _
 from passerelle.base.models import BaseResource
 from passerelle.base.signature import sign_url
@@ -74,7 +72,7 @@ from passerelle.utils.api import endpoint
 
 
 def format_type(t):
-    return {"id": unicode(t), "text": unicode(t)}
+    return {"id": force_text(t), "text": force_text(t)}
 
 
 def format_file(f):
@@ -94,7 +92,7 @@ class FileNotFoundError(Exception):
 # http://local-formulaires.example.net/travaux/demo-cb-aes/1/jump/trigger/validate
 
 
-class ProxiedTransport(xmlrpclib.Transport):
+class ProxiedTransport(xmlrpc.client.Transport):
     def set_proxy(self, proxy):
         self.proxy = proxy
 
@@ -430,7 +428,7 @@ class IImioIaAes(BaseResource):
         if request.body:
             params = json.loads(request.body)
         parent_id = self.get_parent_id(request)
-        parentid = {u"parentid": unicode(parent_id.get("id"))}
+        parentid = {u"parentid": force_text(parent_id.get("id"))}
         params.update(parentid)
         params = {
             key: value
@@ -1018,7 +1016,7 @@ class IImioIaAes(BaseResource):
         parameters={
             "invoice_id": {
                 "description": _("Invoice identifier"),
-                "example_value": invoices.keys()[0],
+                "example_value": list(invoices)[0],
             }
         },
     )
@@ -1033,7 +1031,7 @@ class IImioIaAes(BaseResource):
         parameters={
             "invoice_id": {
                 "description": _("Invoice identifier"),
-                "example_value": invoices.keys()[0],
+                "example_value": list(invoices)[0],
             }
         },
     )
@@ -1076,7 +1074,7 @@ class IImioIaAes(BaseResource):
         parameters={
             "invoice_id": {
                 "description": _("Invoice identifier"),
-                "example_value": invoices.keys()[0],
+                "example_value": list(invoices)[0],
             }
         },
     )
