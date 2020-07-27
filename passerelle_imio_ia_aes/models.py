@@ -51,6 +51,7 @@ import random
 import requests
 try:
     from urllib.parse import urlparse
+    from urllib.parse import urljoin
 except ImportError:
     import urlparse
 
@@ -475,9 +476,9 @@ class IImioIaAes(BaseResource):
 
         idp_service = list(settings.KNOWN_SERVICES['authentic'].values())[0]
         api_url = sign_url(
-                urlparse.urljoin(
+                urljoin(
                     idp_service['url'],
-                    'api/users/?email=%s&orig=%s' % (urllib.quote_plus(request.GET["email"]), idp_service.get('orig'))),
+                    'api/users/?email=%s&orig=%s' % (urllib.parse.quote_plus(request.GET["email"]), idp_service.get('orig'))),
                 key=idp_service.get('secret'))
         r = self.requests.get(api_url)
         nrn = (

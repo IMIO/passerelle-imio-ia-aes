@@ -1,6 +1,12 @@
 Changelog
 =========
 
+0.2.7d
+------------------
+
+- Fix some python3 import and lib.
+  [boulch]
+
 0.2.7c
 ------------------
 
@@ -27,7 +33,7 @@ Changelog
 
 - change install requirement from 'passerelle' to 'python3-passerelle' in setup.py
 - change programming language in setup.py
-- adapt dependencies in ./debian/control 
+- adapt dependencies in ./debian/control
 
 0.2.2r
 ------------------
