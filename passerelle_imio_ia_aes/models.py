@@ -353,6 +353,36 @@ class IImioIaAes(BaseResource):
         except Exception:
             return False
 
+
+    @endpoint(
+        serializer_type="json-api",
+        perm="can_access",
+        description="Récupérer les enfants pour le parent connecté, en interrogeant le RN du parentplutôt que son mail",
+        parameters={
+            "nrn": {
+                "description": "Numéro de registre national d'un parent AES/TS",
+                "example_value": "00000000097",
+            }
+        },
+    )
+    def get_children_by_parent_nrn(self, request, **kwargs):
+        parent = {"nrn": request.GET["nrn"]}
+        if parent["nrn"] == "":
+            return "No nrn"
+        try:
+            children = self.get_aes_server().execute_kw(
+                self.database_name,
+                self.get_aes_user_id(),
+                self.password,
+                "aes_api.aes_api",
+                "get_children",
+                [parent],
+            )
+            return children
+        except Exception:
+            return False
+
+
     @endpoint(
         serializer_type="json-api",
         perm="can_access",
