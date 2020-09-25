@@ -1,6 +1,12 @@
 Changelog
 =========
 
+0.2.7f
+------------------
+
+- [MPPCAUA-41] new method to get children with parent's nrn
+  [nhi]
+
 0.2.7e
 ------------------
 
