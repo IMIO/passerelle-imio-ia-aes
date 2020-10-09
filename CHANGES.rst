@@ -1,6 +1,39 @@
 Changelog
 =========
 
+0.2.7f
+------------------
+
+- [MPPCAUA-41] new method to get children with parent's nrn
+  [nhi]
+
+0.2.7e
+------------------
+
+- Fix encoding (python3)
+  [boulch]
+
+0.2.7d
+------------------
+
+- Fix some python3 import and lib.
+  [boulch]
+
+0.2.7c
+------------------
+
+- Fix test_connexion endpoint
+  [boulch]
+
+  0.2.7b
+------------------
+
+- Fix models to python3 compatibility and drop python2 : import xmlrpc and object to list
+
+0.2.7a
+------------------
+
+- Adapt Jenkinsfile to install package python3/dist-package instead of python2
 
 0.2.5a
 ------------------
@@ -12,7 +45,7 @@ Changelog
 
 - change install requirement from 'passerelle' to 'python3-passerelle' in setup.py
 - change programming language in setup.py
-- adapt dependencies in ./debian/control 
+- adapt dependencies in ./debian/control
 
 0.2.2r
 ------------------
