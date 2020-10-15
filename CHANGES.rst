@@ -1,6 +1,11 @@
 Changelog
 =========
 
+0.2.7g
+------------------
+- [TELE-695] use passerelle json_loads to prevent conversion errors
+  [dmu]
+
 0.2.7f
 ------------------
 
