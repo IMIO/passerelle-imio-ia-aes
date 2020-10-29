@@ -1,6 +1,11 @@
 Changelog
 =========
 
+0.2.7h
+------------------
+- [MPPCAUA-50] add method to get the meals of a child
+  [nhi]
+
 0.2.7g
 ------------------
 - [TELE-695] use passerelle json_loads to prevent conversion errors

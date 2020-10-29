@@ -555,6 +555,45 @@ class IImioIaAes(BaseResource):
         except ValueError as e:
             raise ParameterTypeError(e.message)
 
+
+    @endpoint(
+        serializer_type="json-api",
+        perm="can_access",
+        description="Récupérer les repas auxquels un enfant donné est inscrit",
+        parameters={
+            "child_id": {"description": "Identifiant d'un enfant", "example_value": "0"}
+        },
+    )
+    def get_child_meals(self, request, **kwargs):
+        try:
+            if request is not None:
+                child = {"id": request.GET["child_id"]}
+            else:
+                child = kwargs
+            meals = self.get_aes_server().execute_kw(
+                self.database_name,
+                self.get_aes_user_id(),
+                self.password,
+                "aes_api.aes_api",
+                "get_child_meals",
+                [child],
+            )
+
+            # build a list of dict
+            formated_meals = [{'id': meal, 'text': meal[1:11]} for meal in meals]
+
+            # sort meals
+            sorted_meals = sorted(formated_meals, key=lambda i: i['text'])
+
+            # construct result
+            result = {'data': sorted_meals}
+
+            return result
+
+        except ValueError as e:
+            raise ParameterTypeError(e.message)
+
+
     @endpoint(
         serializer_type="json-api",
         perm="can_access",
