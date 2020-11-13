@@ -386,6 +386,34 @@ class IImioIaAes(BaseResource):
     @endpoint(
         serializer_type="json-api",
         perm="can_access",
+        description="Demander à AES si l'enfant existe en fonction de son numéro national. Renvoie True le cas échéant",
+        parameters={
+            "nrn": {
+                "description": "Numéro de registre national d'un enfant",
+                "example_value": "00000000097",
+            }
+        },
+    )
+    def is_child_registered(self, request, **kwargs):
+        child = {"nrn": request.GET["nrn"]}
+        if child["nrn"] == "":
+            return "Error - No nrn given"
+        try:
+            is_child_registered = self.get_aes_server().execute_kw(
+                self.database_name,
+                self.get_aes_user_id(),
+                self.password,
+                "aes_api.aes_api",
+                "get_children_by_rn",
+                [child],
+            )
+            return is_child_registered
+        except Exception:
+            return False
+
+    @endpoint(
+        serializer_type="json-api",
+        perm="can_access",
         description="Récupérer les enfants avec leur liste d'activités",
         parameters={
             "mail": {
