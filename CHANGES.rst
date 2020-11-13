@@ -1,6 +1,16 @@
 Changelog
 =========
 
+0.2.7i
+------------------
+- [MPPCAUA-60] Ask AES if a child already exist, based on his RN
+  [nhi]
+
+0.2.7h
+------------------
+- [MPPCAUA-50] add method to get the meals of a child
+  [nhi]
+
 0.2.7g
 ------------------
 - [TELE-695] use passerelle json_loads to prevent conversion errors

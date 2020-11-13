@@ -386,6 +386,34 @@ class IImioIaAes(BaseResource):
     @endpoint(
         serializer_type="json-api",
         perm="can_access",
+        description="Demander à AES si l'enfant existe en fonction de son numéro national. Renvoie True le cas échéant",
+        parameters={
+            "nrn": {
+                "description": "Numéro de registre national d'un enfant",
+                "example_value": "00000000097",
+            }
+        },
+    )
+    def is_child_registered(self, request, **kwargs):
+        child = {"nrn": request.GET["nrn"]}
+        if child["nrn"] == "":
+            return "Error - No nrn given"
+        try:
+            is_child_registered = self.get_aes_server().execute_kw(
+                self.database_name,
+                self.get_aes_user_id(),
+                self.password,
+                "aes_api.aes_api",
+                "get_children_by_rn",
+                [child],
+            )
+            return is_child_registered
+        except Exception:
+            return False
+
+    @endpoint(
+        serializer_type="json-api",
+        perm="can_access",
         description="Récupérer les enfants avec leur liste d'activités",
         parameters={
             "mail": {
@@ -554,6 +582,45 @@ class IImioIaAes(BaseResource):
             return activities
         except ValueError as e:
             raise ParameterTypeError(e.message)
+
+
+    @endpoint(
+        serializer_type="json-api",
+        perm="can_access",
+        description="Récupérer les repas auxquels un enfant donné est inscrit",
+        parameters={
+            "child_id": {"description": "Identifiant d'un enfant", "example_value": "0"}
+        },
+    )
+    def get_child_meals(self, request, **kwargs):
+        try:
+            if request is not None:
+                child = {"id": request.GET["child_id"]}
+            else:
+                child = kwargs
+            meals = self.get_aes_server().execute_kw(
+                self.database_name,
+                self.get_aes_user_id(),
+                self.password,
+                "aes_api.aes_api",
+                "get_child_meals",
+                [child],
+            )
+
+            # build a list of dict
+            formated_meals = [{'id': meal, 'text': meal[1:11]} for meal in meals]
+
+            # sort meals
+            sorted_meals = sorted(formated_meals, key=lambda i: i['text'])
+
+            # construct result
+            result = {'data': sorted_meals}
+
+            return result
+
+        except ValueError as e:
+            raise ParameterTypeError(e.message)
+
 
     @endpoint(
         serializer_type="json-api",
