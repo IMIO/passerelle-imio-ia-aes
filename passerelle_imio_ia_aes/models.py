@@ -165,7 +165,7 @@ class IImioIaAes(BaseResource):
         perm="can_access",
         description="Tester la connexion avec AES",
     )
-    def tst_connexion(self, request):
+    def test_connexion(self, request):
         test = self.get_aes_server().execute_kw(
                self.database_name,
                self.get_aes_user_id(),
