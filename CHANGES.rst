@@ -1,6 +1,11 @@
 Changelog
 =========
 
+0.2.7j
+------------------
+- rename tst_connexion to test_connexion
+  [nhi]
+
 0.2.7i
 ------------------
 - [MPPCAUA-60] Ask AES if a child already exist, based on his RN
