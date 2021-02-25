@@ -1,6 +1,11 @@
 Changelog
 =========
 
+0.2.7k
+------------------
+- add get_plaines_v2 which get correctly structured data
+  [nhi]
+
 0.2.7j
 ------------------
 - rename tst_connexion to test_connexion
