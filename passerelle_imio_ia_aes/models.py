@@ -850,7 +850,7 @@ class IImioIaAes(BaseResource):
     def get_plaines_v2(self, request, **kwargs):
         data = dict([(x, request.GET[x]) for x in request.GET.keys()])
         try:
-            result = self.get_aes_server().execute_kw(
+            response = self.get_aes_server().execute_kw(
                 self.database_name,
                 self.get_aes_user_id(),
                 self.password,
@@ -859,9 +859,33 @@ class IImioIaAes(BaseResource):
                 [data],
             )
         except Exception as e:
-            result = str[data] + '  ' + str(e)
-        finally:
-            return result
+            response = str[data, str(e)]
+
+        weeks = set()
+        result = []
+
+        for activity in response["data"]:
+            if activity['week'] not in weeks:
+                result.append({
+                    'id': activity['week'],
+                    'text': 'Semaine {}'.format(activity['week']),
+                    'activities': [{
+                        'id': '{}_{}_{}'.format(activity['year'], activity['week'], activity['activity_id']),
+                        'text': activity['activity_name'],
+                        'week': activity['week']
+                    }],
+                    'week': activity['week']
+                })
+                weeks.add(activity['week'])
+            else:
+                new_activity = {
+                    'id': '{}_{}_{}'.format(activity['year'], activity['week'], activity['activity_id']),
+                    'text': activity['activity_name'],
+                    'week': activity['week']
+                }
+                [week['activities'].append(new_activity) for week in result if week['id'] == activity['week']]
+
+        return result
 
     @endpoint(
         perm="can_access",
