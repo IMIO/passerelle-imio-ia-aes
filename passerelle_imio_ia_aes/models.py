@@ -825,6 +825,69 @@ class IImioIaAes(BaseResource):
         return list_plaines_pp
 
     @endpoint(
+        serializer_type="json-api",
+        perm="can_access",
+        description="Plaines retournées par aes version 2, avec données structurées",
+        parameters={
+            "child_id": {
+                "description": "Identifiant d'un enfant",
+                "example_value": "1",
+            },
+            "begining_date_search": {
+                "description": "Début de la période dans laquelle chercher les activités",
+                "example_value": "01/01/2020",
+            },
+            "ending_date_search": {
+                "description": "Fin de la période dans laquelle chercher les activités",
+                "example_value": "31/12/2020",
+            },
+            "category_name": {
+                "description": "Type d'activité à rechercher",
+                "example_value": "Plaine"
+            }
+        },
+    )
+    def get_plaines_v2(self, request, **kwargs):
+        data = dict([(x, request.GET[x]) for x in request.GET.keys()])
+        try:
+            response = self.get_aes_server().execute_kw(
+                self.database_name,
+                self.get_aes_user_id(),
+                self.password,
+                "aes_api.aes_api",
+                "get_plaine_2",
+                [data],
+            )
+        except Exception as e:
+            response = str[data, str(e)]
+
+        weeks = set()
+        result = []
+
+        for activity in response["data"]:
+            if activity['week'] not in weeks:
+                result.append({
+                    'id': activity['week'],
+                    'text': 'Semaine {}'.format(activity['week']),
+                    'activities': [{
+                        'id': '{}_{}_{}'.format(activity['year'], activity['week'], activity['activity_id']),
+                        'text': activity['activity_name'],
+                        'week': activity['week']
+                    }],
+                    'week': activity['week']
+                })
+                weeks.add(activity['week'])
+            else:
+                new_activity = {
+                    'id': '{}_{}_{}'.format(activity['year'], activity['week'], activity['activity_id']),
+                    'text': activity['activity_name'],
+                    'week': activity['week']
+                }
+                [week['activities'].append(new_activity) for week in result if week['id'] == activity['week']]
+
+        return result
+
+    @endpoint(
         perm="can_access",
         description="Plaines et activités de la plaine prêtent pour multiselect wcs.",
         parameters={

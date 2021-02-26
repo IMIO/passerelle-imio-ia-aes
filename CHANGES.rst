@@ -1,6 +1,16 @@
 Changelog
 =========
 
+0.2.7l
+------------------
+- reformat data from aes for get_plaines_v2
+  [nhi]
+
+0.2.7k
+------------------
+- add get_plaines_v2 which get correctly structured data
+  [nhi]
+
 0.2.7j
 ------------------
 - rename tst_connexion to test_connexion
