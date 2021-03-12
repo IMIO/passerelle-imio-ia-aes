@@ -689,49 +689,6 @@ class IImioIaAes(BaseResource):
     @endpoint(
         serializer_type="json-api",
         perm="can_access",
-        description="Formatages des infos de journees de plaines d'un enfant du guichet pour envoyer a AES.",
-        parameters={
-            "child_id": {
-                "description": "Identifiant d'un enfant",
-                "example_value": "1",
-            },
-            "data": {
-                "description": "Selected items",
-                "example_value": "_S28_2020-07-06_48_4,_S28_2020-07-06_48_5,_S28_2020-07-07_49_6,_S28_2020-07-09_51_8",
-            },
-        },
-    )
-    def add_registration_child_plaine_output(self, request, *args, **kwargs):
-        if request.body:
-            occurences_load = json_loads(request.body)
-        else:
-            occurences_load = kwargs
-        if not isinstance(occurences_load.get("data"), list):
-            occurences_load["data"] = occurences_load.get("data").split(",")
-        formated_data = {}
-        for d in occurences_load.get("data"):
-            len_array = len(d.split("_"))
-            journee_id = d.split("_")[3]
-            if len_array == 6:
-                subactivity_id = int(d.split("_")[4])
-                if journee_id in formated_data.keys():
-                    (formated_data[journee_id]).append(subactivity_id)
-                else:
-                    formated_data[journee_id] = [subactivity_id]
-            else:
-                # Aucune sous-activite
-                formated_data[journee_id] = []
-        lst_datas = []
-        for k, v in formated_data.items():
-            dic = {}
-            dic[k] = v
-            lst_datas.append(dic)
-        occurences_load["data"] = lst_datas
-        return occurences_load
-
-    @endpoint(
-        serializer_type="json-api",
-        perm="can_access",
         methods=["post"],
         description="Enregistrement d'un enfant aux journees de plaines et aux sous-act",
         parameters={
@@ -741,23 +698,38 @@ class IImioIaAes(BaseResource):
             },
             "data": {
                 "description": "Selected items",
-                "example_value": "_S28_2020-07-06_48_4,_S28_2020-07-06_48_5,_S28_2020-07-07_49_6,_S28_2020-07-09_51_7",
+                "example_value": "{'activities': [{'week': 22, 'activity_id': '86', 'year': '2021'}, {'week': 23, 'activity_id': '90', 'year': '2021'}], 'child_id': '1137', 'form_id': '9'}",
             },
         },
     )
     def add_registration_child_plaine(self, request, *args, **kwargs):
-        occurences_load = self.add_registration_child_plaine_output(
-            request, args, kwargs
-        )
-        is_registration_child = self.get_aes_server().execute_kw(
+
+        input_activities = json.loads(request.body)
+        aes_formated_activities = []
+
+        for activity in input_activities["activities"]:
+            splitted_id = activity["id"].split('_')
+            aes_formated_activities.append({
+                "year": splitted_id[0],
+                "activity_id": splitted_id[2],
+                "week": activity["week"]
+            })
+
+        data = {
+            "activities": aes_formated_activities,
+            "form_id": input_activities["form_id"],
+            "child_id": input_activities["child_id"]
+        }
+
+        response = self.get_aes_server().execute_kw(
             self.database_name,
             self.get_aes_user_id(),
             self.password,
             "aes_api.aes_api",
             "add_registration_child_plaine",
-            [occurences_load],
+            [data]
         )
-        return is_registration_child
+        return response
 
     @endpoint(
         serializer_type="json-api",

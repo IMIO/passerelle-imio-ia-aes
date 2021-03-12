@@ -1,6 +1,11 @@
 Changelog
 =========
 
+0.2.7m
+------------------
+- send structured child registration to plain data to AES
+  [nhi]
+
 0.2.7l
 ------------------
 - reformat data from aes for get_plaines_v2
