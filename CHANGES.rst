@@ -1,6 +1,11 @@
 Changelog
 =========
 
+0.2.7.n
+-----------------
+- import json
+  [nhi]
+
 0.2.7m
 ------------------
 - send structured child registration to plain data to AES
