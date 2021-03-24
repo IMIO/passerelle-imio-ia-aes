@@ -1,7 +1,12 @@
 Changelog
 =========
 
-0.2.7.n
+0.2.7p
+-----------------
+- return aes response instead of true when validating plains
+  [nhi]
+
+0.2.7n
 -----------------
 - import json
   [nhi]

@@ -979,7 +979,7 @@ class IImioIaAes(BaseResource):
     def validate_form(self, request):
         if request.body:
             data = json_loads(request.body)
-        self.get_aes_server().execute_kw(
+        aes_response = self.get_aes_server().execute_kw(
             self.database_name,
             self.get_aes_user_id(),
             self.password,
@@ -987,7 +987,7 @@ class IImioIaAes(BaseResource):
             "validate_form",
             [data],
         )
-        return True
+        return aes_response
 
     @endpoint(
         serializer_type="json-api",
