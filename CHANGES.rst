@@ -1,6 +1,12 @@
 Changelog
 =========
 
+0.2.7r
+-----------------
+- remove copied pasted code
+- upgrade get_raw_plaines for easier testing
+  [nhi]
+
 0.2.7q
 -----------------
 - display plain's theme if existing, else display plain's name
