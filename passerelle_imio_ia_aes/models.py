@@ -838,24 +838,20 @@ class IImioIaAes(BaseResource):
         result = []
 
         for activity in response["data"]:
+            new_activity = {
+                'id': '{}_{}_{}'.format(activity['year'], activity['week'], activity['activity_id']),
+                'text': activity['theme'] if activity['theme'] else activity['activity_name'],
+                'week': activity['week']
+            }
             if activity['week'] not in weeks:
                 result.append({
                     'id': activity['week'],
                     'text': 'Semaine {}'.format(activity['week']),
-                    'activities': [{
-                        'id': '{}_{}_{}'.format(activity['year'], activity['week'], activity['activity_id']),
-                        'text': activity['theme'] if activity['theme'] else activity['activity_name'],
-                        'week': activity['week']
-                    }],
+                    'activities': [new_activity],
                     'week': activity['week']
                 })
                 weeks.add(activity['week'])
             else:
-                new_activity = {
-                    'id': '{}_{}_{}'.format(activity['year'], activity['week'], activity['activity_id']),
-                    'text': activity['activity_name'],
-                    'week': activity['week']
-                }
                 [week['activities'].append(new_activity) for week in result if week['id'] == activity['week']]
 
         return result
