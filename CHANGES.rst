@@ -1,6 +1,11 @@
 Changelog
 =========
 
+0.2.7q
+-----------------
+- display plain's theme if existing, else display plain's name
+  [nhi]
+
 0.2.7p
 -----------------
 - return aes response instead of true when validating plains

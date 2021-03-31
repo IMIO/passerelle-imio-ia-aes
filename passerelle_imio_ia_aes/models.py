@@ -844,7 +844,7 @@ class IImioIaAes(BaseResource):
                     'text': 'Semaine {}'.format(activity['week']),
                     'activities': [{
                         'id': '{}_{}_{}'.format(activity['year'], activity['week'], activity['activity_id']),
-                        'text': activity['activity_name'],
+                        'text': activity['theme'] if activity['theme'] else activity['activity_name'],
                         'week': activity['week']
                     }],
                     'week': activity['week']
