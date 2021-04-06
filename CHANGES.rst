@@ -1,6 +1,11 @@
 Changelog
 =========
 
+0.2.7s
+-----------------
+- securizing get plains if there is no theme
+  [nhi]
+
 0.2.7r
 -----------------
 - remove copied pasted code

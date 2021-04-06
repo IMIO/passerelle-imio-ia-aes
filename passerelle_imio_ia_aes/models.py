@@ -848,7 +848,7 @@ class IImioIaAes(BaseResource):
         for activity in response["data"]:
             new_activity = {
                 'id': '{}_{}_{}'.format(activity['year'], activity['week'], activity['activity_id']),
-                'text': activity['theme'] if activity['theme'] else activity['activity_name'],
+                'text': activity.get('theme') if activity.get('theme') else activity['activity_name'],
                 'week': activity['week']
             }
             if activity['week'] not in weeks:
