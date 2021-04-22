@@ -1,6 +1,11 @@
 Changelog
 =========
 
+0.2.7t
+-----------------
+- display monday's in response when registering a child to plains
+  [nhi]
+  
 0.2.7s
 -----------------
 - securizing get plains if there is no theme

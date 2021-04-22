@@ -730,6 +730,10 @@ class IImioIaAes(BaseResource):
             "add_registration_child_plaine",
             [data]
         )
+
+        for elt in response:
+            elt['monday'] = datetime.datetime.strptime("{}-{}-1".format(datetime.datetime.today().year, elt['week']), "%Y-%W-%w").date()
+
         return response
 
     @endpoint(
