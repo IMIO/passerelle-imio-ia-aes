@@ -1,6 +1,12 @@
 Changelog
 =========
 
+0.2.7w
+-----------------
+- get activity_name instead of False if AES throw no theme
+  [nhi]
+
+
 0.2.7v
 -----------------
 - fix comma
