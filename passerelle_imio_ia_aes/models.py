@@ -861,6 +861,7 @@ class IImioIaAes(BaseResource):
                     'text': 'Semaine {}'.format(activity['week']),
                     'activities': [new_activity],
                     'week': activity['week']
+                    'monday': datetime.datetime.strptime("{}-{}-1".format(datetime.datetime.today().year, activity['week']), "%Y-%W-%w").date()
                 })
                 weeks.add(activity['week'])
             else:

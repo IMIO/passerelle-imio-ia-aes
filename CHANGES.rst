@@ -1,6 +1,11 @@
 Changelog
 =========
 
+0.2.7u
+-----------------
+- display monday's in response when getting plains
+  [nhi]
+
 0.2.7t
 -----------------
 - display monday's in response when registering a child to plains
