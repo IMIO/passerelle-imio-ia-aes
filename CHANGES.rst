@@ -1,6 +1,11 @@
 Changelog
 =========
 
+0.2.7v
+-----------------
+- fix comma
+  [nhi]
+
 0.2.7u
 -----------------
 - display monday's in response when getting plains
