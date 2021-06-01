@@ -1,6 +1,11 @@
 Changelog
 =========
 
+0.2.8
+-----------------
+- update versionning scheme to remove letters
+  [nhi]
+
 0.2.7w
 -----------------
 - get activity_name instead of False if AES throw no theme
