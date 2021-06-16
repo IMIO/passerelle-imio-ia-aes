@@ -1102,8 +1102,8 @@ class IImioIaAes(BaseResource):
             "{}/api/users/{}".format(settings.AUTHENTIC_URL, request.GET.get("NameID")),
             auth=(settings.AES_LOGIN, settings.AES_PASSWORD),
         )
-        connected_user_email = r.json().get("email")
-        parent = {"email": connected_user_email}
+        connected_user_nrn = r.json().get("niss")
+        parent = {"nrn": connected_user_nrn}
         invoices_datas = self.get_aes_server().execute_kw(
             self.database_name,
             self.get_aes_user_id(),

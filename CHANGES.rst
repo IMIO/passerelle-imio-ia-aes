@@ -1,6 +1,11 @@
 Changelog
 =========
 
+0.2.9
+-----------------
+- get parent's invoices from AES with parent's rn
+  [nhi]
+
 0.2.8
 -----------------
 - update versionning scheme to remove letters
