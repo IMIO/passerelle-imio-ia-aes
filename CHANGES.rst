@@ -1,6 +1,11 @@
 Changelog
 =========
 
+0.2.10
+-----------------
+- try with python3 and django 2.2 as required
+  [nhi]
+
 0.2.9
 -----------------
 - get parent's invoices from AES with parent's rn
