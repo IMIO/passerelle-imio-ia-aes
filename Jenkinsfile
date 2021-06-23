@@ -10,7 +10,7 @@ pipeline {
                 VERSION= sh (script: "sh version.sh", returnStdout: true)
             }
             steps {
-                sh "fpm -a amd64 -n passerelle-imio-ia-aes -s python -t deb -v `echo ${VERSION}` --python-install-lib /usr/lib/python3/dist-packages -d passerelle setup.py"
+                sh "fpm -a amd64 --python-bin python3 --python-pip pip3 --python-package-name-prefix python3 -n passerelle-imio-ia-aes -s python -t deb -v `echo ${VERSION}` --python-install-lib /usr/lib/python3/dist-packages -d passerelle setup.py"
                 withCredentials([string(credentialsId: 'gpg-passphrase-system@imio.be', variable:'PASSPHRASE')]){
                     sh ('''dpkg-sig --gpg-options "--yes --batch --passphrase '$PASSPHRASE' " -s builder -k 9D4C79E197D914CF60C05332C0025EEBC59B875B passerelle-imio-ia-aes_`echo ${VERSION}`_amd64.deb''')
                 }

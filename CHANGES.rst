@@ -1,6 +1,11 @@
 Changelog
 =========
 
+0.2.11
+-----------------
+- force fpm to use python3
+  [nhi]
+
 0.2.10
 -----------------
 - try with python3 and django 2.2 as required
