@@ -1,6 +1,11 @@
 Changelog
 =========
 
+0.2.12
+-----------------
+- set django requirement from 1:1.11 to 2:2.3
+  [nhi]
+
 0.2.11
 -----------------
 - force fpm to use python3
