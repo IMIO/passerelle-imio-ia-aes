@@ -1,6 +1,12 @@
 Changelog
 =========
 
+0.2.13
+-----------------
+- set django requirement from 1.11 to 2.3
+- do not auto build dependencies
+  [nhi]
+
 0.2.12
 -----------------
 - set django requirement from 1:1.11 to 2:2.3
