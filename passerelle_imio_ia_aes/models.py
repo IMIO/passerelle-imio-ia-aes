@@ -367,8 +367,9 @@ class IImioIaAes(BaseResource):
         },
     )
     def get_children_by_parent_nrn(self, request, **kwargs):
-        parent = {"nrn": request.GET["nrn"]}
-        if parent["nrn"] == "":
+        try:
+            parent = {"nrn": request.GET["nrn"]}
+        except:
             return "No nrn"
         try:
             children = self.get_aes_server().execute_kw(
@@ -833,7 +834,10 @@ class IImioIaAes(BaseResource):
         },
     )
     def get_plaines_v2(self, request, **kwargs):
-        data = dict([(x, request.GET[x]) for x in request.GET.keys()])
+        try:
+            data = dict([(x, request.GET[x]) for x in request.GET.keys()])
+        except Exception as e:
+            return str(e)
         try:
             response = self.get_aes_server().execute_kw(
                 self.database_name,
@@ -844,7 +848,7 @@ class IImioIaAes(BaseResource):
                 [data],
             )
         except Exception as e:
-            response = str[data, str(e)]
+            return "{}\n{}".format(data, e)
 
         weeks = set()
         result = []
