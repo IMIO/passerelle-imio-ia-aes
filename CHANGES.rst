@@ -1,6 +1,10 @@
 Changelog
 =========
 
+0.2.16
+-----------------
+- create migration 0002
+
 0.2.15
 -----------------
 - do not assume input parameters are given when getting parent's children
