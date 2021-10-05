@@ -1,6 +1,11 @@
 Changelog
 =========
 
+0.2.17
+-----------------
+- [INFRA-4003] [TELE-1119] add -k to avoid SSL error following the Infra advice about that
+  [dmshd]
+
 0.2.16
 -----------------
 - create migration 0002

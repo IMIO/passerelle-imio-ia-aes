@@ -36,7 +36,7 @@ pipeline {
             }
             steps {
                 withCredentials([usernameColonPassword(credentialsId: 'nexus-teleservices', variable: 'CREDENTIALS'),string(credentialsId: 'nexus-url-buster', variable:'NEXUS_URL_BUSTER')]) {
-                    sh ('curl -v --fail -u $CREDENTIALS -X POST -H Content-Type:multipart/form-data --data-binary @passerelle-imio-ia-aes_`echo ${VERSION}`_amd64.deb $NEXUS_URL_BUSTER')
+                    sh ('curl -vk --fail -u $CREDENTIALS -X POST -H Content-Type:multipart/form-data --data-binary @passerelle-imio-ia-aes_`echo ${VERSION}`_amd64.deb $NEXUS_URL_BUSTER')
                 }
             }
         }
@@ -51,7 +51,7 @@ pipeline {
             }
             steps {
                 withCredentials([usernameColonPassword(credentialsId: 'nexus-teleservices', variable: 'CREDENTIALS'),string(credentialsId: 'nexus-url-buster-test', variable:'NEXUS_URL_BUSTER')]) {
-                    sh ('curl -v --fail -u $CREDENTIALS -X POST -H Content-Type:multipart/form-data --data-binary @passerelle-imio-ia-aes_`echo ${VERSION}`_amd64.deb $NEXUS_URL_BUSTER')
+                    sh ('curl -vk --fail -u $CREDENTIALS -X POST -H Content-Type:multipart/form-data --data-binary @passerelle-imio-ia-aes_`echo ${VERSION}`_amd64.deb $NEXUS_URL_BUSTER')
                 }
             }
         }
