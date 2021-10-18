@@ -12,45 +12,6 @@ from distutils.cmd import Command
 from setuptools import setup, find_packages
 
 
-class eo_sdist(sdist):
-    def run(self):
-        if os.path.exists('VERSION'):
-            os.remove('VERSION')
-        version = get_version()
-        version_file = open('VERSION', 'w')
-        version_file.write(version)
-        version_file.close()
-        sdist.run(self)
-        if os.path.exists('VERSION'):
-            os.remove('VERSION')
-
-
-def get_version():
-    '''Use the VERSION, if absent generates a version with git describe, if not
-       tag exists, take 0.0- and add the length of the commit log.
-    '''
-    if os.path.exists('VERSION'):
-        with open('VERSION', 'r') as v:
-            return v.read()
-    if os.path.exists('.git'):
-        p = subprocess.Popen(['git', 'describe', '--dirty=.dirty', '--match=v*'],
-                stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        result = p.communicate()[0]
-        if p.returncode == 0:
-            result = result.decode('ascii').strip()[1:]  # strip spaces/newlines and initial v
-            if '-' in result:  # not a tagged version
-                real_number, commit_count, commit_hash = result.split('-', 2)
-                version = '%s.post%s+%s' % (real_number, commit_count, commit_hash)
-            else:
-                version = result
-            return version
-        else:
-            return '0.0.post%s' % len(
-                    subprocess.check_output(
-                            ['git', 'rev-list', 'HEAD']).splitlines())
-    return '0.0'
-
-
 class compile_translations(Command):
     description = 'compile message catalogs to MO files via django compilemessages'
     user_options = []
@@ -84,15 +45,16 @@ class install_lib(_install_lib):
         self.run_command('compile_translations')
         _install_lib.run(self)
 
+version = "0.2.18"
 
 setup(
     name='passerelle-imio-ia-aes',
-    version=get_version(),
-    author='Christophe Boulanger',
-    author_email='christophe.boulanger@imio.be',
+    version=version,
+    author='iA.Teleservices',
+    author_email='support-ts@imio.be',
     packages=find_packages(),
     include_package_data=True,
-    url='https://dev.entrouvert.org/projects/imio/',
+    url='https://github.com/IMIO/passerelle-imio-ia-aes/',
     classifiers=[
         'Development Status :: 2 - Pre-Alpha',
         'Environment :: Web Environment',
@@ -109,6 +71,6 @@ setup(
         'build': build,
         'compile_translations': compile_translations,
         'install_lib': install_lib,
-        'sdist': eo_sdist,
+        "sdist": version,
     }
 )

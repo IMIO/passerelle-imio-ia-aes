@@ -1,6 +1,14 @@
 Changelog
 =========
 
+0.2.18
+-----------------
+- set author to iA.Teleservices team
+- set home page
+- set version in setup.py
+- use iateleservicesCreateDeb pipeline function
+  [nhi]
+
 0.2.17
 -----------------
 - [INFRA-4003] [TELE-1119] add -k to avoid SSL error following the Infra advice about that
