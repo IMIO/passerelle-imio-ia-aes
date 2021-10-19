@@ -7,6 +7,7 @@ Changelog
 - set home page
 - set version in setup.py
 - use iateleservicesCreateDeb pipeline function
+- set install path to jenkinsfile
   [nhi]
 
 0.2.17
