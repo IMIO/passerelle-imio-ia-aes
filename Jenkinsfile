@@ -1,4 +1,4 @@
 iateleservicesCreateDeb (
   packageName: "passerelle-imio-ia-aes",
-  installPath: "/usr/lib",
+  installPath: "/usr/lib/python3/dist-packages",
 )
