@@ -1,6 +1,11 @@
 Changelog
 =========
 
+0.2.19
+-----------------
+- Added : children filtering by school
+  [nhi]
+
 0.2.18
 -----------------
 - set author to iA.Teleservices team

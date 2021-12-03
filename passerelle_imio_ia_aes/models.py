@@ -363,6 +363,10 @@ class IImioIaAes(BaseResource):
             "nrn": {
                 "description": "Numéro de registre national d'un parent AES/TS",
                 "example_value": "00000000097",
+            },
+            "school_implantation_ids": {
+                "description": "Identifiant numérique de l'implantation scolaire",
+                "example_value": "1",
             }
         },
     )
@@ -380,10 +384,17 @@ class IImioIaAes(BaseResource):
                 "get_children",
                 [parent],
             )
-            return children
         except Exception:
-            return False
-
+            return {"data": "Error when getting children", "err":"1"}
+        try:
+            school_implantation_ids = [int(id) for id in request.GET["school_implantation_ids"].split(",")]
+        except:
+            return children
+        result = []         
+        for child in children["data"]:
+            if child["school_implantation"]["id"] in school_implantation_ids:
+                result.append(child)
+        return {"data": result}
 
     @endpoint(
         serializer_type="json-api",
