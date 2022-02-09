@@ -1,11 +1,6 @@
 Changelog
 =========
 
-1.0.0
------------------
-- Added : new version for AESv15
-  [nhi]
-
 0.2.19
 -----------------
 - Added : children filtering by school
