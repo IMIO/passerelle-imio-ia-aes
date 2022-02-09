@@ -1,2 +1,5 @@
 .idea
 .vscode
+passerelle_imio_ia_aes.egg-info/
+passerelle_imio_ia_aes/__pycache__/
+passerelle_imio_ia_aes/migrations/__pycache__/
