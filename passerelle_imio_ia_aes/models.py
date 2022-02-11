@@ -60,6 +60,10 @@ class ApimsAesConnector(BaseResource):
         "description": "Matricule ou RN du parent",
         "example_value": "00000000097",
     }
+    CHILD_PARAM = {
+        "description": "Identifiant de l'enfant",
+        "example_value": "00000000097",
+    }
 
     class Meta:
         verbose_name = "Connecteur Apims AES"
@@ -132,31 +136,6 @@ class ApimsAesConnector(BaseResource):
             )
         return result
 
-    # @endpoint(
-    #     name="children",
-    #     methods=["get"],
-    #     perm="can_access",
-    #     description="Obtenir les enfants d'un parent",
-    #     parameters={"parent_id": PARENT_PARAM},
-    # )
-    # def children(self, request, parent_id):
-    #     url = f"{self.server_url}/{self.aes_instance}/parents/{parent_id}/kids"
-    #     response = self.session.get(url).json()
-    #     result = []
-    #     for child in response:
-    #         result.append(
-    #             {
-    #                 "id": child["national_number"],
-    #                 "name": child["display_name"],
-    #                 "birthdate": child["birthdate_date"],
-    #                 "activities": child["activity_ids"],
-    #                 "school_implantation": child["school_implantation_id"],
-    #                 "level": child["level_id"],
-    #                 "healthsheet": child["health_sheet_ids"],
-    #             }
-    #         )
-    #     return result
-
     def read_child(self, child_id):
         url = f"{self.url}/{self.aes_instance}/kids/{child_id}"
         return self.session.get(url).json()
@@ -166,17 +145,26 @@ class ApimsAesConnector(BaseResource):
     #     response = self.session.post(url, json=data)
     #     return response.json()
 
+    # Waiting for ticket AES-948
+    @endpoint(
+        name="children",
+        methods=["get"],
+        perm="can_access",
+        description="Obtenir la liste des inscriptions de l'enfant",
+        parameters={"child_id": CHILD_PARAM},
+        example_pattern="{child_id}/registrations/",
+        pattern="^(?P<child_id>\w+)/registrations/$",
+    )
+    def list_registrations(self, request, child_id):
+        url = f"{self.server_url}/{self.aes_instance}/registrations/{child_id}?category_type=holiday_plain"
+        return self.session.get(url).json()
+
     @endpoint(
         name="children",
         methods=["get"],
         perm="can_access",
         description="Lire la fiche santé d'un enfant",
-        parameters={
-            "child_id": {
-                "description": "Identifiant de l'enfant",
-                "example_value": "00000000097",
-            }
-        },
+        parameters={"child_id": CHILD_PARAM},
         example_pattern="{child_id}/healthsheet/",
         pattern="^(?P<child_id>\w+)/healthsheet/$",
     )
