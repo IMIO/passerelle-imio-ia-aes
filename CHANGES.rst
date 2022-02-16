@@ -3,7 +3,10 @@ Changelog
 
 1.0.0
 -----------------
-- Added : new version for AESv15
+- Added: new version for AESv15
+- Added: read parent, healthsheets, children, available plains
+- Added: list wcs pp forms
+- Added: create homepage
   [nhi]
 
 0.2.19

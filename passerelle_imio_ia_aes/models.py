@@ -18,17 +18,22 @@
 
 from builtins import str
 
+
 import logging
 import requests
 from django.db import models
+from django.conf import settings
 from django.http import Http404
 from django.http import HttpResponse
 from django.urls import path, reverse
+from datetime import datetime
 from passerelle.base.models import BaseResource
+from passerelle.base.signature import sign_url
 from passerelle.compat import json_loads
 from passerelle.utils.api import endpoint
 from passerelle.utils.jsonresponse import APIError
 from requests.exceptions import ConnectionError
+
 
 logger = logging.getLogger(__name__)
 
@@ -93,7 +98,7 @@ class ApimsAesConnector(BaseResource):
         example_pattern="{parent_id}/",
         pattern="^(?P<parent_id>\w+)/$",
     )
-    def parents(self, request, parent_id):
+    def read_parent(self, request, parent_id):
         url = f"{self.server_url}/{self.aes_instance}/persons?person_id={parent_id}"
         return self.session.get(url).json()
 
@@ -136,6 +141,78 @@ class ApimsAesConnector(BaseResource):
             )
         return result
 
+    @endpoint(
+        name="get-pp-forms",
+        methods=["get"],
+        perm="can_access",
+        description="Get PP Forms",
+    )
+    def get_pp_forms(self, requests):
+        return self.get_forms()
+
+    def get_forms(self):
+        if not getattr(settings, "KNOWN_SERVICES", {}).get("wcs"):
+            return
+        eservices = list(settings.KNOWN_SERVICES["wcs"].values())[0]
+        signed_forms_url = sign_url(
+            url=f"{eservices['url']}api/categories/portail-parent/formdefs/?orig={eservices.get('orig')}",
+            key=eservices.get("secret"),
+        )
+        signed_forms_url_response = self.requests.get(signed_forms_url)
+        return signed_forms_url_response.json()["data"]
+
+    @endpoint(
+        name="homepage",
+        methods=["get"],
+        perm="can_access",
+        description="Construire la page d'accueil d'un parent",
+        parameters={"parent_id": PARENT_PARAM},
+    )
+    def homepage(self, request, parent_id):
+        parent_url = (
+            f"{self.server_url}/{self.aes_instance}/persons?person_id={parent_id}"
+        )
+        if self.session.get(parent_url).status_code == 200:
+            forms = self.get_forms()
+            children_url = (
+                f"{self.server_url}/{self.aes_instance}/parents/{parent_id}/kids"
+            )
+            children = self.session.get(children_url).json()
+            result = {
+                "is_parent": True,
+                "children": [],
+            }
+            for child in children:
+                result["children"].append(
+                    {
+                        "id": child["national_number"],
+                        "name": child["display_name"],
+                        "age": child["birthdate_date"],
+                        "activities": child["activity_ids"],
+                        "school_implantation": False
+                        if not child["school_implantation_id"]
+                        else child["school_implantation_id"][1],
+                        "level": child["level_id"],
+                        "healthsheet": self.has_valid_healthsheet(
+                            child["national_number"]
+                        )
+                        if len(child["health_sheet_ids"]) > 0
+                        else False,
+                        "forms": [
+                            {
+                                "title": form["title"],
+                                "slug": form["slug"],
+                                "status": "available",
+                                "image": "H",
+                            }
+                            for form in forms
+                        ],
+                    }
+                )
+        else:
+            result = {"is_parent": False}
+        return result
+
     def read_child(self, child_id):
         url = f"{self.url}/{self.aes_instance}/kids/{child_id}"
         return self.session.get(url).json()
@@ -145,6 +222,20 @@ class ApimsAesConnector(BaseResource):
     #     response = self.session.post(url, json=data)
     #     return response.json()
 
+    @endpoint(
+        name="children",
+        methods=["get"],
+        perm="can_access",
+        description="Obtenir la liste des activités disponibles pour un enfant",
+        parameters={"child_id": CHILD_PARAM},
+        example_pattern="{child_id}/activities/",
+        pattern="^(?P<child_id>\w+)/activities/$",
+    )
+    def list_available_plains(self, request, child_id):
+        url = f"{self.server_url}/{self.aes_instance}/activities/{child_id}?type=holiday_plain"
+        return self.session.get(url).json()
+
+    # Swagger itself return a 500 error
     # Waiting for ticket AES-948
     @endpoint(
         name="children",
@@ -158,6 +249,15 @@ class ApimsAesConnector(BaseResource):
     def list_registrations(self, request, child_id):
         url = f"{self.server_url}/{self.aes_instance}/registrations/{child_id}?category_type=holiday_plain"
         return self.session.get(url).json()
+
+    def has_valid_healthsheet(self, child_id):
+        url = f"{self.server_url}/{self.aes_instance}/healthsheets/{child_id}"
+        response = self.session.get(url)
+        healthsheet_last_update = datetime.strptime(
+            response.json()[0]["__last_update"][:10], "%Y-%m-%d"
+        )
+        is_healthsheet_valid = 183 >= (datetime.today() - healthsheet_last_update).days
+        return is_healthsheet_valid
 
     @endpoint(
         name="children",
