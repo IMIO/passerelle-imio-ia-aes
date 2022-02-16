@@ -222,6 +222,7 @@ class ApimsAesConnector(BaseResource):
     #     response = self.session.post(url, json=data)
     #     return response.json()
 
+    # WIP : need a child with available plains to validate this
     @endpoint(
         name="children",
         methods=["get"],
@@ -237,6 +238,7 @@ class ApimsAesConnector(BaseResource):
 
     # Swagger itself return a 500 error
     # Waiting for ticket AES-948
+    # WIP : need a child with registrations to validate this
     @endpoint(
         name="children",
         methods=["get"],
@@ -281,4 +283,18 @@ class ApimsAesConnector(BaseResource):
     )
     def list_healthsheet_fields(self, request):
         url = f"{self.server_url}/{self.aes_instance}/models/healthsheet"
+        return self.session.get(url).json()
+
+    # WIP : need a parent with invoices to validate this
+    @endpoint(
+        name="invoices",
+        methods=["get"],
+        perm="can_access",
+        description="Consulter les champs d'une fiche santé",
+        parameters={
+            "parent_id": PARENT_PARAM,
+        },
+    )
+    def invoices(self, request, parent_id):
+        url = "{self.server_url}/{self.aes_instance}/invoice/{parent_id}"
         return self.session.get(url).json()
