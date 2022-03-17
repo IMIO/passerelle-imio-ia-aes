@@ -62,12 +62,16 @@ class ApimsAesConnector(BaseResource):
     api_description = "Ce connecteur propose les méthodes d'échanges avec le produit iA.AES à travers Apims."
 
     PARENT_PARAM = {
-        "description": "Matricule ou RN du parent",
+        "description": "Identifiant Odoo interne du parent",
         "example_value": "00000000097",
     }
     CHILD_PARAM = {
-        "description": "Identifiant de l'enfant",
+        "description": "Identifiant Odoo interne de l'enfant",
         "example_value": "00000000097",
+    }
+    CATEGORY_PARAM = {
+        "description": "Identifiants du type d'activité",
+        "example_value": "holiday_plain",
     }
 
     class Meta:
@@ -84,6 +88,9 @@ class ApimsAesConnector(BaseResource):
         name="verify-connection",
         perm="can_access",
         description="Valider la connexion entre APIMS et Publik",
+        long_description="Une simple requête qui permet juste de valider si la connexion est bien établie entre Publik et Apims.",
+        display_order=0,
+        display_category="Test",
     )
     def verify_connection(self, request):
         url = self.server_url
@@ -93,15 +100,52 @@ class ApimsAesConnector(BaseResource):
         name="parents",
         methods=["get"],
         perm="can_access",
+        description="Rechercher un parent",
+        long_description="Rechercher et lire un parent selon son numéro de registre national ou son matricule",
+        parameters={
+            "national_number": {
+                "description": "Numéro national de l'usager",
+                "example_value": "00000000097",
+            },
+            "registration_number": {
+                "description": "Ce numéro correspond matricule de l'usager si celui-ci n'a pas de numéro de registre national. Il s'agit typiquement de son identifiant dans Onyx",
+                "example_value": None,
+            },
+            "partner_type": {
+                "description": "Type de personne",
+                "example_value": None
+            }
+        },
+        display_order=0,
+        display_category="Parent",
+    )
+    def search_parent(self, request, national_number=None, registration_number=None, partner_type=None):
+        url = f"{self.server_url}/{self.aes_instance}/persons?national_number={national_number}&registration_number={registration_number}&partner_type={partner_type}"
+        response = self.session.get(url).json()
+        return response
+
+    @endpoint(
+        name="parents",
+        methods=["get"],
+        perm="can_access",
         description="Lire un parent",
+        long_description="Rechercher et lire un parent selon son numéro de registre national ou son matricule",
         parameters={"parent_id": PARENT_PARAM},
         example_pattern="{parent_id}/",
         pattern="^(?P<parent_id>\w+)/$",
+        display_order=0,
+        display_category="Parent",
     )
     def read_parent(self, request, parent_id):
-        url = f"{self.server_url}/{self.aes_instance}/persons?person_id={parent_id}"
+        url = f"{self.server_url}/{self.aes_instance}/persons/{parent_id}"
         return self.session.get(url).json()
 
+    # @endpoint(
+    #     name="persons",
+    #     methods=["post"],
+    #     perm="can_access",
+    #     description="Créer une personne",
+    # )
     # def create_parent(self, data):
     #     url = f"{self.url}/fleurus/parents"
     #     response = self.session.post(url, json=data)
@@ -112,18 +156,22 @@ class ApimsAesConnector(BaseResource):
     #     methods=["get"],
     #     perm="can_access",
     #     description="Obtenir les enfants d'un parent",
-    #     parameters={"parent_id": PARENT_PARAM},
+    #     parameters={"parent_id": PERSON_PARAM},
     #     example_pattern="{parent_id}/children/",
     #     pattern="^(?P<parent_id>\w+)/children/$",
     # )
     @endpoint(
-        name="children",
+        name="parents",
         methods=["get"],
         perm="can_access",
-        description="Obtenir les enfants d'un parent",
+        description="Lister les enfants d'un parent",
+        long_description="Retourne les enfants d'un parent et filtre leurs données pour n'afficher que l'essentiel.",
         parameters={"parent_id": PARENT_PARAM},
+        example_pattern="{parent_id}/children/",
+        pattern="^(?P<parent_id>\w+)/children/$",
+        display_category="Parent",
     )
-    def children(self, request, parent_id):
+    def list_children(self, request, parent_id):
         url = f"{self.server_url}/{self.aes_instance}/parents/{parent_id}/kids"
         response = self.session.get(url).json()
         result = []
@@ -145,12 +193,13 @@ class ApimsAesConnector(BaseResource):
         name="get-pp-forms",
         methods=["get"],
         perm="can_access",
-        description="Get PP Forms",
+        description="Lister les formulaires de la catégorie Portail Parent",
+        display_category="WCS",
     )
-    def get_pp_forms(self, requests):
-        return self.get_forms()
+    def list_pp_forms(self, requests):
+        return self.get_pp_forms()
 
-    def get_forms(self):
+    def get_pp_forms(self):
         if not getattr(settings, "KNOWN_SERVICES", {}).get("wcs"):
             return
         eservices = list(settings.KNOWN_SERVICES["wcs"].values())[0]
@@ -162,18 +211,20 @@ class ApimsAesConnector(BaseResource):
         return signed_forms_url_response.json()["data"]
 
     @endpoint(
-        name="homepage",
+        name="parents",
         methods=["get"],
         perm="can_access",
-        description="Construire la page d'accueil d'un parent",
+        description="Page d'accueil",
+        long_description="Agrège les données dont la page d'accueil du Portail Parent a besoin.",
         parameters={"parent_id": PARENT_PARAM},
+        example_pattern="{parent_id}/homepage/",
+        pattern="^(?P<parent_id>\w+)/homepage/$",
+        display_category="Parent",
     )
     def homepage(self, request, parent_id):
-        parent_url = (
-            f"{self.server_url}/{self.aes_instance}/persons?person_id={parent_id}"
-        )
+        parent_url = f"{self.server_url}/{self.aes_instance}/persons/{parent_id}"
         if self.session.get(parent_url).status_code == 200:
-            forms = self.get_forms()
+            forms = self.get_pp_forms()
             children_url = (
                 f"{self.server_url}/{self.aes_instance}/parents/{parent_id}/kids"
             )
@@ -217,6 +268,12 @@ class ApimsAesConnector(BaseResource):
         url = f"{self.url}/{self.aes_instance}/kids/{child_id}"
         return self.session.get(url).json()
 
+    # @endpoint(
+    #     name="children",
+    #     methods=["post"],
+    #     perm="can_access",
+    #     description="Ajouter un enfant dans iA.AES",
+    # )
     # def create_child(self, data, parent_id):
     #     url = f"{self.url}/fleurus/parents/{parent_id}/kids"
     #     response = self.session.post(url, json=data)
@@ -227,13 +284,15 @@ class ApimsAesConnector(BaseResource):
         name="children",
         methods=["get"],
         perm="can_access",
-        description="Obtenir la liste des activités disponibles pour un enfant",
+        description="Lister les plaines disponibles pour un enfant",
+        long_description="Retourne les plaines auxquelles l'enfant passé peut être inscrit.",
         parameters={"child_id": CHILD_PARAM},
         example_pattern="{child_id}/activities/",
         pattern="^(?P<child_id>\w+)/activities/$",
+        display_category="Enfant",
     )
     def list_available_plains(self, request, child_id):
-        url = f"{self.server_url}/{self.aes_instance}/activities/{child_id}?type=holiday_plain"
+        url = f"{self.server_url}/{self.aes_instance}/kids/{child_id}/activities?type=holiday_plain"
         return self.session.get(url).json()
 
     # Swagger itself return a 500 error
@@ -243,23 +302,32 @@ class ApimsAesConnector(BaseResource):
         name="children",
         methods=["get"],
         perm="can_access",
-        description="Obtenir la liste des inscriptions de l'enfant",
-        parameters={"child_id": CHILD_PARAM},
-        example_pattern="{child_id}/registrations/",
-        pattern="^(?P<child_id>\w+)/registrations/$",
+        description="Liste les inscriptions d'un enfant",
+        long_description="Retourne, pour un enfant donner, ses inscriptions futures, dans le but de l'en désincrire.",
+        parameters={"child_id": CHILD_PARAM, "category": CATEGORY_PARAM},
+        example_pattern="{child_id}/registrations",
+        pattern="^(?P<child_id>\w+)/registrations$",
+        display_category="Enfant",
     )
-    def list_registrations(self, request, child_id):
-        url = f"{self.server_url}/{self.aes_instance}/registrations/{child_id}?category_type=holiday_plain"
-        return self.session.get(url).json()
+    def list_registrations(self, request, child_id, category):
+        url = f"{self.server_url}/{self.aes_instance}/kids/{child_id}/registrations?category_type={category}"
+        response = self.session.get(url)
+        return {"status_code": response.status_code, "url": url}
 
     def has_valid_healthsheet(self, child_id):
-        url = f"{self.server_url}/{self.aes_instance}/healthsheets/{child_id}"
+        url = f"{self.server_url}/{self.aes_instance}/kids/{child_id}/healthsheet"
         response = self.session.get(url)
+        if response.status_code >= 400:
+            return {
+                "is_valid": False,
+                "status_code": response.status_code,
+                "details": response.json(),
+            }
         healthsheet_last_update = datetime.strptime(
             response.json()[0]["__last_update"][:10], "%Y-%m-%d"
         )
         is_healthsheet_valid = 183 >= (datetime.today() - healthsheet_last_update).days
-        return is_healthsheet_valid
+        return {"is_valid": True}
 
     @endpoint(
         name="children",
@@ -269,9 +337,10 @@ class ApimsAesConnector(BaseResource):
         parameters={"child_id": CHILD_PARAM},
         example_pattern="{child_id}/healthsheet/",
         pattern="^(?P<child_id>\w+)/healthsheet/$",
+        display_category="Enfant",
     )
     def read_healthsheet(self, request, child_id):
-        url = f"{self.server_url}/{self.aes_instance}/healthsheets/{child_id}"
+        url = f"{self.server_url}/{self.aes_instance}/kids/{child_id}/healthsheet"
         return self.session.get(url).json()
 
     @endpoint(
@@ -279,7 +348,9 @@ class ApimsAesConnector(BaseResource):
         methods=["get"],
         perm="can_access",
         description="Consulter les champs d'une fiche santé",
+        long_description="Liste les champs de la fiche santé et leurs valeurs possible.",
         cache_duration=3600,
+        display_category="Fiche santé",
     )
     def list_healthsheet_fields(self, request):
         url = f"{self.server_url}/{self.aes_instance}/models/healthsheet"
@@ -287,14 +358,17 @@ class ApimsAesConnector(BaseResource):
 
     # WIP : need a parent with invoices to validate this
     @endpoint(
-        name="invoices",
+        name="parents",
         methods=["get"],
         perm="can_access",
-        description="Consulter les champs d'une fiche santé",
+        description="Lister les factures d'un parent",
         parameters={
             "parent_id": PARENT_PARAM,
         },
+        example_pattern="{parent_id}/invoices/",
+        pattern="^(?P<parent_id>\w+)/invoices/$",
+        display_category="Parent",
     )
-    def invoices(self, request, parent_id):
-        url = "{self.server_url}/{self.aes_instance}/invoice/{parent_id}"
+    def list_invoices(self, request, parent_id):
+        url = "{self.server_url}/{self.aes_instance}/parents/{parent_id}/invoices"
         return self.session.get(url).json()
