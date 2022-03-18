@@ -109,35 +109,23 @@ class ApimsAesConnector(BaseResource):
             },
             "registration_number": {
                 "description": "Ce numéro correspond matricule de l'usager si celui-ci n'a pas de numéro de registre national. Il s'agit typiquement de son identifiant dans Onyx",
-                "example_value": None,
+                "example_value": "",
             },
             "partner_type": {
                 "description": "Type de personne",
-                "example_value": None
+                "example_value": ""
             }
         },
         display_order=0,
         display_category="Parent",
     )
-    def search_parent(self, request, national_number=None, registration_number=None, partner_type=None):
-        url = f"{self.server_url}/{self.aes_instance}/persons"
-        if national_number or registration_number or partner_type:
-            url += "?"
-            if national_number:
-                url += f"national_number={national_number}"
-            if registration_number:
-                if url[-1] != "?":
-                    url += "&"
-                url += f"registration_number={registration_number}"
-            if partner_type:
-                if url[-1] != "?":
-                    url += "&"
-                url += f"partner_type={partner_type}"
+    def search_parent(self, request, national_number="", registration_number="", partner_type=""):
+        url = f"{self.server_url}/{self.aes_instance}/persons?national_number={national_number}&registration_number={registration_number}&partner_type={partner_type}"
         response = self.session.get(url)
         if response.json()["items_total"] > 1:
-            return {"status": "error", "reason": "Too much persons returned !", "persons": [person["id"] for person in response.json()["items"]]}
+            return {"err": 1, "reason": "Too much persons returned !", "persons": [person["id"] for person in response.json()["items"]]}
         if response.json()["items_total"] == 0:
-            return Http404
+            raise Http404
         return response.json()["items"][0]
 
     @endpoint(
