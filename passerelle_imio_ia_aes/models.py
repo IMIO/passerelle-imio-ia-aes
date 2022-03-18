@@ -63,11 +63,11 @@ class ApimsAesConnector(BaseResource):
 
     PARENT_PARAM = {
         "description": "Identifiant Odoo interne du parent",
-        "example_value": "00000000097",
+        "example_value": "11",
     }
     CHILD_PARAM = {
         "description": "Identifiant Odoo interne de l'enfant",
-        "example_value": "00000000097",
+        "example_value": "1",
     }
     CATEGORY_PARAM = {
         "description": "Identifiants du type d'activité",
@@ -192,7 +192,7 @@ class ApimsAesConnector(BaseResource):
         url = f"{self.server_url}/{self.aes_instance}/parents/{parent_id}/kids"
         response = self.session.get(url).json()
         result = []
-        for child in response:
+        for child in response["items"]:
             result.append(
                 {
                     "id": child["national_number"],
