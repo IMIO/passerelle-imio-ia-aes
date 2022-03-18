@@ -26,6 +26,7 @@ from django.conf import settings
 from django.http import Http404
 from django.http import HttpResponse
 from django.urls import path, reverse
+from django.core.exceptions import MultipleObjectsReturned
 from datetime import datetime
 from passerelle.base.models import BaseResource
 from passerelle.base.signature import sign_url
@@ -123,7 +124,7 @@ class ApimsAesConnector(BaseResource):
         url = f"{self.server_url}/{self.aes_instance}/persons?national_number={national_number}&registration_number={registration_number}&partner_type={partner_type}"
         response = self.session.get(url)
         if response.json()["items_total"] > 1:
-            return {"err": 1, "reason": "Too much persons returned !", "persons": [person["id"] for person in response.json()["items"]]}
+            raise MultipleObjectsReturned
         if response.json()["items_total"] == 0:
             raise Http404
         return response.json()["items"][0]
