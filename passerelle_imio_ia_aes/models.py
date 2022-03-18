@@ -120,9 +120,25 @@ class ApimsAesConnector(BaseResource):
         display_category="Parent",
     )
     def search_parent(self, request, national_number=None, registration_number=None, partner_type=None):
-        url = f"{self.server_url}/{self.aes_instance}/persons?national_number={national_number}&registration_number={registration_number}&partner_type={partner_type}"
-        response = self.session.get(url).json()
-        return response
+        url = f"{self.server_url}/{self.aes_instance}/persons"
+        if national_number or registration_number or partner_type:
+            url += "?"
+            if national_number:
+                url += f"national_number={national_number}"
+            if registration_number:
+                if url[-1] != "?":
+                    url += "&"
+                url += f"registration_number={registration_number}"
+            if partner_type:
+                if url[-1] != "?":
+                    url += "&"
+                url += f"partner_type={partner_type}"
+        response = self.session.get(url)
+        if response.json()["items_total"] > 1:
+            return {"status": "error", "reason": "Too much persons returned !", "persons": [person["id"] for person in response.json()["items"]]}
+        if response.json()["items_total"] == 0:
+            return Http404
+        return response.json()["items"][0]
 
     @endpoint(
         name="parents",
@@ -137,8 +153,9 @@ class ApimsAesConnector(BaseResource):
         display_category="Parent",
     )
     def read_parent(self, request, parent_id):
-        url = f"{self.server_url}/{self.aes_instance}/persons/{parent_id}"
-        return self.session.get(url).json()
+        url = f"{self.server_url}/{self.aes_instance}/parents/{parent_id}"
+        response = self.session.get(url).json()
+        return response
 
     # @endpoint(
     #     name="persons",
