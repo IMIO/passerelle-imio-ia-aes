@@ -373,7 +373,6 @@ class ApimsAesConnector(BaseResource):
         url = f"{self.server_url}/{self.aes_instance}/models/healthsheet"
         return self.session.get(url).json()
 
-    # WIP : need a parent with invoices to validate this
     @endpoint(
         name="parents",
         methods=["get"],
@@ -387,5 +386,5 @@ class ApimsAesConnector(BaseResource):
         display_category="Parent",
     )
     def list_invoices(self, request, parent_id):
-        url = "{self.server_url}/{self.aes_instance}/parents/{parent_id}/invoices"
-        return self.session.get(url).json()
+        url = f"{self.server_url}/{self.aes_instance}/parents/{parent_id}/invoices"
+        return self.session.get(url).json()["items"]
