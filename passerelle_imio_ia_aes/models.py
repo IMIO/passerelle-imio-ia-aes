@@ -195,7 +195,8 @@ class ApimsAesConnector(BaseResource):
         for child in response["items"]:
             result.append(
                 {
-                    "id": child["national_number"],
+                    "id": child["id"],
+                    "national_number": child["national_number"],
                     "name": child["display_name"],
                     "birthdate": child["birthdate_date"],
                     "activities": child["activity_ids"],
@@ -239,13 +240,13 @@ class ApimsAesConnector(BaseResource):
         display_category="Parent",
     )
     def homepage(self, request, parent_id):
-        parent_url = f"{self.server_url}/{self.aes_instance}/persons/{parent_id}"
+        parent_url = f"{self.server_url}/{self.aes_instance}/parents/{parent_id}"
         if self.session.get(parent_url).status_code == 200:
             forms = self.get_pp_forms()
             children_url = (
                 f"{self.server_url}/{self.aes_instance}/parents/{parent_id}/kids"
             )
-            children = self.session.get(children_url).json()
+            children = self.session.get(children_url).json()["items"]
             result = {
                 "is_parent": True,
                 "children": [],
@@ -253,7 +254,8 @@ class ApimsAesConnector(BaseResource):
             for child in children:
                 result["children"].append(
                     {
-                        "id": child["national_number"],
+                        "id": child["id"],
+                        "national_number": child["national_number"],
                         "name": child["display_name"],
                         "age": child["birthdate_date"],
                         "activities": child["activity_ids"],
@@ -262,7 +264,7 @@ class ApimsAesConnector(BaseResource):
                         else child["school_implantation_id"][1],
                         "level": child["level_id"],
                         "healthsheet": self.has_valid_healthsheet(
-                            child["national_number"]
+                            child["id"]
                         )
                         if len(child["health_sheet_ids"]) > 0
                         else False,
