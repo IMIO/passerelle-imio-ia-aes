@@ -20,6 +20,7 @@ from builtins import str
 
 
 import logging
+import re
 import requests
 from django.db import models
 from django.conf import settings
@@ -112,22 +113,23 @@ class ApimsAesConnector(BaseResource):
                 "description": "Ce numéro correspond matricule de l'usager si celui-ci n'a pas de numéro de registre national. Il s'agit typiquement de son identifiant dans Onyx",
                 "example_value": "",
             },
-            "partner_type": {
-                "description": "Type de personne",
-                "example_value": ""
-            }
+            "partner_type": {"description": "Type de personne", "example_value": ""},
         },
         display_order=0,
         display_category="Parent",
     )
-    def search_parent(self, request, national_number="", registration_number="", partner_type=""):
+    def search_parent(
+        self, request, national_number="", registration_number="", partner_type=""
+    ):
         url = f"{self.server_url}/{self.aes_instance}/persons?national_number={national_number}&registration_number={registration_number}&partner_type={partner_type}"
         response = self.session.get(url)
         if response.json()["items_total"] > 1:
             raise MultipleObjectsReturned
         if response.json()["items_total"] == 0:
-            raise Http404
-        return response.json()["items"][0]
+            parent_id = None
+        else:
+            parent_id = response.json()["items"][0]["id"]
+        return {"parent_id": parent_id}
 
     @endpoint(
         name="parents",
@@ -146,26 +148,73 @@ class ApimsAesConnector(BaseResource):
         response = self.session.get(url).json()
         return response
 
-    # @endpoint(
-    #     name="persons",
-    #     methods=["post"],
-    #     perm="can_access",
-    #     description="Créer une personne",
-    # )
-    # def create_parent(self, data):
-    #     url = f"{self.url}/fleurus/parents"
-    #     response = self.session.post(url, json=data)
-    #     return response.json()
+    def list_localities(self):
+        url = f"{self.server_url}/{self.aes_instance}/localities"
+        response = self.session.get(url)
+        return response.json()["items"]
 
-    # @endpoint(
-    #     name="parents",
-    #     methods=["get"],
-    #     perm="can_access",
-    #     description="Obtenir les enfants d'un parent",
-    #     parameters={"parent_id": PERSON_PARAM},
-    #     example_pattern="{parent_id}/children/",
-    #     pattern="^(?P<parent_id>\w+)/children/$",
-    # )
+    def filtered_localities_by_zipcode(self, zipcode):
+        localities = [
+            locality
+            for locality in self.list_localities()
+            if locality["zip"] == zipcode
+        ]
+        return localities
+
+    def cleanup_string(self, s):
+        result, accent, without_accent = (
+            "",
+            ["é", "è", "ê", "à", "ù", "û", "ç", "ô", "î", "ï", "â"],
+            ["e", "e", "e", "a", "u", "u", "c", "o", "i", "i", "a"],
+        )
+        result = re.sub(r"[^\w\s]", "", s).replace(" ", "").lower()
+        for ac, wo in zip(accent, without_accent):
+            result = result.replace(ac, wo)
+        return result
+
+    def compute_matching_score(self, str1, str2):
+        cleaned_str1 = self.cleanup_string(str1)
+        cleaned_str2 = self.cleanup_string(str2)
+        matching_score = 0
+        for element in set(cleaned_str1 + cleaned_str2):
+            matching_score += max(
+                cleaned_str1.count(element), cleaned_str2.count(element)
+            ) - min(cleaned_str1.count(element), cleaned_str2.count(element))
+        return matching_score
+
+    def search_locality(self, zipcode, locality):
+        aes_localities = self.filtered_localities_by_zipcode(zipcode)
+        for aes_locality in aes_localities:
+            aes_locality["matching_score"] = self.compute_matching_score(
+                aes_locality["name"], locality
+            )
+        return sorted(aes_localities, key=lambda x: x["matching_score"])[0]
+
+    @endpoint(
+        name="create-parent",
+        methods=["post"],
+        perm="can_access",
+        description="Créer un parent",
+        long_description="Crée un parent dans AES avec les informations contenues dans le cors de la requête",
+        display_category="Parent",
+    )
+    def create_parent(self, request):
+        url = f"{self.server_url}/{self.aes_instance}/parents"
+        post_data = json_loads(request.body)
+        parent = {
+            "firstname": post_data["firstname"],
+            "lastname": post_data["lastname"],
+            "email": post_data["email"],
+            "phone": post_data["phone"],
+            "street": post_data["street"],
+            "locality_id": self.search_locality(post_data["zipcode"], post_data["locality"])["id"],
+            "is_company": post_data["is_company"],
+            "national_number": post_data["national_number"],
+            "registration_number": post_data["registration_number"]
+        }
+        response = self.session.post(url, json=parent)
+        return response.json()
+
     @endpoint(
         name="parents",
         methods=["get"],
@@ -252,9 +301,7 @@ class ApimsAesConnector(BaseResource):
                         if not child["school_implantation_id"]
                         else child["school_implantation_id"][1],
                         "level": child["level_id"],
-                        "healthsheet": self.has_valid_healthsheet(
-                            child["id"]
-                        )
+                        "healthsheet": self.has_valid_healthsheet(child["id"])
                         if len(child["health_sheet_ids"]) > 0
                         else False,
                         "forms": [
