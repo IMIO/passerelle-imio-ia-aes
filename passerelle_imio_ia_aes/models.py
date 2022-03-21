@@ -148,6 +148,32 @@ class ApimsAesConnector(BaseResource):
         response = self.session.get(url).json()
         return response
 
+    @endpoint(
+        name="levels",
+        methods=["get"],
+        perm="can_access",
+        description="Lister les niveaux",
+        long_description="Liste les niveaux scolaires.",
+        display_category="Données génériques",
+    )
+    def list_levels(self, request):
+        url = f"{self.server_url}/{self.aes_instance}/levels"
+        response = self.session.get(url).json()
+        return response
+
+    @endpoint(
+        name="places",
+        methods=["get"],
+        perm="can_access",
+        description="Lister les lieux d'accueil",
+        long_description="Liste les lieux d'accueil",
+        display_category="Données génériques",
+    )
+    def list_places(self, request):
+        url = f"{self.server_url}/{self.aes_instance}/places"
+        response = self.session.get(url).json()
+        return response
+
     def list_localities(self):
         url = f"{self.server_url}/{self.aes_instance}/localities"
         response = self.session.get(url)
@@ -189,6 +215,32 @@ class ApimsAesConnector(BaseResource):
                 aes_locality["name"], locality
             )
         return sorted(aes_localities, key=lambda x: x["matching_score"])[0]
+
+    @endpoint(
+        name="localities",
+        methods=["get"],
+        perm="can_access",
+        description="Recherche",
+        long_description="Recherche, filtre et trie les localités",
+        parameters={
+            "zipcode": {
+                "description": "code postal",
+                "example_value": "5032",
+            },
+            "locality": {
+                "description": "Localité",
+                "example_value": "Gembloux",
+            },
+        },
+        display_category="Localités",
+    )
+    def search_and_list_localities(self, request, zipcode, locality):
+        aes_localities = self.filtered_localities_by_zipcode(zipcode)
+        for aes_locality in aes_localities:
+            aes_locality["matching_score"] = self.compute_matching_score(
+                aes_locality["name"], locality
+            )
+        return sorted(aes_localities, key=lambda x: x["matching_score"])
 
     @endpoint(
         name="create-parent",
@@ -301,9 +353,7 @@ class ApimsAesConnector(BaseResource):
                         if not child["school_implantation_id"]
                         else child["school_implantation_id"][1],
                         "level": child["level_id"],
-                        "healthsheet": self.has_valid_healthsheet(child["id"])
-                        if len(child["health_sheet_ids"]) > 0
-                        else False,
+                        "healthsheet": self.has_valid_healthsheet(child["id"]),
                         "forms": [
                             {
                                 "title": form["title"],
@@ -334,6 +384,31 @@ class ApimsAesConnector(BaseResource):
     #     response = self.session.post(url, json=data)
     #     return response.json()
 
+    @endpoint(
+        name="parents",
+        methods=["post"],
+        perm="can_access",
+        description="Créer un enfant",
+        long_description="Crée un enfant dans iA.AES avec les informations contenues dans le corps de la requête.",
+        parameters={"parent_id": PARENT_PARAM},
+        example_pattern="{parent_id}/children/",
+        pattern="^(?P<parent_id>\w+)/children/$",
+        display_category="Enfant",
+    )
+    def create_child(self, request, parent_id):
+        url = f"{self.server_url}/{self.aes_instance}/parents/{parent_id}/kids"
+        post_data = json_loads(request.body)
+        child = {
+            "firstname": post_data["firstname"],
+            "lastname": post_data["lastname"],
+            "school_implantation_id" : post_data["school_implantation_id"],
+            "level_id": post_data["level_id"],
+            "birthdate_date": post_data["birthdate"],
+            "national_number": post_data["national_number"]
+        }
+        response = self.session.post(url, json=child)
+        return response.json()
+
     # WIP : need a child with available plains to validate this
     @endpoint(
         name="children",
@@ -358,7 +433,7 @@ class ApimsAesConnector(BaseResource):
         methods=["get"],
         perm="can_access",
         description="Liste les inscriptions d'un enfant",
-        long_description="Retourne, pour un enfant donner, ses inscriptions futures, dans le but de l'en désincrire.",
+        long_description="Retourne, pour un enfant donné, ses inscriptions futures, dans le but de l'en désincrire.",
         parameters={"child_id": CHILD_PARAM, "category": CATEGORY_PARAM},
         example_pattern="{child_id}/registrations",
         pattern="^(?P<child_id>\w+)/registrations$",
@@ -378,11 +453,13 @@ class ApimsAesConnector(BaseResource):
                 "status_code": response.status_code,
                 "details": response.json(),
             }
+        if response.json()[0]["__last_update"] == response.json()[0]["create_date"]:
+            return False
         healthsheet_last_update = datetime.strptime(
             response.json()[0]["__last_update"][:10], "%Y-%m-%d"
         )
         is_healthsheet_valid = 183 >= (datetime.today() - healthsheet_last_update).days
-        return {"is_valid": True}
+        return is_healthsheet_valid
 
     @endpoint(
         name="children",
