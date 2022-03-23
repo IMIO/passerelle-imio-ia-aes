@@ -481,18 +481,13 @@ class ApimsAesConnector(BaseResource):
         result = dict()
         for k, v in response.items():
             if isinstance(v, dict):
-                result[k] = {
-                    "data": [
-                        {"id": choice[0], "text": choice[1]}
-                        for choice in v["selection"]
-                    ]
-                }
+                result[k] = [
+                    {"id": choice[0], "text": choice[1]} for choice in v["selection"]
+                ]
             elif isinstance(v, list):
-                result[k] = {
-                    "data": [
-                        {"id": choice["id"], "text": choice["name"]} for choice in v
-                    ]
-                }
+                result[k] = [
+                    {"id": choice["id"], "text": choice["name"]} for choice in v
+                ]
         return result
 
     @endpoint(
