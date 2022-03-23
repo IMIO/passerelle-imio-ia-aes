@@ -259,10 +259,12 @@ class ApimsAesConnector(BaseResource):
             "email": post_data["email"],
             "phone": post_data["phone"],
             "street": post_data["street"],
-            "locality_id": self.search_locality(post_data["zipcode"], post_data["locality"])["id"],
+            "locality_id": self.search_locality(
+                post_data["zipcode"], post_data["locality"]
+            )["id"],
             "is_company": post_data["is_company"],
             "national_number": post_data["national_number"],
-            "registration_number": post_data["registration_number"]
+            "registration_number": post_data["registration_number"],
         }
         response = self.session.post(url, json=parent)
         return response.json()
@@ -295,7 +297,7 @@ class ApimsAesConnector(BaseResource):
                     "healthsheet": child["health_sheet_ids"],
                 }
             )
-        return result
+        return {"items": result}
 
     @endpoint(
         name="get-pp-forms",
@@ -373,17 +375,6 @@ class ApimsAesConnector(BaseResource):
         url = f"{self.url}/{self.aes_instance}/kids/{child_id}"
         return self.session.get(url).json()
 
-    # @endpoint(
-    #     name="children",
-    #     methods=["post"],
-    #     perm="can_access",
-    #     description="Ajouter un enfant dans iA.AES",
-    # )
-    # def create_child(self, data, parent_id):
-    #     url = f"{self.url}/fleurus/parents/{parent_id}/kids"
-    #     response = self.session.post(url, json=data)
-    #     return response.json()
-
     @endpoint(
         name="parents",
         methods=["post"],
@@ -391,8 +382,8 @@ class ApimsAesConnector(BaseResource):
         description="Créer un enfant",
         long_description="Crée un enfant dans iA.AES avec les informations contenues dans le corps de la requête.",
         parameters={"parent_id": PARENT_PARAM},
-        example_pattern="{parent_id}/children/",
-        pattern="^(?P<parent_id>\w+)/children/$",
+        example_pattern="{parent_id}/children/create",
+        pattern="^(?P<parent_id>\w+)/children/create$",
         display_category="Enfant",
     )
     def create_child(self, request, parent_id):
@@ -401,10 +392,10 @@ class ApimsAesConnector(BaseResource):
         child = {
             "firstname": post_data["firstname"],
             "lastname": post_data["lastname"],
-            "school_implantation_id" : post_data["school_implantation_id"],
+            "school_implantation_id": post_data["school_implantation_id"],
             "level_id": post_data["level_id"],
             "birthdate_date": post_data["birthdate"],
-            "national_number": post_data["national_number"]
+            "national_number": post_data["national_number"],
         }
         response = self.session.post(url, json=child)
         return response.json()
@@ -473,20 +464,36 @@ class ApimsAesConnector(BaseResource):
     )
     def read_healthsheet(self, request, child_id):
         url = f"{self.server_url}/{self.aes_instance}/kids/{child_id}/healthsheet"
-        return self.session.get(url).json()
+        return self.session.get(url).json()[0]
 
     @endpoint(
-        name="healtsheets-fields",
+        name="healtsheet-fields",
         methods=["get"],
         perm="can_access",
         description="Consulter les champs d'une fiche santé",
         long_description="Liste les champs de la fiche santé et leurs valeurs possible.",
-        cache_duration=3600,
+        # cache_duration=3600,
         display_category="Fiche santé",
     )
     def list_healthsheet_fields(self, request):
         url = f"{self.server_url}/{self.aes_instance}/models/healthsheet"
-        return self.session.get(url).json()
+        response = self.session.get(url).json()
+        result = dict()
+        for k, v in response.items():
+            if isinstance(v, dict):
+                result[k] = {
+                    "data": [
+                        {"id": choice[0], "text": choice[1]}
+                        for choice in v["selection"]
+                    ]
+                }
+            elif isinstance(v, list):
+                result[k] = {
+                    "data": [
+                        {"id": choice["id"], "text": choice["name"]} for choice in v
+                    ]
+                }
+        return result
 
     @endpoint(
         name="parents",
