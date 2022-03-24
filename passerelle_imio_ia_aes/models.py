@@ -17,6 +17,7 @@
 
 
 from builtins import str
+from email import header
 
 
 import logging
@@ -74,6 +75,12 @@ class ApimsAesConnector(BaseResource):
     CATEGORY_PARAM = {
         "description": "Identifiants du type d'activité",
         "example_value": "holiday_plain",
+    }
+    FORMS_ICONS = {
+        "plaines-de-vacances": "static/imio/images/portail_parent/black-camp.svg",
+        "fiche-sante": "static/imio/images/portail_parent/black-sante.svg",
+        "repas-scolaires": "static/imio/images/portail_parent/black-repas.svg",
+        "desinscription-repas": "static/imio/images/portail_parent/black-no-repas.svg",
     }
 
     class Meta:
@@ -320,6 +327,17 @@ class ApimsAesConnector(BaseResource):
         signed_forms_url_response = self.requests.get(signed_forms_url)
         return signed_forms_url_response.json()["data"]
 
+    def set_form_status(self, form_slug, has_valid_healthsheet):
+        if form_slug == "plaines-de-vacances":
+            result = None if has_valid_healthsheet else "locked"
+        elif form_slug == "fiche-sante":
+            result = "valid" if has_valid_healthsheet else "invalid"
+        elif form_slug == "repas-scolaires":
+            result = None
+        elif form_slug == "desinscription-repas":
+            result = None
+        return result
+
     @endpoint(
         name="parents",
         methods=["get"],
@@ -332,43 +350,45 @@ class ApimsAesConnector(BaseResource):
         display_category="Parent",
     )
     def homepage(self, request, parent_id):
-        parent_url = f"{self.server_url}/{self.aes_instance}/parents/{parent_id}"
-        if self.session.get(parent_url).status_code == 200:
+        url = f"{self.server_url}/{self.aes_instance}/parents/{parent_id}/kids"
+        response = self.session.get(url)
+        if response.status_code == 200:
             forms = self.get_pp_forms()
-            children_url = (
-                f"{self.server_url}/{self.aes_instance}/parents/{parent_id}/kids"
-            )
-            children = self.session.get(children_url).json()["items"]
+            children = response.json()["items"]
             result = {
                 "is_parent": True,
                 "children": [],
             }
             for child in children:
+                has_valid_healthsheet = self.has_valid_healthsheet(child["id"])
                 result["children"].append(
                     {
                         "id": child["id"],
                         "national_number": child["national_number"],
                         "name": child["display_name"],
-                        "age": child["birthdate_date"],
+                        "age": child["birthdate_date"],  # TODO : compute age
                         "activities": child["activity_ids"],
                         "school_implantation": False
                         if not child["school_implantation_id"]
                         else child["school_implantation_id"][1],
                         "level": child["level_id"],
-                        "healthsheet": self.has_valid_healthsheet(child["id"]),
+                        "healthsheet": has_valid_healthsheet,
                         "forms": [
                             {
                                 "title": form["title"],
                                 "slug": form["slug"],
-                                "status": "available",
-                                "image": "H",
+                                "status": self.set_form_status(
+                                    form["slug"], has_valid_healthsheet
+                                ),
+                                "image": self.FORMS_ICONS[form["slug"]],
                             }
                             for form in forms
+                            if form["slug"] in self.FORMS_ICONS
                         ],
                     }
                 )
         else:
-            result = {"is_parent": False}
+            result = {"is_parent": False, "status": response.status_code}
         return result
 
     def read_child(self, child_id):
