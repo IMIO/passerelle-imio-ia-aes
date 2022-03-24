@@ -179,7 +179,7 @@ class ApimsAesConnector(BaseResource):
         response = self.session.get(url)
         return response.json()["items"]
 
-    def filtered_localities_by_zipcode(self, zipcode):
+    def filter_localities_by_zipcode(self, zipcode):
         localities = [
             locality
             for locality in self.list_localities()
@@ -209,7 +209,7 @@ class ApimsAesConnector(BaseResource):
         return matching_score
 
     def search_locality(self, zipcode, locality):
-        aes_localities = self.filtered_localities_by_zipcode(zipcode)
+        aes_localities = self.filter_localities_by_zipcode(zipcode)
         for aes_locality in aes_localities:
             aes_locality["matching_score"] = self.compute_matching_score(
                 aes_locality["name"], locality
@@ -235,7 +235,7 @@ class ApimsAesConnector(BaseResource):
         display_category="Localités",
     )
     def search_and_list_localities(self, request, zipcode, locality):
-        aes_localities = self.filtered_localities_by_zipcode(zipcode)
+        aes_localities = self.filter_localities_by_zipcode(zipcode)
         for aes_locality in aes_localities:
             aes_locality["matching_score"] = self.compute_matching_score(
                 aes_locality["name"], locality
@@ -400,7 +400,6 @@ class ApimsAesConnector(BaseResource):
         response = self.session.post(url, json=child)
         return response.json()
 
-
     # WIP : need a child with available menus to validate this
     @endpoint(
         name="menus",
@@ -408,14 +407,19 @@ class ApimsAesConnector(BaseResource):
         perm="can_access",
         description="Lire le menu proposé à un enfant",
         long_description="Retourne le menu proposé à un enfant, en fonction du mois concerné.",
-        parameters={"child_id": CHILD_PARAM, "month": {"description": "Mois concerné, si pour ce mois-ci, 1 pour le mois prochain, 2 pour dans deux mois", "example_value": 0}},
+        parameters={
+            "child_id": CHILD_PARAM,
+            "month": {
+                "description": "Mois concerné, si pour ce mois-ci, 1 pour le mois prochain, 2 pour dans deux mois",
+                "example_value": 0,
+            },
+        },
         display_category="Repas",
     )
     def list_available_meals(self, request, child_id, month):
         url = f"{self.server_url}/{self.aes_instance}/menus?kid_id={child_id}&month={month}"
         response = self.session.get(url)
         return response.json()
-
 
     # WIP : need a child with available plains to validate this
     @endpoint(
