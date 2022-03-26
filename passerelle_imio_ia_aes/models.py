@@ -156,6 +156,19 @@ class ApimsAesConnector(BaseResource):
         return response
 
     @endpoint(
+        name="countries",
+        methods=["get"],
+        perm="can_access",
+        description="Lister les pays",
+        long_description="Liste les pays tels qu'enregistrés dans iA.AES.",
+        display_category="Données génériques",
+    )
+    def list_countries(self, request):
+        url = f"{self.server_url}/{self.aes_instance}/countries"
+        response = self.session.get(url).json()
+        return response
+
+    @endpoint(
         name="levels",
         methods=["get"],
         perm="can_access",
