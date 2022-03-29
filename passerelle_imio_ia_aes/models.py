@@ -470,6 +470,38 @@ class ApimsAesConnector(BaseResource):
         url = f"{self.server_url}/{self.aes_instance}/kids/{child_id}/activities?type=holiday_plain"
         return self.session.get(url).json()
 
+    @endpoint(
+        name="children",
+        methods=["get"],
+        perm="can_access",
+        description="Lire le menu pour un enfant",
+        long_description="Retourne le menu auquel l'enfant peut être inscrit.",
+        parameters={
+            "child_id": CHILD_PARAM,
+            "month": {
+                "description": "0 pour le mois actuel, 1 pour le mois prochain, 2 pour le mois d'après.",
+                "example_value": "1",
+            },
+        },
+        example_pattern="{child_id}/menu",
+        pattern="^(?P<child_id>\w+)/menu$",
+        display_category="Enfant",
+    )
+    def read_menu(self, request, child_id, month):
+        url = f"{self.server_url}/{self.aes_instance}/menus?kid_id={child_id}&month={month}"
+        response = self.session.get(url)
+        menu = []
+        for item in response.json()["items"]:
+            menu.append(
+                {
+                    "id": f"_{item['date'][8:]}{item['date'][4:8]}{item['date'][:4]}_{item['meal_ids'][0]['regime']}",
+                    "meal_id": item["meal_id"],
+                    "text": item["meal_ids"][0]["name"],
+                    "type": item["meal_ids"][0]["regime"],
+                }
+            )
+        return sorted(menu, key=lambda x: x["id"])
+
     # Swagger itself return a 500 error
     # Waiting for ticket AES-948
     # WIP : need a child with registrations to validate this
