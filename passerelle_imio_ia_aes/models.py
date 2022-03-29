@@ -502,6 +502,44 @@ class ApimsAesConnector(BaseResource):
             )
         return sorted(menu, key=lambda x: x["id"])
 
+    # @endpoint(
+    #     name="children",
+    #     methods=["get"],
+    #     perm="can_access",
+    #     description="Inscire un enfant aux repas",
+    #     long_description="Inscrit un enfant aux repas.",
+    #     display_category="Enfant",
+    # )   
+    # def register_child_to_meals(self, request):
+    #     url = f"{self.server_url}/{self.aes_instance}/menus/registration"
+    #     post_data = json_loads(request.body)
+    #     data = {
+    #         "kid_id": post_data["child_id"],
+    #         "month": post_data["month"],
+    #         "year": 2022,
+    #         "school_implantation_id": 2,
+    #         "place_id": 3,
+    #         "meal": [
+    #             {
+    #             "date": "2022-04-13",
+    #             "regime": "regular",
+    #             "activity_id": 1
+    #             },
+    #             {
+    #             "date": "2022-04-17",
+    #             "regime": "regular",
+    #             "activity_id": 1
+    #             },
+    #             {
+    #             "date": "2022-04-24",
+    #             "regime": "regular",
+    #             "activity_id": 1
+    #             }
+    #         ]
+    #     }
+    #     response = self.session.post(url, json=data)
+    #     return response
+
     # Swagger itself return a 500 error
     # Waiting for ticket AES-948
     # WIP : need a child with registrations to validate this
