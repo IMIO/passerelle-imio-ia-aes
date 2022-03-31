@@ -608,6 +608,21 @@ class ApimsAesConnector(BaseResource):
         return self.session.get(url).json()[0]
 
     @endpoint(
+        name="children",
+        methods=["put"],
+        perm="can_access",
+        description="Mettre à jour la fiche santé d'un enfant",
+        parameters={"child_id": CHILD_PARAM},
+        example_pattern="{child_id}/healthsheet/update",
+        pattern="^(?P<child_id>\w+)/healthsheet/update$",
+        display_category="Enfant",
+    )
+    def update_healthsheet(self, request, child_id):
+        body = json_loads(request.body)
+        url = f"{self.server_url}/{self.aes_instance}/kids/{child_id}/healthsheet"
+        return self.session.put(url, json=body)
+
+    @endpoint(
         name="healtsheet-fields",
         methods=["get"],
         perm="can_access",
