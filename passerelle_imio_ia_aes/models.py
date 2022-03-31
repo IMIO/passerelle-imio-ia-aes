@@ -502,43 +502,60 @@ class ApimsAesConnector(BaseResource):
             )
         return sorted(menu, key=lambda x: x["id"])
 
-    # @endpoint(
-    #     name="children",
-    #     methods=["get"],
-    #     perm="can_access",
-    #     description="Inscire un enfant aux repas",
-    #     long_description="Inscrit un enfant aux repas.",
-    #     display_category="Enfant",
-    # )   
-    # def register_child_to_meals(self, request):
-    #     url = f"{self.server_url}/{self.aes_instance}/menus/registration"
-    #     post_data = json_loads(request.body)
-    #     data = {
-    #         "kid_id": post_data["child_id"],
-    #         "month": post_data["month"],
-    #         "year": 2022,
-    #         "school_implantation_id": 2,
-    #         "place_id": 3,
-    #         "meal": [
-    #             {
-    #             "date": "2022-04-13",
-    #             "regime": "regular",
-    #             "activity_id": 1
-    #             },
-    #             {
-    #             "date": "2022-04-17",
-    #             "regime": "regular",
-    #             "activity_id": 1
-    #             },
-    #             {
-    #             "date": "2022-04-24",
-    #             "regime": "regular",
-    #             "activity_id": 1
-    #             }
-    #         ]
-    #     }
-    #     response = self.session.post(url, json=data)
-    #     return response
+    @endpoint(
+        name="children",
+        methods=["post"],
+        perm="can_access",
+        description="Inscrire un enfant aux repas",
+        long_description="Crée les inscriptions aux repas dans iA.AES pour un enfant.",
+        parameters={
+            "child_id": CHILD_PARAM,
+        },
+        example_pattern="{child_id}/menu/registration",
+        pattern="^(?P<child_id>\w+)/menu/registration$",
+        display_category="Enfant",
+    )
+    def create_menu_registration(self, request, child_id):
+        post_data=json_loads(request.body)
+        # json = {
+        #     "kid_id": child_id,
+        #     "month": post_data["month"],
+        #     "year": post_data["year"],
+        #     "school_implantation_id": post_data["school_implantation_id"],
+        #     "place_id": post_data["place_id"],
+        #     "meal_ids": post_data["meal_ids"],
+        #     "meal": post_data["meals"],
+        # }
+        data = {
+            "kid_id": 22, # post_data["child_id"],
+            "month": 4, # post_data["month"],
+            "year": 2022,
+            "school_implantation_id": 2,
+            "place_id": 3,
+            "meal": [
+                {
+                "date": "2022-04-13",
+                "regime": "regular",
+                "activity_id": 1
+                },
+                {
+                "date": "2022-04-17",
+                "regime": "regular",
+                "activity_id": 1
+                },
+                {
+                "date": "2022-04-24",
+                "regime": "regular",
+                "activity_id": 1
+                }
+            ]
+        }
+        url = f"{self.server_url}/{self.aes_instance}/menus/registration"
+        response = self.session.post(url, json=data)
+        if response.status_code >= 400:
+            self.logger.error(f"Inscription aux repas - Réponse non conforme : {response.status_code} >= 400")
+            response.raise_for_status()
+        return {"distant": response.status_code}
 
     # Swagger itself return a 500 error
     # Waiting for ticket AES-948
