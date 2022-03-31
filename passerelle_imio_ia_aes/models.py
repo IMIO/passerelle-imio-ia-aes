@@ -647,6 +647,20 @@ class ApimsAesConnector(BaseResource):
         return result
 
     @endpoint(
+        name="doctors",
+        methods=["post"],
+        perm="can_access",
+        description="Créer un médecin",
+        example_pattern="doctors/create",
+        pattern="^doctors/create$",
+        display_category="Médecin",
+    )
+    def create_doctor(self, request, child_id):
+        body = json_loads(request.body)
+        url = f"{self.server_url}/{self.aes_instance}/doctors"
+        return self.session.post(url, json=body)
+
+    @endpoint(
         name="parents",
         methods=["get"],
         perm="can_access",
