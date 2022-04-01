@@ -70,7 +70,7 @@ class ApimsAesConnector(BaseResource):
     }
     CHILD_PARAM = {
         "description": "Identifiant Odoo interne de l'enfant",
-        "example_value": "1",
+        "example_value": "22",
     }
     CATEGORY_PARAM = {
         "description": "Identifiants du type d'activité",
@@ -474,19 +474,48 @@ class ApimsAesConnector(BaseResource):
 
     # WIP : need a child with available plains to validate this
     @endpoint(
-        name="children",
+        name="plains",
         methods=["get"],
         perm="can_access",
         description="Lister les plaines disponibles pour un enfant",
         long_description="Retourne les plaines auxquelles l'enfant passé peut être inscrit.",
         parameters={"child_id": CHILD_PARAM},
-        example_pattern="{child_id}/activities/",
-        pattern="^(?P<child_id>\w+)/activities/$",
-        display_category="Enfant",
+        display_category="Plaines",
     )
     def list_available_plains(self, request, child_id):
-        url = f"{self.server_url}/{self.aes_instance}/kids/{child_id}/activities?type=holiday_plain"
-        return self.session.get(url).json()
+        url = f"{self.server_url}/{self.aes_instance}/plains?kid_id={child_id}"
+        response = self.session.get(url)
+        weeks, result = set(), []
+        for activity in response.json():
+            new_activity = {
+                # 'id': '{}_{}_{}'.format(activity['year'], activity['week'], activity['activity_id']),
+                "id": "{}_{}_{}".format(2022, activity["week"], activity["id"]),
+                "text": activity.get("theme")
+                if activity.get("theme") and activity.get("theme") != "False"
+                else activity["activity_name"],
+                "week": activity["week"],
+            }
+            if activity["week"] not in weeks:
+                result.append(
+                    {
+                        "id": activity["week"],
+                        "text": "Semaine {}".format(activity["week"]),
+                        "activities": [new_activity],
+                        "week": activity["week"],
+                        "monday": datetime.strptime(
+                            "{}-{}-1".format(datetime.today().year, activity["week"]),
+                            "%Y-%W-%w",
+                        ).date(),
+                    }
+                )
+                weeks.add(activity["week"])
+            else:
+                [
+                    week["activities"].append(new_activity)
+                    for week in result
+                    if week["id"] == activity["week"]
+                ]
+        return result
 
     @endpoint(
         name="children",
