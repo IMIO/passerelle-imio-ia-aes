@@ -472,7 +472,10 @@ class ApimsAesConnector(BaseResource):
         response = self.session.get(url)
         return response.json()
 
-    # WIP : need a child with available plains to validate this
+    ##############
+    ### PLAINS ###
+    ##############
+
     @endpoint(
         name="plains",
         methods=["get"],
@@ -516,6 +519,55 @@ class ApimsAesConnector(BaseResource):
                     if week["id"] == activity["week"]
                 ]
         return result
+
+    # Not validated yet
+    @endpoint(
+        name="plains",
+        methods=["post"],
+        perm="can_access",
+        description="Inscrire un enfant aux plaines",
+        long_description="Inscrit un enfant aux plaines de vacances",
+        display_category="Plaines",
+    )
+    def create_plain_registrations(self, request):
+        url = f"{self.server_url}/{self.aes_instance}/plains/registration"
+        post_data = json_loads(request.body)
+        registrations = {
+            "kid_id": post_data["child_id"],
+            "parent_id": post_data["parent_id"],
+            "form_number": post_data["form_number_raw"],
+            "plains": post_data["plains"],
+        }
+        response = self.session.post(url, json=registrations)
+        return response.json()
+
+    # Not validated yet
+    @endpoint(
+        name="plains",
+        methods=["delete"],
+        perm="can_access",
+        description="Désinscrire un enfant d'une plaine",
+        long_description="Désinscrit un enfant d'une plaine de vacance",
+        display_category="Plaines",
+    )
+    def delete_plain_registration(self, request, registration_id):
+        url = f"{self.server_url}/{self.aes_instance}/plains/registration/{registration_id}"
+        response = self.session.delete(url)
+        return response.json()
+
+    # Not validated yet
+    @endpoint(
+        name="plains",
+        methods=["get"],
+        perm="can_access",
+        description="Demander le coût des inscriptions aux plaines",
+        long_description="Demande le coût des inscriptions aux plaines de vacances, en fonction des identifiants des demandes.",
+        display_category="Plaines",
+    )
+    def get_plains_registrations_cost(self, request, form_numbers):
+        url = f"{self.server_url}/{self.aes_instance}/plains/registration?form_numbers={form_numbers}"
+        response = self.session.get(url)
+        return response.json()
 
     @endpoint(
         name="children",
