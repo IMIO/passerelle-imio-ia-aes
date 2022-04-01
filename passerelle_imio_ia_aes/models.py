@@ -236,6 +236,19 @@ class ApimsAesConnector(BaseResource):
             )
         return sorted(aes_localities, key=lambda x: x["matching_score"])[0]
 
+    def list_countries(self):
+        url = f"{self.server_url}/{self.aes_instance}/countries"
+        response = self.session.get(url)
+        return response.json()["items"]
+
+    def search_country(self, country):
+        aes_countries = self.list_countries()
+        for aes_country in aes_countries:
+            aes_country["matching_score"] = self.compute_matching_score(
+                aes_country["name"], country
+            )
+        return sorted(aes_country, key=lambda x: x["matching_score"])[0]
+
     @endpoint(
         name="localities",
         methods=["get"],
@@ -279,13 +292,18 @@ class ApimsAesConnector(BaseResource):
             "email": post_data["email"],
             "phone": post_data["phone"],
             "street": post_data["street"],
-            "locality_id": self.search_locality(
-                post_data["zipcode"], post_data["locality"]
-            )["id"],
             "is_company": post_data["is_company"],
             "national_number": post_data["national_number"],
             "registration_number": post_data["registration_number"],
+            "country_id": self.search_country(post_data["country"]),
         }
+        if post_data["country"].lower() == "belgique":
+            parent["locality_id"] = self.search_locality(
+                post_data["zipcode"], post_data["locality"]
+            )["id"]
+        else:
+            parent["zip"] = post_data["zipcode"]
+            parent["city"] = post_data["locality"]
         response = self.session.post(url, json=parent)
         return response.json()
 
