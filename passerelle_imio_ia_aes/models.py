@@ -295,7 +295,7 @@ class ApimsAesConnector(BaseResource):
             "is_company": post_data["is_company"],
             "national_number": post_data["national_number"],
             "registration_number": post_data["registration_number"],
-            "country_id": self.search_country(post_data["country"]),
+            "country_id": self.search_country(post_data["country"])["id"],
         }
         if post_data["country"].lower() == "belgique":
             parent["locality_id"] = self.search_locality(
@@ -664,9 +664,28 @@ class ApimsAesConnector(BaseResource):
         display_category="Médecin",
     )
     def create_doctor(self, request, child_id):
-        body = json_loads(request.body)
+        post_data = json_loads(request.body)
         url = f"{self.server_url}/{self.aes_instance}/doctors"
-        return self.session.post(url, json=body)
+        doctor = {
+            "firstname": post_data["firstname"],
+            "lastname": post_data["lastname"],
+            "email": post_data["email"],
+            "phone": post_data["phone"],
+            "street": post_data["street"],
+            "is_company": post_data["is_company"],
+            "national_number": post_data["national_number"],
+            "registration_number": post_data["registration_number"],
+            "country_id": self.search_country(post_data["country"])["id"],
+        }
+        if post_data["country"].lower() == "belgique":
+            doctor["locality_id"] = self.search_locality(
+                post_data["zipcode"], post_data["locality"]
+            )["id"]
+        else:
+            doctor["zip"] = post_data["zipcode"]
+            doctor["city"] = post_data["locality"]
+        response = self.session.post(url, json=doctor)
+        return response.json()
 
     @endpoint(
         name="parents",
