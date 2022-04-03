@@ -93,6 +93,10 @@ class ApimsAesConnector(BaseResource):
         session.headers.update({"Accept": "application/json"})
         return session
 
+    ############
+    ### Test ###
+    ############
+
     @endpoint(
         name="verify-connection",
         perm="can_access",
@@ -105,55 +109,9 @@ class ApimsAesConnector(BaseResource):
         url = self.server_url
         return self.session.get(url).json()
 
-    @endpoint(
-        name="parents",
-        methods=["get"],
-        perm="can_access",
-        description="Rechercher un parent",
-        long_description="Rechercher et lire un parent selon son numéro de registre national ou son matricule",
-        parameters={
-            "national_number": {
-                "description": "Numéro national de l'usager",
-                "example_value": "00000000097",
-            },
-            "registration_number": {
-                "description": "Ce numéro correspond matricule de l'usager si celui-ci n'a pas de numéro de registre national. Il s'agit typiquement de son identifiant dans Onyx",
-                "example_value": "",
-            },
-            "partner_type": {"description": "Type de personne", "example_value": ""},
-        },
-        display_order=0,
-        display_category="Parent",
-    )
-    def search_parent(
-        self, request, national_number="", registration_number="", partner_type=""
-    ):
-        url = f"{self.server_url}/{self.aes_instance}/persons?national_number={national_number}&registration_number={registration_number}&partner_type={partner_type}"
-        response = self.session.get(url)
-        if response.json()["items_total"] > 1:
-            raise MultipleObjectsReturned
-        if response.json()["items_total"] == 0:
-            parent_id = None
-        else:
-            parent_id = response.json()["items"][0]["id"]
-        return {"parent_id": parent_id}
-
-    @endpoint(
-        name="parents",
-        methods=["get"],
-        perm="can_access",
-        description="Lire un parent",
-        long_description="Rechercher et lire un parent selon son numéro de registre national ou son matricule",
-        parameters={"parent_id": PARENT_PARAM},
-        example_pattern="{parent_id}/",
-        pattern="^(?P<parent_id>\w+)/$",
-        display_order=0,
-        display_category="Parent",
-    )
-    def read_parent(self, request, parent_id):
-        url = f"{self.server_url}/{self.aes_instance}/parents/{parent_id}"
-        response = self.session.get(url).json()
-        return response
+    ##########################
+    ### Données génériques ###
+    ##########################
 
     @endpoint(
         name="countries",
@@ -193,6 +151,10 @@ class ApimsAesConnector(BaseResource):
         url = f"{self.server_url}/{self.aes_instance}/places"
         response = self.session.get(url).json()
         return response
+
+    ##############
+    ### Utiles ###
+    ##############
 
     def list_localities(self):
         url = f"{self.server_url}/{self.aes_instance}/localities"
@@ -274,6 +236,60 @@ class ApimsAesConnector(BaseResource):
                 aes_locality["name"], locality
             )
         return sorted(aes_localities, key=lambda x: x["matching_score"])
+
+    ##############
+    ### Parent ###
+    ##############
+
+    @endpoint(
+        name="parents",
+        methods=["get"],
+        perm="can_access",
+        description="Rechercher un parent",
+        long_description="Rechercher et lire un parent selon son numéro de registre national ou son matricule",
+        parameters={
+            "national_number": {
+                "description": "Numéro national de l'usager",
+                "example_value": "00000000097",
+            },
+            "registration_number": {
+                "description": "Ce numéro correspond matricule de l'usager si celui-ci n'a pas de numéro de registre national. Il s'agit typiquement de son identifiant dans Onyx",
+                "example_value": "",
+            },
+            "partner_type": {"description": "Type de personne", "example_value": ""},
+        },
+        display_order=0,
+        display_category="Parent",
+    )
+    def search_parent(
+        self, request, national_number="", registration_number="", partner_type=""
+    ):
+        url = f"{self.server_url}/{self.aes_instance}/persons?national_number={national_number}&registration_number={registration_number}&partner_type={partner_type}"
+        response = self.session.get(url)
+        if response.json()["items_total"] > 1:
+            raise MultipleObjectsReturned
+        if response.json()["items_total"] == 0:
+            parent_id = None
+        else:
+            parent_id = response.json()["items"][0]["id"]
+        return {"parent_id": parent_id}
+
+    @endpoint(
+        name="parents",
+        methods=["get"],
+        perm="can_access",
+        description="Lire un parent",
+        long_description="Rechercher et lire un parent selon son numéro de registre national ou son matricule",
+        parameters={"parent_id": PARENT_PARAM},
+        example_pattern="{parent_id}/",
+        pattern="^(?P<parent_id>\w+)/$",
+        display_order=0,
+        display_category="Parent",
+    )
+    def read_parent(self, request, parent_id):
+        url = f"{self.server_url}/{self.aes_instance}/parents/{parent_id}"
+        response = self.session.get(url).json()
+        return response
 
     @endpoint(
         name="create-parent",
@@ -422,6 +438,10 @@ class ApimsAesConnector(BaseResource):
             result = {"is_parent": False, "status": response.status_code}
         return result
 
+    ##############
+    ### Enfant ###
+    ##############
+
     def read_child(self, child_id):
         url = f"{self.url}/{self.aes_instance}/kids/{child_id}"
         return self.session.get(url).json()
@@ -449,27 +469,6 @@ class ApimsAesConnector(BaseResource):
             "national_number": post_data["national_number"],
         }
         response = self.session.post(url, json=child)
-        return response.json()
-
-    # WIP : need a child with available menus to validate this
-    @endpoint(
-        name="menus",
-        methods=["get"],
-        perm="can_access",
-        description="Lire le menu proposé à un enfant",
-        long_description="Retourne le menu proposé à un enfant, en fonction du mois concerné.",
-        parameters={
-            "child_id": CHILD_PARAM,
-            "month": {
-                "description": "Mois concerné, si pour ce mois-ci, 1 pour le mois prochain, 2 pour dans deux mois",
-                "example_value": 0,
-            },
-        },
-        display_category="Repas",
-    )
-    def list_available_meals(self, request, child_id, month):
-        url = f"{self.server_url}/{self.aes_instance}/menus?kid_id={child_id}&month={month}"
-        response = self.session.get(url)
         return response.json()
 
     ##############
@@ -569,6 +568,31 @@ class ApimsAesConnector(BaseResource):
         response = self.session.get(url)
         return response.json()
 
+    #############
+    ### REPAS ###
+    #############
+
+    # WIP : need a child with available menus to validate this
+    @endpoint(
+        name="menus",
+        methods=["get"],
+        perm="can_access",
+        description="Lire le menu proposé à un enfant",
+        long_description="Retourne le menu proposé à un enfant, en fonction du mois concerné.",
+        parameters={
+            "child_id": CHILD_PARAM,
+            "month": {
+                "description": "Mois concerné, si pour ce mois-ci, 1 pour le mois prochain, 2 pour dans deux mois",
+                "example_value": 0,
+            },
+        },
+        display_category="Repas",
+    )
+    def list_available_meals(self, request, child_id, month):
+        url = f"{self.server_url}/{self.aes_instance}/menus?kid_id={child_id}&month={month}"
+        response = self.session.get(url)
+        return response.json()
+
     @endpoint(
         name="children",
         methods=["get"],
@@ -584,7 +608,7 @@ class ApimsAesConnector(BaseResource):
         },
         example_pattern="{child_id}/menu",
         pattern="^(?P<child_id>\w+)/menu$",
-        display_category="Enfant",
+        display_category="Repas",
     )
     def read_menu(self, request, child_id, month):
         url = f"{self.server_url}/{self.aes_instance}/menus?kid_id={child_id}&month={month}"
@@ -612,7 +636,7 @@ class ApimsAesConnector(BaseResource):
         },
         example_pattern="{child_id}/menu/registration",
         pattern="^(?P<child_id>\w+)/menu/registration$",
-        display_category="Enfant",
+        display_category="Repas",
     )
     def create_menu_registration(self, request, child_id):
         post_data = json_loads(request.body)
@@ -665,6 +689,10 @@ class ApimsAesConnector(BaseResource):
         response = self.session.get(url)
         return {"status_code": response.status_code, "url": url}
 
+    ###################
+    ### Fiche santé ###
+    ###################
+
     def has_valid_healthsheet(self, child_id):
         url = f"{self.server_url}/{self.aes_instance}/kids/{child_id}/healthsheet"
         response = self.session.get(url)
@@ -690,7 +718,7 @@ class ApimsAesConnector(BaseResource):
         parameters={"child_id": CHILD_PARAM},
         example_pattern="{child_id}/healthsheet/",
         pattern="^(?P<child_id>\w+)/healthsheet/$",
-        display_category="Enfant",
+        display_category="Fiche santé",
     )
     def read_healthsheet(self, request, child_id):
         url = f"{self.server_url}/{self.aes_instance}/kids/{child_id}/healthsheet"
@@ -704,7 +732,7 @@ class ApimsAesConnector(BaseResource):
         parameters={"child_id": CHILD_PARAM},
         example_pattern="{child_id}/healthsheet/update",
         pattern="^(?P<child_id>\w+)/healthsheet/update$",
-        display_category="Enfant",
+        display_category="Fiche santé",
     )
     def update_healthsheet(self, request, child_id):
         body = json_loads(request.body)
@@ -734,6 +762,10 @@ class ApimsAesConnector(BaseResource):
                     {"id": choice["id"], "text": choice["name"]} for choice in v
                 ]
         return result
+
+    #################
+    ### Méddecins ###
+    #################
 
     @endpoint(
         name="doctors",
@@ -767,6 +799,10 @@ class ApimsAesConnector(BaseResource):
             doctor["city"] = post_data["locality"]
         response = self.session.post(url, json=doctor)
         return response.json()
+
+    ################
+    ### Factures ###
+    ################
 
     @endpoint(
         name="parents",
