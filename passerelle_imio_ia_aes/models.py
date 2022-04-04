@@ -29,7 +29,7 @@ from django.http import Http404
 from django.http import HttpResponse
 from django.urls import path, reverse
 from django.core.exceptions import MultipleObjectsReturned
-from datetime import datetime
+from datetime import datetime, timedelta
 from passerelle.base.models import BaseResource
 from passerelle.base.signature import sign_url
 from passerelle.compat import json_loads
@@ -496,6 +496,7 @@ class ApimsAesConnector(BaseResource):
                 if activity.get("theme") and activity.get("theme") != "False"
                 else activity["activity_name"],
                 "week": activity["week"],
+                "year": 2022
             }
             if activity["week"] not in weeks:
                 result.append(
@@ -508,6 +509,7 @@ class ApimsAesConnector(BaseResource):
                             "{}-{}-1".format(datetime.today().year, activity["week"]),
                             "%Y-%W-%w",
                         ).date(),
+                        "year": 2022
                     }
                 )
                 weeks.add(activity["week"])
@@ -527,17 +529,32 @@ class ApimsAesConnector(BaseResource):
         description="Inscrire un enfant aux plaines",
         long_description="Inscrit un enfant aux plaines de vacances",
         display_category="Plaines",
+        example_pattern="create",
+        pattern="^create$",
     )
     def create_plain_registrations(self, request):
         url = f"{self.server_url}/{self.aes_instance}/plains/registration"
         post_data = json_loads(request.body)
+        plains = []
+        for plain in post_data["plains"]:
+            activity_id = plain["id"]
+            start_date = datetime.strptime(f"1-{plain['week']}-{plain['year']}", "%w-%W-%Y")
+            end_date = start_date + timedelta(days=6)
+            plains.append(
+                {
+                    "activity_id": int(activity_id.split("_")[-1]),
+                    "start_date": datetime.strftime(start_date, "%Y-%m-%d"),
+                    "end_date": datetime.strftime(end_date, "%Y-%m-%d")
+                }
+            )
         registrations = {
             "kid_id": post_data["child_id"],
             "parent_id": post_data["parent_id"],
-            "form_number": post_data["form_number_raw"],
-            "plains": post_data["plains"],
+            "form_number": post_data["form_number"],
+            "plains": plains,
         }
         response = self.session.post(url, json=registrations)
+        response.raise_for_status()
         return response.json()
 
     # Not validated yet
@@ -548,6 +565,8 @@ class ApimsAesConnector(BaseResource):
         description="Désinscrire un enfant d'une plaine",
         long_description="Désinscrit un enfant d'une plaine de vacance",
         display_category="Plaines",
+        example_pattern="delete",
+        pattern="^delete$",
     )
     def delete_plain_registration(self, request, registration_id):
         url = f"{self.server_url}/{self.aes_instance}/plains/registration/{registration_id}"
@@ -562,6 +581,8 @@ class ApimsAesConnector(BaseResource):
         description="Demander le coût des inscriptions aux plaines",
         long_description="Demande le coût des inscriptions aux plaines de vacances, en fonction des identifiants des demandes.",
         display_category="Plaines",
+        example_pattern="cost",
+        pattern="^cost$",
     )
     def get_plains_registrations_cost(self, request, form_numbers):
         url = f"{self.server_url}/{self.aes_instance}/plains/registration?form_numbers={form_numbers}"
