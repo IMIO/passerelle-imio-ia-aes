@@ -496,7 +496,7 @@ class ApimsAesConnector(BaseResource):
                 if activity.get("theme") and activity.get("theme") != "False"
                 else activity["activity_name"],
                 "week": activity["week"],
-                "year": 2022
+                "year": 2022,
             }
             if activity["week"] not in weeks:
                 result.append(
@@ -509,7 +509,7 @@ class ApimsAesConnector(BaseResource):
                             "{}-{}-1".format(datetime.today().year, activity["week"]),
                             "%Y-%W-%w",
                         ).date(),
-                        "year": 2022
+                        "year": 2022,
                     }
                 )
                 weeks.add(activity["week"])
@@ -523,7 +523,7 @@ class ApimsAesConnector(BaseResource):
 
     # Not validated yet
     @endpoint(
-        name="plains",
+        name="registrations",
         methods=["post"],
         perm="can_access",
         description="Inscrire un enfant aux plaines",
@@ -538,13 +538,15 @@ class ApimsAesConnector(BaseResource):
         plains = []
         for plain in post_data["plains"]:
             activity_id = plain["id"]
-            start_date = datetime.strptime(f"1-{plain['week']}-{plain['year']}", "%w-%W-%Y")
+            start_date = datetime.strptime(
+                f"1-{plain['week']}-{plain['year']}", "%w-%W-%Y"
+            )
             end_date = start_date + timedelta(days=6)
             plains.append(
                 {
                     "activity_id": int(activity_id.split("_")[-1]),
                     "start_date": datetime.strftime(start_date, "%Y-%m-%d"),
-                    "end_date": datetime.strftime(end_date, "%Y-%m-%d")
+                    "end_date": datetime.strftime(end_date, "%Y-%m-%d"),
                 }
             )
         registrations = {
@@ -567,8 +569,8 @@ class ApimsAesConnector(BaseResource):
         display_category="Plaines",
         parameters={
             "registration_id": {
-                "description": "Identifiant de l'inscription", 
-                "exemple_value": "19"
+                "description": "Identifiant de l'inscription",
+                "exemple_value": "19",
             }
         },
         example_pattern="delete",
@@ -581,7 +583,7 @@ class ApimsAesConnector(BaseResource):
 
     # Not validated yet
     @endpoint(
-        name="plains",
+        name="registrations",
         methods=["get"],
         perm="can_access",
         description="Demander le coût des inscriptions aux plaines",
