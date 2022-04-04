@@ -548,9 +548,9 @@ class ApimsAesConnector(BaseResource):
                 }
             )
         registrations = {
-            "kid_id": post_data["child_id"],
-            "parent_id": post_data["parent_id"],
-            "form_number": post_data["form_number"],
+            "kid_id": int(post_data["child_id"]),
+            "parent_id": int(post_data["parent_id"]),
+            "form_number": int(post_data["form_number"]),
             "plains": plains,
         }
         response = self.session.post(url, json=registrations)
