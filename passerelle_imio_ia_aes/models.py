@@ -559,12 +559,18 @@ class ApimsAesConnector(BaseResource):
 
     # Not validated yet
     @endpoint(
-        name="plains",
+        name="registrations",
         methods=["delete"],
         perm="can_access",
         description="Désinscrire un enfant d'une plaine",
         long_description="Désinscrit un enfant d'une plaine de vacance",
         display_category="Plaines",
+        parameters={
+            "registration_id": {
+                "description": "Identifiant de l'inscription", 
+                "exemple_value": "19"
+            }
+        },
         example_pattern="delete",
         pattern="^delete$",
     )
