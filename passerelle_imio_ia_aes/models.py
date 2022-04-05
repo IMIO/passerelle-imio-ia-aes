@@ -482,6 +482,22 @@ class ApimsAesConnector(BaseResource):
         description="Lister les plaines disponibles pour un enfant",
         long_description="Retourne les plaines auxquelles l'enfant passé peut être inscrit.",
         parameters={"child_id": CHILD_PARAM},
+        example_pattern="raw",
+        pattern="^raw$",
+        display_category="Plaines",
+    )
+    def list_available_plains_raw(self, request, child_id):
+        url = f"{self.server_url}/{self.aes_instance}/plains?kid_id={child_id}"
+        response = self.session.get(url)
+        return response.json()
+
+    @endpoint(
+        name="plains",
+        methods=["get"],
+        perm="can_access",
+        description="Lister les plaines disponibles pour un enfant",
+        long_description="Retourne les plaines auxquelles l'enfant passé peut être inscrit.",
+        parameters={"child_id": CHILD_PARAM},
         display_category="Plaines",
     )
     def list_available_plains(self, request, child_id):
