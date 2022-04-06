@@ -506,13 +506,17 @@ class ApimsAesConnector(BaseResource):
         weeks, result = set(), []
         for activity in response.json():
             new_activity = {
-                # 'id': '{}_{}_{}'.format(activity['year'], activity['week'], activity['activity_id']),
-                "id": "{}_{}_{}".format(2022, activity["week"], activity["id"]),
+                "id": "{}_{}_{}".format(
+                    activity["year"], activity["week"], activity["id"]
+                ),
                 "text": activity.get("theme")
                 if activity.get("theme") and activity.get("theme") != "False"
                 else activity["activity_name"],
                 "week": activity["week"],
-                "year": 2022,
+                "year": activity["year"],
+                "start_date": activity["start_date"],
+                "end_date": activity["end_date"],
+                "age_group_manager_id": activity["age_group_manager_id"],
             }
             if activity["week"] not in weeks:
                 result.append(
@@ -525,7 +529,7 @@ class ApimsAesConnector(BaseResource):
                             "{}-{}-1".format(datetime.today().year, activity["week"]),
                             "%Y-%W-%w",
                         ).date(),
-                        "year": 2022,
+                        "year": activity["year"],
                     }
                 )
                 weeks.add(activity["week"])
@@ -563,6 +567,7 @@ class ApimsAesConnector(BaseResource):
                     "activity_id": int(activity_id.split("_")[-1]),
                     "start_date": datetime.strftime(start_date, "%Y-%m-%d"),
                     "end_date": datetime.strftime(end_date, "%Y-%m-%d"),
+                    "age_group_manager_id": plain["age_group_manager_id"],
                 }
             )
         registrations = {
@@ -609,8 +614,9 @@ class ApimsAesConnector(BaseResource):
         pattern="^cost$",
     )
     def get_plains_registrations_cost(self, request, form_numbers):
-        url = f"{self.server_url}/{self.aes_instance}/plains/registration?form_numbers={form_numbers}"
+        url = f"{self.server_url}/{self.aes_instance}/plains/registrations/cost?form_numbers={form_numbers}"
         response = self.session.get(url)
+        response.raise_for_status()
         return response.json()
 
     #############
