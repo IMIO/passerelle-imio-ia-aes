@@ -541,7 +541,6 @@ class ApimsAesConnector(BaseResource):
                 ]
         return result
 
-    # Not validated yet
     @endpoint(
         name="registrations",
         methods=["post"],
@@ -580,7 +579,6 @@ class ApimsAesConnector(BaseResource):
         response.raise_for_status()
         return response.json()
 
-    # Not validated yet
     @endpoint(
         name="registrations",
         methods=["delete"],
@@ -602,7 +600,6 @@ class ApimsAesConnector(BaseResource):
         response = self.session.delete(url)
         return response.json()
 
-    # Not validated yet
     @endpoint(
         name="registrations",
         methods=["get"],
