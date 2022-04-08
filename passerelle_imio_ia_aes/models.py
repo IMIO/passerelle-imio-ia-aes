@@ -118,13 +118,14 @@ class ApimsAesConnector(BaseResource):
         methods=["get"],
         perm="can_access",
         description="Lister les pays",
-        long_description="Liste les pays tels qu'enregistrés dans iA.AES.",
+        long_description="Liste les pays de iA.AES",
         display_category="Données génériques",
     )
-    def list_countries(self, request):
+    # list_states instead of list_countries as list_countries didn't work, don't know why.
+    def list_states(self, request):
         url = f"{self.server_url}/{self.aes_instance}/countries"
-        response = self.session.get(url).json()
-        return response
+        response = self.session.get(url)
+        return response.json()
 
     @endpoint(
         name="levels",
@@ -227,6 +228,8 @@ class ApimsAesConnector(BaseResource):
                 "example_value": "Gembloux",
             },
         },
+        example_pattern="search/",
+        pattern="^search/$",
         display_category="Localités",
     )
     def search_and_list_localities(self, request, zipcode, locality):
@@ -236,6 +239,19 @@ class ApimsAesConnector(BaseResource):
                 aes_locality["name"], locality
             )
         return sorted(aes_localities, key=lambda x: x["matching_score"])
+
+    @endpoint(
+        name="localities",
+        methods=["get"],
+        perm="can_access",
+        description="Lister les localités",
+        long_description="Liste les localités et leurs codes postaux.",
+        display_category="Localités",
+    )
+    def list_localities(self, request):
+        url = f"{self.server_url}/{self.aes_instance}/localities"
+        response = self.session.get(url).json()
+        return response
 
     ##############
     ### Parent ###
@@ -258,7 +274,6 @@ class ApimsAesConnector(BaseResource):
             },
             "partner_type": {"description": "Type de personne", "example_value": ""},
         },
-        display_order=0,
         display_category="Parent",
     )
     def search_parent(
@@ -283,7 +298,6 @@ class ApimsAesConnector(BaseResource):
         parameters={"parent_id": PARENT_PARAM},
         example_pattern="{parent_id}/",
         pattern="^(?P<parent_id>\w+)/$",
-        display_order=0,
         display_category="Parent",
     )
     def read_parent(self, request, parent_id):
@@ -737,7 +751,8 @@ class ApimsAesConnector(BaseResource):
     )
     def read_healthsheet(self, request, child_id):
         url = f"{self.server_url}/{self.aes_instance}/kids/{child_id}/healthsheet"
-        return self.session.get(url).json()[0]
+        response = self.session.get(url)
+        return response.json()[0]
 
     @endpoint(
         name="children",
@@ -752,7 +767,9 @@ class ApimsAesConnector(BaseResource):
     def update_healthsheet(self, request, child_id):
         body = json_loads(request.body)
         url = f"{self.server_url}/{self.aes_instance}/kids/{child_id}/healthsheet"
-        return self.session.put(url, json=body)
+        response = self.session.put(url, json=body)
+        response.raise_for_status()
+        return response.json()
 
     @endpoint(
         name="healtsheet-fields",
@@ -787,32 +804,36 @@ class ApimsAesConnector(BaseResource):
         methods=["post"],
         perm="can_access",
         description="Créer un médecin",
-        example_pattern="doctors/create",
-        pattern="^doctors/create$",
+        example_pattern="create",
+        pattern="^create$",
         display_category="Médecin",
     )
-    def create_doctor(self, request, child_id):
+    def create_doctor(self, request):
         post_data = json_loads(request.body)
         url = f"{self.server_url}/{self.aes_instance}/doctors"
         doctor = {
             "firstname": post_data["firstname"],
             "lastname": post_data["lastname"],
-            "email": post_data["email"],
             "phone": post_data["phone"],
+            "mobile": post_data["mobile"] or "",
             "street": post_data["street"],
-            "is_company": post_data["is_company"],
-            "national_number": post_data["national_number"],
-            "registration_number": post_data["registration_number"],
-            "country_id": self.search_country(post_data["country"])["id"],
+            "is_company": False,
+            "locality_id": int(post_data["locality_id"]),
+            "country_id": int(
+                post_data["country_id"]
+            ),  # self.search_country(post_data["country"])["id"],
+            "zip": post_data["zipcode"] or "",
+            "city": post_data["locality_id"] or "",
         }
-        if post_data["country"].lower() == "belgique":
-            doctor["locality_id"] = self.search_locality(
-                post_data["zipcode"], post_data["locality"]
-            )["id"]
-        else:
-            doctor["zip"] = post_data["zipcode"]
-            doctor["city"] = post_data["locality"]
+        # if post_data["country"].lower() == "belgique":
+        #     doctor["locality_id"] = self.search_locality(
+        #         post_data["zipcode"], post_data["locality"]
+        #     )["id"]
+        # else:
+        #     doctor["zip"] = post_data["zipcode"]
+        #     doctor["city"] = post_data["locality"]
         response = self.session.post(url, json=doctor)
+        response.raise_for_status()
         return response.json()
 
     ################
