@@ -765,11 +765,73 @@ class ApimsAesConnector(BaseResource):
         display_category="Fiche santé",
     )
     def update_healthsheet(self, request, child_id):
-        body = json_loads(request.body)
-        url = f"{self.server_url}/{self.aes_instance}/kids/{child_id}/healthsheet"
-        response = self.session.put(url, json=body)
-        response.raise_for_status()
-        return response.json()
+        origin_data = json_loads(request.body)
+        put_data = {
+            "activity_no_available_reason": origin_data["activity_no_available_reason"],
+            "activity_no_available_text": origin_data["activity_no_available_text"],
+            "allergy_consequence": origin_data["allergy_consequence"],
+            "allergy_ids": origin_data["allergy_ids"],
+            "arnica": origin_data["arnica"],
+            "blood_type": origin_data["blood_type"],
+            "child_id": origin_data["child_id"],
+            "doctor_id": origin_data["doctor_id"],
+            "facebook": origin_data["facebook"],
+            "first_date_tetanus": origin_data["first_date_tetanus"],
+            "last_date_tetanus": origin_data["last_date_tetanus"],
+            "level_handicap": origin_data["level_handicap"],
+            "other_allergies": origin_data["other_allergies"],
+            "other_diseases": origin_data["other_diseases"],
+            "photo": origin_data["photo"],
+            "photo_general": origin_data["photo_general"],
+            "self_medication": origin_data["self_medication"],
+            "swim": origin_data["swim"],
+            "swim_level": origin_data["swim_level"],
+            "to_go_alone": origin_data["to_go_alone"],
+            "type_handicap": origin_data["type_handicap"],
+        }
+        medication_ids, allowed_contact_ids = [], []
+        for key, value in origin_data.items():
+            if "selection" in key or "text" in key:
+                put_data[key] = value
+            elif "medication_" in key:
+                self.logger.info(f"trying {key}")
+                medication = value.split(" - ")
+                if medication[0] != "None":
+                    self.logger.info(
+                        f"MEDICATION => {key}: {medication} - type{type(medication[0])}"
+                    )
+                    medication_ids.append(
+                        {
+                            "name": medication[0],
+                            "quantity": int(medication[1]),
+                            "period": medication[2],
+                            "self_medication_selection": medication[3],
+                        }
+                    )
+            elif "contact" in key:
+                contact = value.split(" - ")
+                allowed_contact_ids.append(
+                    {"partner_id": contact[0], "parental_link": contact[1]}
+                )
+        disease_ids = [
+            {
+                "disease_type_id": int(disease_id[1]),
+                "gravity": origin_data.get(f"{disease_id[0] + 1}_gravity"),
+                "disease_text": origin_data.get(f"{disease_id[0] + 1}_treatment"),
+            }
+            for disease_id in enumerate(origin_data["disease_ids"])
+        ]
+        put_data["medication_ids"] = medication_ids
+        put_data["allowed_contact_ids"] = allowed_contact_ids
+        put_data["disease_ids"] = disease_ids
+        self.logger.info("PUT_DATA")
+        for k, v in put_data.items():
+            self.logger.info(f"{k}: {v}")
+        return
+        # url = f"{self.server_url}/{self.aes_instance}/kids/{child_id}/healthsheet"
+        # response = self.session.put(url, json=put_data)
+        # response.raise_for_status()
+        # return response.json()
 
     @endpoint(
         name="healtsheet-fields",
@@ -822,8 +884,8 @@ class ApimsAesConnector(BaseResource):
             "country_id": int(
                 post_data["country_id"]
             ),  # self.search_country(post_data["country"])["id"],
-            "zip": post_data["zipcode"] or "",
-            "city": post_data["locality_id"] or "",
+            "zip": post_data.get("zipcode") or "",
+            "city": post_data.get("locality_id") or "",
         }
         # if post_data["country"].lower() == "belgique":
         #     doctor["locality_id"] = self.search_locality(
