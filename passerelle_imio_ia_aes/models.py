@@ -547,6 +547,23 @@ class ApimsAesConnector(BaseResource):
             return 0 # 0 is "Commune"
         return 1 # 1 is "Hors commune"
 
+    @endpoint(
+        name="children",
+        methods=["patch"],
+        perm="can_access",
+        description="Ajouter un parent",
+        long_description="Ajoute un parent à un enfant",
+        parameters={"child_id": CHILD_PARAM, "parent_id": PARENT_PARAM},
+        example_pattern="{child_id}/add_parent/",
+        pattern="^(?P<child_id>\w+)/add_parent/$",
+        display_category="Enfant",
+    )
+    def add_parent_to_child(self, request, child_id, parent_id):
+        url = f"{self.server_url}/{self.aes_instance}/kids/{child_id}/?parent_id={parent_id}"
+        response = self.session.patch(url)
+        response.raise_for_status()
+        return response.json()
+
     ##############
     ### PLAINS ###
     ##############
