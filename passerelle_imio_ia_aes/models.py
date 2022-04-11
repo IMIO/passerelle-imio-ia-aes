@@ -485,6 +485,53 @@ class ApimsAesConnector(BaseResource):
         response = self.session.post(url, json=child)
         return response.json()
 
+    @endpoint(
+        name="children",
+        methods=["get"],
+        perm="can_access",
+        description="Rechercher un enfant",
+        long_description="Recherche et compte les enfants qui correspondent aux critères. Retourne le nombre d'enfants trouvés",
+        parameters={
+            "national_number": {
+                "description": "Numéro national de l'enfant.",
+                "example_value": "00000000097",
+            },
+            "lastname": {
+                "description": "Nom de l'enfant.",
+                "example_value": "DU JARRE D'IN",
+            },
+            "firstname": {
+                "description": "Prénom de l'enfant",
+                "example_value": "Charlotte",
+            },
+            "birthdate": {
+                "description": "Date de naissance de l'enfant",
+                "example_value": "2018-03-31",
+            },
+        },
+        example_pattern="search",
+        pattern="^search",
+        display_category="Enfant",
+    )
+    def search_child(
+        self,
+        request,
+        national_number=None,
+        firstname=None,
+        lastname=None,
+        birthdate=None,
+    ):
+        url = f"{self.server_url}/{self.aes_instance}/persons?national_number={national_number}&lastname={lastname}&firstname={firstname}&birthdate={birthdate}"
+        response = self.session.get(url)
+        response.raise_for_status()
+        if response.json()["items_total"] == 1:
+            child = response.json()["items"][0]
+        elif response.json()["items_total"] == 0:
+            child = None
+        else:
+            raise MultipleObjectsReturned
+        return {"child": child}
+
     ##############
     ### PLAINS ###
     ##############
