@@ -532,6 +532,21 @@ class ApimsAesConnector(BaseResource):
             raise MultipleObjectsReturned
         return {"child": child}
 
+    @endpoint(
+        name="children",
+        methods=["get"],
+        perm="can_access",
+        description="Calculer la catégorie tarifaire d'un enfant.",
+        long_description="Calcule la catégorie tarifaire d'un enfant en fonction du code postal de son parent.",
+        example_pattern="compute-tariff-category",
+        pattern="^compute-tariff-category",
+        display_category="Enfant",
+    )
+    def compute_tariff_category(self, request, parent_zipcode, municipality_zipcodes):
+        if parent_zipcode in municipality_zipcodes:
+            return 0 # 0 is "Commune"
+        return 1 # 1 is "Hors commune"
+
     ##############
     ### PLAINS ###
     ##############
