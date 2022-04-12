@@ -299,7 +299,7 @@ class ApimsAesConnector(BaseResource):
         display_category="Parent",
     )
     def read_parent(self, request, parent_id):
-        url = f"{self.server_url}/{self.aes_instance}/parents/{parent_id}"
+        url = f"{self.server_url}/{self.aes_instance}/parents/{parent_id}/"
         response = self.session.get(url).json()
         return response
 
