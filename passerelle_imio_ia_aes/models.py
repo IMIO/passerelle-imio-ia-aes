@@ -157,15 +157,15 @@ class ApimsAesConnector(BaseResource):
     ### Utiles ###
     ##############
 
-    def list_localities(self):
+    def get_localities(self):
         url = f"{self.server_url}/{self.aes_instance}/localities"
         response = self.session.get(url)
-        return response.json()["items"]
+        return response.json()
 
     def filter_localities_by_zipcode(self, zipcode):
         localities = [
             locality
-            for locality in self.list_localities()
+            for locality in self.get_localities()["items"]
             if locality["zip"] == zipcode
         ]
         return localities
@@ -192,7 +192,7 @@ class ApimsAesConnector(BaseResource):
         return matching_score
 
     def search_locality(self, zipcode, locality):
-        aes_localities = self.filter_localities_by_zipcode(zipcode)
+        aes_localities = self.filter_localities_by_zipcode(str(zipcode))
         for aes_locality in aes_localities:
             aes_locality["matching_score"] = self.compute_matching_score(
                 aes_locality["name"], locality
@@ -210,22 +210,22 @@ class ApimsAesConnector(BaseResource):
             aes_country["matching_score"] = self.compute_matching_score(
                 aes_country["name"], country
             )
-        return sorted(aes_country, key=lambda x: x["matching_score"])[0]
+        return sorted(aes_countries, key=lambda x: x["matching_score"])[0]
 
     @endpoint(
         name="localities",
         methods=["get"],
         perm="can_access",
-        description="Recherche",
+        description="Rechercher une localité",
         long_description="Recherche, filtre et trie les localités",
         parameters={
             "zipcode": {
                 "description": "code postal",
-                "example_value": "5032",
+                "example_value": "5030",
             },
             "locality": {
                 "description": "Localité",
-                "example_value": "Gembloux",
+                "example_value": "Gbloux",
             },
         },
         example_pattern="search/",
@@ -233,7 +233,7 @@ class ApimsAesConnector(BaseResource):
         display_category="Localités",
     )
     def search_and_list_localities(self, request, zipcode, locality):
-        aes_localities = self.filter_localities_by_zipcode(zipcode)
+        aes_localities = self.filter_localities_by_zipcode(str(zipcode))
         for aes_locality in aes_localities:
             aes_locality["matching_score"] = self.compute_matching_score(
                 aes_locality["name"], locality
@@ -249,9 +249,7 @@ class ApimsAesConnector(BaseResource):
         display_category="Localités",
     )
     def list_localities(self, request):
-        url = f"{self.server_url}/{self.aes_instance}/localities"
-        response = self.session.get(url).json()
-        return response
+        return self.get_localities()
 
     ##############
     ### Parent ###
