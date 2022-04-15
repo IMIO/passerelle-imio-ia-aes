@@ -956,7 +956,7 @@ class ApimsAesConnector(BaseResource):
         methods=["post"],
         perm="can_access",
         description="Créer un contact",
-        long_description="Crée un contact."
+        long_description="Crée un contact.",
         example_pattern="create",
         pattern="^create$",
         display_category="Contact",
