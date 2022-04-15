@@ -947,6 +947,41 @@ class ApimsAesConnector(BaseResource):
                 ]
         return result
 
+    ################
+    ### Contacts ###
+    ################
+
+    @endpoint(
+        name="contacts",
+        methods=["post"],
+        perm="can_access",
+        description="Créer un contact",
+        long_description="Crée un contact."
+        example_pattern="create",
+        pattern="^create$",
+        display_category="Contact",
+    )
+    def create_contact(self, request):
+        post_data = json_loads(request.body)
+        url = f"{self.server_url}/{self.aes_instance}/contacts"
+        contact = {
+            "firstname": post_data["firstname"],
+            "lastname": post_data["lastname"],
+            "phone": post_data["phone"],
+            "mobile": post_data["mobile"] or "",
+            "street": post_data["street"],
+            "is_company": False,
+            "locality_id": int(post_data["locality_id"]),
+            "country_id": int(
+                post_data["country_id"]
+            ),
+            "zip": post_data.get("zipcode") or "",
+            "city": post_data.get("city") or "",
+        }
+        response = self.session.post(url, json=contact)
+        response.raise_for_status()
+        return response.json()
+
     #################
     ### Méddecins ###
     #################
