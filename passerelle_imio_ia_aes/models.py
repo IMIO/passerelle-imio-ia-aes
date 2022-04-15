@@ -356,7 +356,7 @@ class ApimsAesConnector(BaseResource):
                     "id": child["id"],
                     "national_number": child["national_number"],
                     "name": child["display_name"],
-                    "birthdate": child["birthdate_date"],
+                    "age": child["age"],
                     "activities": child["activity_ids"],
                     "school_implantation": child["school_implantation_id"],
                     "level": child["level_id"],
@@ -425,7 +425,7 @@ class ApimsAesConnector(BaseResource):
                         "id": child["id"],
                         "national_number": child["national_number"],
                         "name": child["display_name"],
-                        "age": child["birthdate_date"],  # TODO : compute age
+                        "age": child["age"],
                         "activities": child["activity_ids"],
                         "school_implantation": False
                         if not child["school_implantation_id"]
