@@ -145,11 +145,24 @@ class ApimsAesConnector(BaseResource):
         methods=["get"],
         perm="can_access",
         description="Lister les lieux d'accueil",
-        long_description="Liste les lieux d'accueil",
+        long_description="Liste les lieux d'accueil.",
         display_category="Données génériques",
     )
     def list_places(self, request):
         url = f"{self.server_url}/{self.aes_instance}/places"
+        response = self.session.get(url).json()
+        return response
+
+    @endpoint(
+        name="school-implantations",
+        methods=["get"],
+        perm="can_access",
+        description="Lister les implantations scolaires",
+        long_description="Liste les implantations scolaires.",
+        display_category="Données génériques",
+    )
+    def list_school_implantations(self, request):
+        url = f"{self.server_url}/{self.aes_instance}/school-implantations"
         response = self.session.get(url).json()
         return response
 
