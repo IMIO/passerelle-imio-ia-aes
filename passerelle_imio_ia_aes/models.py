@@ -724,22 +724,7 @@ class ApimsAesConnector(BaseResource):
     ### REPAS ###
     #############
 
-    @endpoint(
-        name="menus",
-        methods=["get"],
-        perm="can_access",
-        description="Lire le menu pour un enfant",
-        long_description="Retourne le menu auquel l'enfant peut être inscrit.",
-        parameters={
-            "child_id": CHILD_PARAM,
-            "month": {
-                "description": "0 pour le mois actuel, 1 pour le mois prochain, 2 pour le mois d'après.",
-                "example_value": "1",
-            },
-        },
-        display_category="Repas",
-    )
-    def read_menu(self, request, child_id, month):
+    def get_month_menu(self, child_id, month):
         url = f"{self.server_url}/{self.aes_instance}/menus?kid_id={child_id}&month={month}"
         response = self.session.get(url)
         menu = []
@@ -756,6 +741,37 @@ class ApimsAesConnector(BaseResource):
                     }
                 )
         return {"data": sorted(menu, key=lambda x: x["id"])}
+
+    def validate_month_menu(self, month_menu):
+        checked_menu_ids, errors = list(), list()
+        for menu in month_menu["data"]:
+            if menu["id"] in checked_menu_ids:
+                error = ({"date": menu["date"], "regime": menu["type"]})
+                errors.append(error)
+            checked_menu_ids.append(menu["id"])
+        return errors
+
+    @endpoint(
+        name="menus",
+        methods=["get"],
+        perm="can_access",
+        description="Lire le menu pour un enfant",
+        long_description="Retourne le menu auquel l'enfant peut être inscrit.",
+        parameters={
+            "child_id": CHILD_PARAM,
+            "month": {
+                "description": "0 pour le mois actuel, 1 pour le mois prochain, 2 pour le mois d'après.",
+                "example_value": "1",
+            },
+        },
+        display_category="Repas",
+    )
+    def read_month_menu(self, request, child_id, month):
+        month_menu = self.get_month_menu(child_id, month)
+        list_errors = self.validate_month_menu(month_menu)
+        if len(list_errors) > 0:
+            return {"errors_in_menus": list_errors}
+        return month_menu
 
     @endpoint(
         name="menus",
