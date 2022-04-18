@@ -732,7 +732,7 @@ class ApimsAesConnector(BaseResource):
             for meal in date_menu["meal_ids"]:
                 menu.append(
                     {
-                        "id": f"_{date_menu['date'][8:]}{date_menu['date'][4:8]}{date_menu['date'][:4]}_{date_menu['meal_ids'][0]['regime']}",
+                        "id": f"_{date_menu['date'][8:]}{date_menu['date'][4:8]}{date_menu['date'][:4]}_{meal['regime']}",
                         "date": date_menu["date"],
                         "text": meal["name"],
                         "type": meal["regime"],
