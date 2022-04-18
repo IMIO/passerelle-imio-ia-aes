@@ -1022,7 +1022,7 @@ class ApimsAesConnector(BaseResource):
                 post_data["country_id"]
             ),  # self.search_country(post_data["country"])["id"],
             "zip": post_data.get("zipcode") or "",
-            "city": post_data.get("locality_id") or "",
+            "city": post_data.get("city") or "",
         }
         # if post_data["country"].lower() == "belgique":
         #     doctor["locality_id"] = self.search_locality(
