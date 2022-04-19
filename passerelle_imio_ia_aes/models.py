@@ -77,10 +77,10 @@ class ApimsAesConnector(BaseResource):
         "example_value": "holiday_plain",
     }
     FORMS_ICONS = {
-        "plaines-de-vacances": "static/imio/images/portail_parent/black-camp.svg",
-        "fiche-sante": "static/imio/images/portail_parent/black-sante.svg",
-        "repas-scolaires": "static/imio/images/portail_parent/black-repas.svg",
-        "desinscription-repas": "static/imio/images/portail_parent/black-no-repas.svg",
+        "pp-plaines-de-vacances": "static/imio/images/portail_parent/black-camp.svg",
+        "pp-fiche-sante": "static/imio/images/portail_parent/black-sante.svg",
+        "pp-repas-scolaires": "static/imio/images/portail_parent/black-repas.svg",
+        "pp-desinscription-repas": "static/imio/images/portail_parent/black-no-repas.svg",
     }
 
     class Meta:
@@ -400,13 +400,13 @@ class ApimsAesConnector(BaseResource):
         return signed_forms_url_response.json()["data"]
 
     def set_form_status(self, form_slug, has_valid_healthsheet):
-        if form_slug == "plaines-de-vacances":
+        if form_slug == "pp-plaines-de-vacances":
             result = None if has_valid_healthsheet else "locked"
-        elif form_slug == "fiche-sante":
+        elif form_slug == "pp-fiche-sante":
             result = "valid" if has_valid_healthsheet else "invalid"
-        elif form_slug == "repas-scolaires":
+        elif form_slug == "pp-repas-scolaires":
             result = None
-        elif form_slug == "desinscription-repas":
+        elif form_slug == "pp-desinscription-repas":
             result = None
         return result
 
