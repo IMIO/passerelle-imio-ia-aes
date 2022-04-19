@@ -471,6 +471,23 @@ class ApimsAesConnector(BaseResource):
         url = f"{self.url}/{self.aes_instance}/kids/{child_id}"
         return self.session.get(url).json()
 
+    def list_price_categories(self):
+        url = f"{self.server_url}/{self.aes_instance}/price_categories"
+        response = self.session.get(url)
+        response.raise_for_status()
+        price_categories = dict()
+        for price_category in response.json()["items"]:
+            price_categories[price_category["name"]] = price_category["id"]
+        return price_categories
+
+    def set_price_category(self, parent_zipcode, municipality_zipcodes):
+        price_categories = self.list_price_categories()
+        if parent_zipcode in municipality_zipcodes:
+            price_category = price_categories["Commune"]
+        else:
+            price_category = price_categories["Hors Commune"]
+        return price_category
+
     @endpoint(
         name="parents",
         methods=["post"],
@@ -488,12 +505,14 @@ class ApimsAesConnector(BaseResource):
         child = {
             "firstname": post_data["firstname"],
             "lastname": post_data["lastname"],
-            "school_implantation_id": post_data["school_implantation_id"],
-            "level_id": post_data["level_id"],
+            "school_implantation_id": int(post_data["school_implantation_id"]),
+            "level_id": int(post_data["level_id"]),
             "birthdate_date": post_data["birthdate"],
             "national_number": post_data["national_number"],
+            "price_category_id": self.set_price_category(post_data["parent_zipcode"], post_data["municipality_zipcodes"]),
         }
         response = self.session.post(url, json=child)
+        response.raise_for_status()
         return response.json()
 
     @endpoint(
