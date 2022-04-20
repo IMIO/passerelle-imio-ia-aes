@@ -736,26 +736,27 @@ class ApimsAesConnector(BaseResource):
     def get_month_menu(self, child_id, month):
         url = f"{self.server_url}/{self.aes_instance}/menus?kid_id={child_id}&month={month}"
         response = self.session.get(url)
-        menu = []
-        for date_menu in response.json()["items"]:
-            for meal in date_menu["meal_ids"]:
-                menu.append(
-                    {
-                        "id": f"_{date_menu['date'][8:]}{date_menu['date'][4:8]}{date_menu['date'][:4]}_{meal['regime']}",
-                        "date": date_menu["date"],
-                        "text": meal["name"],
-                        "type": meal["regime"],
-                        "meal_id": meal["meal_id"],
-                        "activity_id": date_menu["activity_id"][0],
-                    }
-                )
-        return {"data": sorted(menu, key=lambda x: x["id"])}
+        response.raise_for_status()
+        menus = []
+        for menu in response.json()["items"]:
+            self.logger.info(f"MENU: {menu}")
+            menus.append(
+                {
+                    "id": f"_{menu['date'][8:]}{menu['date'][4:8]}{menu['date'][:4]}_{menu['meal_ids'][1]['regime']}-{menu['meal_ids'][1]['activity_id']}",
+                    "date": menu["date"],
+                    "text": menu['meal_ids'][1]["name"],
+                    "type": menu['meal_ids'][1]["regime"],
+                    "meal_id": menu['meal_ids'][1]["meal_id"],
+                    "activity_id": menu['meal_ids'][1]["activity_id"]
+                }
+            )
+        return {"data": sorted(menus, key=lambda x: x["id"])}
 
     def validate_month_menu(self, month_menu):
         checked_menu_ids, errors = list(), list()
         for menu in month_menu["data"]:
             if menu["id"] in checked_menu_ids:
-                error = ({"date": menu["date"], "regime": menu["type"]})
+                error = {"date": menu["date"], "regime": menu["type"]}
                 errors.append(error)
             checked_menu_ids.append(menu["id"])
         return errors
