@@ -739,7 +739,6 @@ class ApimsAesConnector(BaseResource):
         response.raise_for_status()
         menus = []
         for menu in response.json()["items"]:
-            self.logger.info(f"MENU: {menu}")
             menus.append(
                 {
                     "id": f"_{menu['date'][8:]}{menu['date'][4:8]}{menu['date'][:4]}_{menu['meal_ids'][1]['regime']}-{menu['meal_ids'][1]['activity_id']}",
