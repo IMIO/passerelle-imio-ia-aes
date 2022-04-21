@@ -397,6 +397,7 @@ class ApimsAesConnector(BaseResource):
             key=eservices.get("secret"),
         )
         signed_forms_url_response = self.requests.get(signed_forms_url)
+        signed_forms_url_response.raise_for_status()
         return signed_forms_url_response.json()["data"]
 
     def set_form_status(self, form_slug, has_valid_healthsheet):
@@ -424,6 +425,7 @@ class ApimsAesConnector(BaseResource):
     def homepage(self, request, parent_id):
         url = f"{self.server_url}/{self.aes_instance}/parents/{parent_id}/kids"
         response = self.session.get(url)
+        response.raise_for_status()
         if response.status_code == 200:
             forms = self.get_pp_forms()
             children = response.json()["items"]
@@ -480,7 +482,9 @@ class ApimsAesConnector(BaseResource):
             price_categories[price_category["name"]] = price_category["id"]
         return price_categories
 
-    def set_price_category(self, compute_price_category, parent_zipcode, municipality_zipcodes):
+    def set_price_category(
+        self, compute_price_category, parent_zipcode, municipality_zipcodes
+    ):
         price_categories = self.list_price_categories()
         if compute_price_category == "non":
             price_category = price_categories["Aucun"]
@@ -504,7 +508,11 @@ class ApimsAesConnector(BaseResource):
     def create_child(self, request, parent_id):
         url = f"{self.server_url}/{self.aes_instance}/parents/{parent_id}/kids"
         post_data = json_loads(request.body)
-        price_category_id = self.set_price_category(post_data["compute_price_category"], post_data["parent_zipcode"], post_data["municipality_zipcodes"])
+        price_category_id = self.set_price_category(
+            post_data["compute_price_category"],
+            post_data["parent_zipcode"],
+            post_data["municipality_zipcodes"],
+        )
         child = {
             "firstname": post_data["firstname"],
             "lastname": post_data["lastname"],
@@ -743,10 +751,10 @@ class ApimsAesConnector(BaseResource):
                 {
                     "id": f"_{menu['date'][8:]}{menu['date'][4:8]}{menu['date'][:4]}_{menu['meal_ids'][1]['regime']}-{menu['meal_ids'][1]['activity_id']}",
                     "date": menu["date"],
-                    "text": menu['meal_ids'][1]["name"],
-                    "type": menu['meal_ids'][1]["regime"],
-                    "meal_id": menu['meal_ids'][1]["meal_id"],
-                    "activity_id": menu['meal_ids'][1]["activity_id"]
+                    "text": menu["meal_ids"][1]["name"],
+                    "type": menu["meal_ids"][1]["regime"],
+                    "meal_id": menu["meal_ids"][1]["meal_id"],
+                    "activity_id": menu["meal_ids"][1]["activity_id"],
                 }
             )
         return {"data": sorted(menus, key=lambda x: x["id"])}
@@ -883,7 +891,9 @@ class ApimsAesConnector(BaseResource):
         origin_data = json_loads(request.body)
         put_data = dict()
         if origin_data["activity_no_available_reason"]:
-            put_data["activity_no_available_reason"] = origin_data["activity_no_available_reason"]
+            put_data["activity_no_available_reason"] = origin_data[
+                "activity_no_available_reason"
+            ]
         if origin_data["allergy_consequence"]:
             put_data["allergy_consequence"] = origin_data["allergy_consequence"]
         if origin_data["allergy_ids"]:
@@ -1009,9 +1019,7 @@ class ApimsAesConnector(BaseResource):
             "street": post_data["street"],
             "is_company": False,
             "locality_id": int(post_data["locality_id"]),
-            "country_id": int(
-                post_data["country_id"]
-            ),
+            "country_id": int(post_data["country_id"]),
             "zip": post_data.get("zipcode") or "",
             "city": post_data.get("city") or "",
         }
