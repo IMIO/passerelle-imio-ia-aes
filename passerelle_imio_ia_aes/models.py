@@ -747,16 +747,18 @@ class ApimsAesConnector(BaseResource):
         response.raise_for_status()
         menus = []
         for menu in response.json()["items"]:
-            menus.append(
-                {
-                    "id": f"_{menu['date'][8:]}{menu['date'][4:8]}{menu['date'][:4]}_{menu['meal_ids'][1]['regime']}-{menu['meal_ids'][1]['activity_id']}",
-                    "date": menu["date"],
-                    "text": menu["meal_ids"][1]["name"],
-                    "type": menu["meal_ids"][1]["regime"],
-                    "meal_id": menu["meal_ids"][1]["meal_id"],
-                    "activity_id": menu["meal_ids"][1]["activity_id"],
-                }
-            )
+            for meal in menu["meal_ids"]:
+                if isinstance(meal, dict):
+                    menus.append(
+                        {
+                            "id": f"_{menu['date'][8:]}{menu['date'][4:8]}{menu['date'][:4]}_{meal['regime']}-{meal['activity_id']}",
+                            "date": menu["date"],
+                            "text": meal["name"],
+                            "type": meal["regime"],
+                            "meal_id": meal["meal_id"],
+                            "activity_id": meal["activity_id"],
+                        }
+                    )
         return {"data": sorted(menus, key=lambda x: x["id"])}
 
     def validate_month_menu(self, month_menu):
