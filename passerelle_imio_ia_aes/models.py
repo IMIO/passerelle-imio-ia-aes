@@ -762,11 +762,23 @@ class ApimsAesConnector(BaseResource):
         return {"data": sorted(menus, key=lambda x: x["id"])}
 
     def validate_month_menu(self, month_menu):
-        checked_menu_ids, errors = list(), list()
+        checked_menu_ids, errors = list(), dict()
         for menu in month_menu["data"]:
             if menu["id"] in checked_menu_ids:
-                error = {"date": menu["date"], "regime": menu["type"]}
-                errors.append(error)
+                index_menu = checked_menu_ids.index(menu["id"])
+                error = {"meal_id": menu["meal_id"], "name": menu["text"], "activity_id": menu["activity_id"]}
+                if not errors.get(menu['id']):
+                    errors[menu["id"]] = {
+                        "date": menu["date"],
+                        "activity_id": menu["activity_id"],
+                        "regime": menu["type"],
+                        "meal_ids": [{
+                            "meal_id": month_menu["data"][index_menu]["meal_id"],
+                            "name": month_menu["data"][index_menu]["text"],
+                            "activity_id": month_menu["data"][index_menu]["activity_id"]
+                        }]
+                    }
+                errors[menu["id"]]["meal_ids"].append(error)
             checked_menu_ids.append(menu["id"])
         return errors
 
