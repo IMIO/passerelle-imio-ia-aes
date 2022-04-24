@@ -836,24 +836,24 @@ class ApimsAesConnector(BaseResource):
         response.raise_for_status()
         return response.json()
 
-    # Swagger itself return a 500 error
-    # Waiting for ticket AES-948
-    # WIP : need a child with registrations to validate this
     @endpoint(
         name="children",
         methods=["get"],
         perm="can_access",
-        description="Liste les inscriptions d'un enfant",
+        description="Liste les inscriptions aux repas d'un enfant",
         long_description="Retourne, pour un enfant donné, ses inscriptions futures, dans le but de l'en désincrire.",
-        parameters={"child_id": CHILD_PARAM, "category": CATEGORY_PARAM},
+        parameters={
+            "child_id": CHILD_PARAM
+        },
         example_pattern="{child_id}/registrations",
         pattern="^(?P<child_id>\w+)/registrations$",
-        display_category="Enfant",
+        display_category="Repas",
     )
-    def list_registrations(self, request, child_id, category):
-        url = f"{self.server_url}/{self.aes_instance}/kids/{child_id}/registrations?category_type={category}"
+    def list_meal_registrations(self, request, child_id):
+        url = f"{self.server_url}/{self.aes_instance}/menus/registration?kid_id={child_id}"
         response = self.session.get(url)
-        return {"status_code": response.status_code, "url": url}
+        response.raise_for_status()
+        return response.json()["items"]
 
     ###################
     ### Fiche santé ###
