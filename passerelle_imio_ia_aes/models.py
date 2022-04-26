@@ -962,9 +962,10 @@ class ApimsAesConnector(BaseResource):
                     )
             elif "contact" in key:
                 contact = value.split(" ; ")
-                allowed_contact_ids.append(
-                    {"partner_id": int(contact[0]), "parental_link": contact[1]}
-                )
+                if contact[0]:
+                    allowed_contact_ids.append(
+                        {"partner_id": int(contact[0]), "parental_link": contact[1]}
+                    )
         disease_ids = [
             {
                 "disease_type_id": int(disease_id[1]),
