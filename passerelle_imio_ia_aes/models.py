@@ -889,7 +889,40 @@ class ApimsAesConnector(BaseResource):
     def read_healthsheet(self, request, child_id):
         url = f"{self.server_url}/{self.aes_instance}/kids/{child_id}/healthsheet"
         response = self.session.get(url)
-        return response.json()[0]
+        data = response.json()[0]
+        healthsheet = dict()
+        healthsheet["activity_no_available_reason"] = data["activity_no_available_reason"]
+        healthsheet["activity_no_available_selection"] = data["activity_no_available_selection"]
+        healthsheet["activity_no_available_text"] = data["activity_no_available_text"]
+        healthsheet["allergy_consequence"] = data["allergy_consequence"]
+        healthsheet["allergy_ids"] = [allergy["id"] for allergy in data["allergy_ids"]]
+        healthsheet["allergy_selection"] = data["allergy_selection"]
+        healthsheet["allowed_contact_ids"] = data["allowed_contact_ids"]
+        healthsheet["arnica"] = data["arnica"]
+        healthsheet["blood_type"] = data["blood_type"]
+        healthsheet["disease_ids"], healthsheet["disease_details"] = list(), list()
+        for disease in data["disease_ids"]:
+            healthsheet["disease_ids"].append(disease["disease_type_id"][0])
+            healthsheet["disease_details"].append({"gravity": disease["gravity"] or "", "treatment": disease["disease_text"]})
+        healthsheet["doctor_id"] = data["doctor_id"]
+        healthsheet["facebook"] = data["facebook"]
+        healthsheet["handicap_selection"] = data["handicap_selection"]
+        healthsheet["intervention_text"] = data["intervention_text"]
+        healthsheet["intervention_selection"] = data["intervention_selection"]
+        healthsheet["last_date_tetanus"] = data["last_date_tetanus"]
+        healthsheet["level_handicap"] = data["level_handicap"]
+        # healthsheet["medication_type_selection"] = data.get("medication_type_selection") or []
+        healthsheet["photo"] = data["photo"]
+        healthsheet["photo_general"] = data["photo_general"]
+        healthsheet["self_medication"] = data["self_medication"]
+        healthsheet["specific_regime_selection"] = data["specific_regime_selection"]
+        healthsheet["specific_regime_text"] = data["specific_regime_text"]
+        healthsheet["swim"] = data["swim"]
+        healthsheet["swim_level"] = data["swim_level"]
+        healthsheet["tetanus_selection"] = data["tetanus_selection"]
+        healthsheet["to_go_alone"] = data["to_go_alone"]
+        healthsheet["type_handicap"] = data["type_handicap"]
+        return healthsheet
 
     @endpoint(
         name="children",
