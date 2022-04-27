@@ -638,7 +638,7 @@ class ApimsAesConnector(BaseResource):
                 ),
                 "text": activity.get("theme")
                 if activity.get("theme") and activity.get("theme") != "False"
-                else activity["activity_name"],
+                else activity["name"],
                 "week": activity["week"],
                 "year": activity["year"],
                 "start_date": activity["start_date"],
