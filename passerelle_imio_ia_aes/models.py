@@ -564,7 +564,13 @@ class ApimsAesConnector(BaseResource):
         lastname=None,
         birthdate=None,
     ):
-        url = f"{self.server_url}/{self.aes_instance}/persons?national_number={national_number}&lastname={lastname}&firstname={firstname}&birthdate={birthdate}"
+        if national_number:
+            url_parameters = f"national_number={national_number}"
+        elif lastname and firstname and birthdate:
+            url_parameters = f"lastname={lastname}&firstname={firstname}&birthdate={birthdate}"
+        else:
+            raise TypeError("You have to give either the national_number, or the lastname, firstname and birthdate.")
+        url = f"{self.server_url}/{self.aes_instance}/persons?{url_parameters}"
         response = self.session.get(url)
         response.raise_for_status()
         if response.json()["items_total"] == 1:
@@ -572,7 +578,7 @@ class ApimsAesConnector(BaseResource):
         elif response.json()["items_total"] == 0:
             child = None
         else:
-            raise MultipleObjectsReturned
+            raise MultipleObjectsReturned("More than one child were found. A manual action is needed.")
         return {"child": child}
 
     @endpoint(
