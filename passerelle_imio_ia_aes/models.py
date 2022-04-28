@@ -897,23 +897,24 @@ class ApimsAesConnector(BaseResource):
         response = self.session.get(url)
         data = response.json()[0]
         healthsheet = dict()
-        healthsheet["activity_no_available_reason"] = data["activity_no_available_reason"]
+        healthsheet["activity_no_available_reason"] = data["activity_no_available_reason"] or ""
         healthsheet["activity_no_available_selection"] = data["activity_no_available_selection"]
-        healthsheet["activity_no_available_text"] = data["activity_no_available_text"]
+        healthsheet["activity_no_available_text"] = data["activity_no_available_text"] or ""
         healthsheet["allergy_consequence"] = data["allergy_consequence"]
-        healthsheet["allergy_ids"] = [allergy["id"] for allergy in data["allergy_ids"]]
+        healthsheet["allergy_ids"] = [str(allergy["id"]) for allergy in data["allergy_ids"]]
         healthsheet["allergy_selection"] = data["allergy_selection"]
         healthsheet["allowed_contact_ids"] = data["allowed_contact_ids"]
         healthsheet["arnica"] = data["arnica"]
         healthsheet["blood_type"] = data["blood_type"]
         healthsheet["disease_ids"], healthsheet["disease_details"] = list(), list()
         for disease in data["disease_ids"]:
-            healthsheet["disease_ids"].append(disease["disease_type_id"][0])
+            healthsheet["disease_ids"].append(str(disease["disease_type_id"][0]))
             healthsheet["disease_details"].append({"gravity": disease["gravity"] or "", "treatment": disease["disease_text"]})
         healthsheet["doctor_id"] = data["doctor_id"]
         healthsheet["facebook"] = data["facebook"]
+        healthsheet["first_date_tetanus"] = data["first_date_tetanus"]
         healthsheet["handicap_selection"] = data["handicap_selection"]
-        healthsheet["intervention_text"] = data["intervention_text"]
+        healthsheet["intervention_text"] = data["intervention_text"] or ""
         healthsheet["intervention_selection"] = data["intervention_selection"]
         healthsheet["last_date_tetanus"] = data["last_date_tetanus"]
         healthsheet["level_handicap"] = data["level_handicap"]
@@ -922,7 +923,7 @@ class ApimsAesConnector(BaseResource):
         healthsheet["photo_general"] = data["photo_general"]
         healthsheet["self_medication"] = data["self_medication"]
         healthsheet["specific_regime_selection"] = data["specific_regime_selection"]
-        healthsheet["specific_regime_text"] = data["specific_regime_text"]
+        healthsheet["specific_regime_text"] = data["specific_regime_text"] or ""
         healthsheet["swim"] = data["swim"]
         healthsheet["swim_level"] = data["swim_level"]
         healthsheet["tetanus_selection"] = data["tetanus_selection"]
@@ -967,10 +968,6 @@ class ApimsAesConnector(BaseResource):
             put_data["last_date_tetanus"] = origin_data["last_date_tetanus"]
         if origin_data["level_handicap"]:
             put_data["level_handicap"] = origin_data["level_handicap"]
-        if origin_data["other_allergies"]:
-            put_data["other_allergies"] = origin_data["other_allergies"]
-        if origin_data["other_diseases"]:
-            put_data["other_diseases"] = origin_data["other_diseases"]
         if origin_data["photo"]:
             put_data["photo"] = origin_data["photo"]
         if origin_data["photo_general"]:
@@ -981,8 +978,8 @@ class ApimsAesConnector(BaseResource):
             put_data["swim"] = origin_data["swim"]
         if origin_data["swim_level"]:
             put_data["swim_level"] = origin_data["swim_level"]
-        # if origin_data["to_go_alone"]:
-        #     put_data["to_go_alone"] = origin_data["to_go_alone"]
+        if origin_data["to_go_alone"]:
+            put_data["to_go_alone"] = origin_data["to_go_alone"]
         if origin_data["type_handicap"]:
             put_data["type_handicap"] = origin_data["type_handicap"]
 
@@ -1007,14 +1004,13 @@ class ApimsAesConnector(BaseResource):
                     allowed_contact_ids.append(
                         {"partner_id": int(contact[0]), "parental_link": contact[1]}
                     )
-        disease_ids = [
-            {
+        disease_ids = list()
+        for disease_id in enumerate(origin_data["disease_ids"]):
+            disease_ids.append({
                 "disease_type_id": int(disease_id[1]),
                 "gravity": origin_data.get(f"disease_{disease_id[0]}_gravity"),
                 "disease_text": origin_data.get(f"disease_{disease_id[0]}_treatment"),
-            }
-            for disease_id in enumerate(origin_data["disease_ids"])
-        ]
+            })
         if medication_ids:
             put_data["medication_ids"] = medication_ids
         if allowed_contact_ids:
@@ -1046,9 +1042,26 @@ class ApimsAesConnector(BaseResource):
                 ]
             elif isinstance(v, list):
                 result[k] = [
-                    {"id": choice["id"], "text": choice["name"]} for choice in v
+                    {"id": str(choice["id"]), "text": choice["name"]} for choice in v
                 ]
         return result
+
+    @endpoint(
+        name="diseases",
+        methods=["get"],
+        perm="can_access",
+        description="Lister les maladies",
+        long_description="Filtre les champs de la fiche santé pour ne récupérer que les maladies.",
+        # cache_duration=3600,
+        display_category="Fiche santé",
+    )
+    def list_diseases(self, request):
+        url = f"{self.server_url}/{self.aes_instance}/models/healthsheet"
+        response = self.session.get(url).json()
+        diseases = list()
+        for disease in response["disease_type"]:
+            diseases.append({"id": str(disease["id"]), "text": disease["name"]})
+        return {"data": diseases}
 
     ################
     ### Contacts ###
