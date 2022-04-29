@@ -335,6 +335,7 @@ class ApimsAesConnector(BaseResource):
             "street": post_data["street"],
             "is_company": post_data["is_company"],
             "national_number": post_data["national_number"],
+            "street_number": post_data["street_number"],
             "registration_number": post_data["registration_number"],
             "country_id": self.search_country(post_data["country"])["id"],
         }
@@ -346,6 +347,7 @@ class ApimsAesConnector(BaseResource):
             parent["zip"] = post_data["zipcode"]
             parent["city"] = post_data["locality"]
         response = self.session.post(url, json=parent)
+        response.raise_for_status()
         return response.json()
 
     @endpoint(
