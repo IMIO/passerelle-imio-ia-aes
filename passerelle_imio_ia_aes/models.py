@@ -589,16 +589,17 @@ class ApimsAesConnector(BaseResource):
         perm="can_access",
         description="Ajouter un parent",
         long_description="Ajoute un parent à un enfant",
-        parameters={"child_id": CHILD_PARAM, "parent_id": PARENT_PARAM},
-        example_pattern="{child_id}/add_parent/",
-        pattern="^(?P<child_id>\w+)/add_parent/$",
+        parameters={"child_id": CHILD_PARAM},
+        example_pattern="{child_id}/add-parent",
+        pattern="^(?P<child_id>\w+)/add-parent$",
         display_category="Enfant",
     )
-    def add_parent_to_child(self, request, child_id, parent_id):
-        url = f"{self.server_url}/{self.aes_instance}/kids/{child_id}/?parent_id={parent_id}"
-        response = self.session.patch(url)
+    def add_parent_to_child(self, request, child_id):
+        url = f"{self.server_url}/{self.aes_instance}/kids/{child_id}"
+        parent = json_loads(request.body)
+        response = self.session.patch(url, json=parent)
         response.raise_for_status()
-        return response.json()
+        return True
 
     ##############
     ### PLAINS ###
