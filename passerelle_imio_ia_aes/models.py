@@ -19,7 +19,7 @@
 from builtins import str
 from email import header
 
-
+import json
 import logging
 import re
 import requests
@@ -32,7 +32,6 @@ from django.core.exceptions import MultipleObjectsReturned
 from datetime import datetime, timedelta
 from passerelle.base.models import BaseResource
 from passerelle.base.signature import sign_url
-from passerelle.compat import json_loads
 from passerelle.utils.api import endpoint
 from passerelle.utils.jsonresponse import APIError
 from requests.exceptions import ConnectionError
@@ -326,7 +325,7 @@ class ApimsAesConnector(BaseResource):
     )
     def create_parent(self, request):
         url = f"{self.server_url}/{self.aes_instance}/parents"
-        post_data = json_loads(request.body)
+        post_data = json.loads(request.body)
         parent = {
             "firstname": post_data["firstname"],
             "lastname": post_data["lastname"],
@@ -509,7 +508,7 @@ class ApimsAesConnector(BaseResource):
     )
     def create_child(self, request, parent_id):
         url = f"{self.server_url}/{self.aes_instance}/parents/{parent_id}/kids"
-        post_data = json_loads(request.body)
+        post_data = json.loads(request.body)
         price_category_id = self.set_price_category(
             post_data["compute_price_category"],
             post_data["parent_zipcode"],
@@ -596,7 +595,7 @@ class ApimsAesConnector(BaseResource):
     )
     def add_parent_to_child(self, request, child_id):
         url = f"{self.server_url}/{self.aes_instance}/kids/{child_id}"
-        parent = json_loads(request.body)
+        parent = json.loads(request.body)
         response = self.session.patch(url, json=parent)
         response.raise_for_status()
         return True
@@ -683,7 +682,7 @@ class ApimsAesConnector(BaseResource):
     )
     def create_plain_registrations(self, request):
         url = f"{self.server_url}/{self.aes_instance}/plains/registration"
-        post_data = json_loads(request.body)
+        post_data = json.loads(request.body)
         plains = []
         for plain in post_data["plains"]:
             activity_id = plain["id"]
@@ -825,7 +824,7 @@ class ApimsAesConnector(BaseResource):
         display_category="Repas",
     )
     def create_menu_registration(self, request):
-        post_data = json_loads(request.body)
+        post_data = json.loads(request.body)
         date_menu = datetime.strptime(post_data["meals"][0]["date"], "%Y-%m-%d")
         data = {
             "kid_id": int(post_data["child_id"]),
@@ -947,7 +946,7 @@ class ApimsAesConnector(BaseResource):
         display_category="Fiche santé",
     )
     def update_healthsheet(self, request, child_id):
-        origin_data = json_loads(request.body)
+        origin_data = json.loads(request.body)
         put_data = dict()
         if origin_data["activity_no_available_reason"]:
             put_data["activity_no_available_reason"] = origin_data[
@@ -1085,7 +1084,7 @@ class ApimsAesConnector(BaseResource):
         display_category="Contact",
     )
     def create_contact(self, request):
-        post_data = json_loads(request.body)
+        post_data = json.loads(request.body)
         url = f"{self.server_url}/{self.aes_instance}/contacts"
         contact = {
             "firstname": post_data["firstname"],
@@ -1117,7 +1116,7 @@ class ApimsAesConnector(BaseResource):
         display_category="Médecin",
     )
     def create_doctor(self, request):
-        post_data = json_loads(request.body)
+        post_data = json.loads(request.body)
         url = f"{self.server_url}/{self.aes_instance}/doctors"
         doctor = {
             "firstname": post_data["firstname"],
