@@ -910,6 +910,7 @@ class ApimsAesConnector(BaseResource):
         healthsheet["allowed_contact_ids"] = data["allowed_contact_ids"]
         healthsheet["arnica"] = data["arnica"]
         healthsheet["blood_type"] = data["blood_type"]
+        healthsheet["comment"] = data["comment"]
         healthsheet["disease_ids"], healthsheet["disease_details"] = list(), list()
         for disease in data["disease_ids"]:
             healthsheet["disease_ids"].append(str(disease["disease_type_id"][0]))
@@ -960,6 +961,8 @@ class ApimsAesConnector(BaseResource):
             put_data["arnica"] = origin_data["arnica"]
         if origin_data["blood_type"]:
             put_data["blood_type"] = origin_data["blood_type"]
+        if origin_data["comment"]:
+            put_data["comment"] = origin_data["comment"]
         if origin_data["child_id"]:
             put_data["child_id"] = origin_data["child_id"]
         if origin_data["doctor_id"]:
