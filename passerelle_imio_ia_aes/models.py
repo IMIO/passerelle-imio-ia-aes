@@ -727,6 +727,7 @@ class ApimsAesConnector(BaseResource):
     def delete_plain_registration(self, request, registration_id):
         url = f"{self.server_url}/{self.aes_instance}/plains/registration/{registration_id}"
         response = self.session.delete(url)
+        response.raise_for_status()
         return response.json()
 
     @endpoint(
