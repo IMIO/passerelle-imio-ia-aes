@@ -632,8 +632,9 @@ class ApimsAesConnector(BaseResource):
     def list_available_plains(self, request, child_id):
         url = f"{self.server_url}/{self.aes_instance}/plains?kid_id={child_id}"
         response = self.session.get(url)
+        plains = [plain for plain in response.json() if plain["nb_remaining_place"] > 0]
         weeks, result = set(), []
-        for activity in response.json():
+        for activity in plains:
             new_activity = {
                 "id": "{}_{}_{}".format(
                     activity["year"], activity["week"], activity["id"]
