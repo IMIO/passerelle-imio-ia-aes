@@ -291,6 +291,7 @@ class ApimsAesConnector(BaseResource):
     ):
         url = f"{self.server_url}/{self.aes_instance}/persons?national_number={national_number}&registration_number={registration_number}&partner_type={partner_type}"
         response = self.session.get(url)
+        response.raise_for_status()
         if response.json()["items_total"] > 1:
             raise MultipleObjectsReturned
         if response.json()["items_total"] == 0:
