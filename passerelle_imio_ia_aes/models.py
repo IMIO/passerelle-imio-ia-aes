@@ -69,7 +69,6 @@ from django.utils.encoding import force_text
 from django.utils.translation import ugettext_lazy as _
 from passerelle.base.models import BaseResource
 from passerelle.base.signature import sign_url
-from passerelle.compat import json_loads
 from passerelle.utils.api import endpoint
 
 
@@ -229,7 +228,7 @@ class IImioIaAes(BaseResource):
     def post_child_meal(self, request, *args, **kwargs):
         # data = dict([(x, request.GET[x]) for x in request.GET.keys()])
         if request.body:
-            occurences_load = json_loads(request.body)
+            occurences_load = json.loads(request.body)
         is_add = self.get_aes_server().execute_kw(
             self.database_name,
             self.get_aes_user_id(),
@@ -248,7 +247,7 @@ class IImioIaAes(BaseResource):
     )
     def post_child_health_sheet(self, request, *args, **kwargs):
         try:
-            occurences_load = json_loads(request.body)
+            occurences_load = json.loads(request.body)
             fields = occurences_load.get("fields")
         except ValueError as e:
             raise ValueError(e.message)
@@ -458,7 +457,7 @@ class IImioIaAes(BaseResource):
     )
     def parent_registration(self, request, **kwargs):
         if request.body:
-            parent = json_loads(request.body)
+            parent = json.loads(request.body)
         registration_id = self.get_aes_server().execute_kw(
             self.database_name,
             self.get_aes_user_id(),
@@ -476,7 +475,7 @@ class IImioIaAes(BaseResource):
     )
     def get_parent_id(self, request, email=None, nrn=None):
         if request.body:
-            params = json_loads(request.body)
+            params = json.loads(request.body)
             data = {"email": params.get("email"), "nrn": params.get("nrn")}
         else:
             data = dict([(x, request.GET[x]) for x in request.GET.keys()])
@@ -498,7 +497,7 @@ class IImioIaAes(BaseResource):
     )
     def child_registration(self, request, **kwargs):
         if request.body:
-            params = json_loads(request.body)
+            params = json.loads(request.body)
         parent_id = self.get_parent_id(request)
         parentid = {u"parentid": force_text(parent_id.get("id"))}
         params.update(parentid)
@@ -688,7 +687,7 @@ class IImioIaAes(BaseResource):
     def add_registration_child(self, request, *args, **kwargs):
         data = dict([(x, request.GET[x]) for x in request.GET.keys()])
         if request.body:
-            occurences_load = json_loads(request.body)
+            occurences_load = json.loads(request.body)
         is_registration_child = self.get_aes_server().execute_kw(
             self.database_name,
             self.get_aes_user_id(),
@@ -768,7 +767,7 @@ class IImioIaAes(BaseResource):
         if debug is True:
             return {"data": [{"name": "Theme Label"}]}
         if getattr(request, "body", None) is not None:
-            params = json_loads(request.body)
+            params = json.loads(request.body)
             activity_id = params.get("activity_id")
             week_number = params.get("week_number")
         data = {"activity_id": activity_id, "week_number": week_number}
@@ -1002,7 +1001,7 @@ class IImioIaAes(BaseResource):
     )
     def validate_form(self, request):
         if request.body:
-            data = json_loads(request.body)
+            data = json.loads(request.body)
         aes_response = self.get_aes_server().execute_kw(
             self.database_name,
             self.get_aes_user_id(),
@@ -1021,7 +1020,7 @@ class IImioIaAes(BaseResource):
     )
     def close_plaines_reservation(self, request):
         if request.body:
-            data = json_loads(request.body)
+            data = json.loads(request.body)
         pay = self.get_aes_server().execute_kw(
             self.database_name,
             self.get_aes_user_id(),
@@ -1040,7 +1039,7 @@ class IImioIaAes(BaseResource):
     )
     def free_up_places(self, request):
         if request.body:
-            data = json_loads(request.body)
+            data = json.loads(request.body)
         self.get_aes_server().execute_kw(
             self.database_name,
             self.get_aes_user_id(),
@@ -1059,7 +1058,7 @@ class IImioIaAes(BaseResource):
     )
     def pay_prepaid(self, request, amount=None, parent_id=None, form_id=None):
         if request.body:
-            params = json_loads(request.body)
+            params = json.loads(request.body)
         else:
             params = dict([(x, request.GET[x]) for x in request.GET.keys()])
         data = {
@@ -1237,7 +1236,7 @@ class IImioIaAes(BaseResource):
         },
     )
     def invoice_pay(self, request, invoice_id, NameID=None, **kwargs):
-        response = json_loads(request.body)
+        response = json.loads(request.body)
         # ast.literal_eval(request.body)
         response["id"] = invoice_id
         aes_resp = self.get_aes_server().execute_kw(

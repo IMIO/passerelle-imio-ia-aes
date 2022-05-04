@@ -1,6 +1,11 @@
 Changelog
 =========
 
+0.2.20
+-----------------
+- Fix : remove passerelle.compat
+  [nhi]
+
 0.2.19
 -----------------
 - Added : children filtering by school
