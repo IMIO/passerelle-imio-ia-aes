@@ -1095,8 +1095,8 @@ class ApimsAesConnector(BaseResource):
             "mobile": post_data["mobile"] or "",
             "street": post_data["street"],
             "is_company": False,
-            "locality_id": int(post_data["locality_id"]),
-            "country_id": int(post_data["country_id"]),
+            "locality_id": int(post_data["locality_id"]) if post_data["locality_id"] else None,
+            "country_id": int(post_data["country_id"]) if post_data["country_id"] else None,
             "zip": post_data.get("zipcode") or "",
             "city": post_data.get("city") or "",
         }
