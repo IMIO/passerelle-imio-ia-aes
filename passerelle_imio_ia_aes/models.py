@@ -756,8 +756,20 @@ class ApimsAesConnector(BaseResource):
         url = f"{self.server_url}/{self.aes_instance}/menus?kid_id={child_id}&month={month}"
         response = self.session.get(url)
         response.raise_for_status()
-        menus = []
+        menus, dates_with_nothing = list(), set()
         for menu in response.json()["items"]:
+            if menu["date"] not in dates_with_nothing:
+                dates_with_nothing.add(menu["date"])
+                menus.append(
+                    {
+                        "id": f"_{menu['date'][8:]}{menu['date'][4:8]}{menu['date'][:4]}_nothing",
+                        "date": menu["date"],
+                        "text": "Rien",
+                        "type": "nothing",
+                        "meal_id": None,
+                        "activity_id": None,
+                    }
+                )
             for meal in menu["meal_ids"]:
                 if isinstance(meal, dict):
                     menus.append(
@@ -839,7 +851,7 @@ class ApimsAesConnector(BaseResource):
                     "activity_id": meal["activity_id"],
                     "meal_ids": [meal["meal_id"]],
                 }
-                for meal in post_data["meals"]
+                for meal in post_data["meals"] if meal["meal_id"]
             ],
         }
         url = f"{self.server_url}/{self.aes_instance}/menus/registration"
