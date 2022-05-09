@@ -977,7 +977,7 @@ class ApimsAesConnector(BaseResource):
         if origin_data["comment"]:
             put_data["comment"] = origin_data["comment"]
         if origin_data["child_id"]:
-            put_data["child_id"] = origin_data["child_id"]
+            put_data["child_id"] = int(origin_data["child_id"])
         if origin_data["doctor_id"]:
             put_data["doctor_id"] = origin_data["doctor_id"]
         if origin_data["facebook"]:
