@@ -1174,3 +1174,28 @@ class ApimsAesConnector(BaseResource):
     def list_invoices(self, request, parent_id):
         url = f"{self.server_url}/{self.aes_instance}/parents/{parent_id}/invoices"
         return self.session.get(url).json()["items"]
+
+    ################
+    ### Paiement ###
+    ################
+
+    @endpoint(
+        name="payment",
+        methods=["post"],
+        # perm="can_access",
+        description="Créer un Paiement",
+        example_pattern="create",
+        pattern="^create$",
+        display_category="Paiement",
+    )
+    def create_doctor(self, request):
+        post_data = json.loads(request.body)
+        url = f"{self.server_url}/{self.aes_instance}/payment"
+        payment = {
+            "parent_id": post_data["parent_id"],
+            "amount": post_data["amount"],
+            "comment": post_data["comment"]
+        }
+        response = self.session.post(url, json=payment)
+        response.raise_for_status()
+        return response.json()
