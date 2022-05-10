@@ -1182,7 +1182,7 @@ class ApimsAesConnector(BaseResource):
     @endpoint(
         name="payment",
         methods=["post"],
-        # perm="can_access",
+        perm="can_access",
         description="Créer un Paiement",
         example_pattern="create",
         pattern="^create$",
