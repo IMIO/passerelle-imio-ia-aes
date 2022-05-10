@@ -1192,8 +1192,8 @@ class ApimsAesConnector(BaseResource):
         post_data = json.loads(request.body)
         url = f"{self.server_url}/{self.aes_instance}/payment"
         payment = {
-            "parent_id": post_data["parent_id"],
-            "amount": post_data["amount"],
+            "parent_id": int(post_data["parent_id"]),
+            "amount": float(post_data["amount"].replace(",",".")),
             "comment": post_data["comment"]
         }
         response = self.session.post(url, json=payment)
