@@ -1188,7 +1188,7 @@ class ApimsAesConnector(BaseResource):
         pattern="^create$",
         display_category="Paiement",
     )
-    def create_doctor(self, request):
+    def create_payment(self, request):
         post_data = json.loads(request.body)
         url = f"{self.server_url}/{self.aes_instance}/payment"
         payment = {
