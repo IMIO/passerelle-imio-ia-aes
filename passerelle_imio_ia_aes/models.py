@@ -334,11 +334,13 @@ class ApimsAesConnector(BaseResource):
             "phone": post_data["phone"],
             "street": post_data["street"],
             "is_company": post_data["is_company"],
-            "national_number": post_data["national_number"],
             "street_number": post_data["street_number"],
-            "registration_number": post_data["registration_number"],
             "country_id": self.search_country(post_data["country"])["id"],
         }
+        if post_data["national_number"]:
+            parent["national_number"] = post_data["national_number"]
+        if post_data["registration_number"]:
+            parent["registration_number"] = post_data["registration_number"]
         if post_data["country"].lower() == "belgique":
             parent["locality_id"] = self.search_locality(
                 post_data["zipcode"], post_data["locality"]
