@@ -427,6 +427,8 @@ class ApimsAesConnector(BaseResource):
         display_category="Parent",
     )
     def homepage(self, request, parent_id):
+        if not parent_id.isdigit():
+            return None
         url = f"{self.server_url}/{self.aes_instance}/parents/{parent_id}/kids"
         response = self.session.get(url)
         response.raise_for_status()
