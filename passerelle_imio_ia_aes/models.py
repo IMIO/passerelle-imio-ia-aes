@@ -636,7 +636,7 @@ class ApimsAesConnector(BaseResource):
         url = f"{self.server_url}/{self.aes_instance}/plains?kid_id={child_id}"
         response = self.session.get(url)
         plains = [plain for plain in response.json() if plain["nb_remaining_place"] > 0]
-        weeks, result = set(), []
+        weeks, available_plains = set(), []
         for activity in plains:
             new_activity = {
                 "id": "{}_{}_{}".format(
@@ -652,7 +652,7 @@ class ApimsAesConnector(BaseResource):
                 "age_group_manager_id": activity["age_group_manager_id"],
             }
             if activity["week"] not in weeks:
-                result.append(
+                available_plains.append(
                     {
                         "id": activity["week"],
                         "text": "Semaine {}".format(activity["week"]),
@@ -669,10 +669,10 @@ class ApimsAesConnector(BaseResource):
             else:
                 [
                     week["activities"].append(new_activity)
-                    for week in result
+                    for week in available_plains
                     if week["id"] == activity["week"]
                 ]
-        return result
+        return sorted(available_plains, key=lambda x: x["week"])
 
     @endpoint(
         name="registrations",
