@@ -1143,18 +1143,13 @@ class ApimsAesConnector(BaseResource):
             "mobile": post_data["mobile"] or "",
             "street": post_data["street"],
             "is_company": False,
-            "locality_id": int(post_data["locality_id"]),
             "country_id": int(post_data["country_id"]),
-            "zip": post_data.get("zipcode") or "",
-            "city": post_data.get("city") or "",
         }
-        # if post_data["country"].lower() == "belgique":
-        #     doctor["locality_id"] = self.search_locality(
-        #         post_data["zipcode"], post_data["locality"]
-        #     )["id"]
-        # else:
-        #     doctor["zip"] = post_data["zipcode"]
-        #     doctor["city"] = post_data["locality"]
+        if doctor["country_id"] == 20:
+            doctor["locality_id"] = int(post_data["locality_id"])
+        else:
+            doctor["zip"] = post_data["zip"]
+            doctor["city"] = post_data["city"]
         response = self.session.post(url, json=doctor)
         response.raise_for_status()
         return response.json()
