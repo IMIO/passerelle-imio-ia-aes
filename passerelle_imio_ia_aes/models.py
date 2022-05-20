@@ -1017,7 +1017,7 @@ class ApimsAesConnector(BaseResource):
                     medication_ids.append(
                         {
                             "name": medication[0],
-                            "quantity": int(medication[1]),
+                            "quantity": int(medication[1]) if medication[1] and medication[1] != "None" else None,
                             "period": medication[2],
                             "self_medication_selection": medication[3],
                         }
