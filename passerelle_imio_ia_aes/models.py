@@ -879,6 +879,23 @@ class ApimsAesConnector(BaseResource):
             })
         return {"data": result}
 
+    @endpoint(
+        name="children",
+        methods=["post"],
+        perm="can_access",
+        description="Désinscrire un enfant des repas",
+        long_description="Supprime des inscriptions aux repas dans iA.AES pour un enfant.",
+        example_pattern="registrations/delete",
+        pattern="^registrations/delete$",
+        display_category="Repas",
+    )
+    def delete_menu_registration(self, request):
+        data = dict()
+        data["meals"] = [int(meal) for meal in json.loads(request.body).get("meals")]
+        url = f"{self.server_url}/{self.aes_instance}/school-meals/meal-details"
+        response = self.session.post(url, json=data)
+        response.raise_for_status()
+        return response.json()
 
     ###################
     ### Fiche santé ###
