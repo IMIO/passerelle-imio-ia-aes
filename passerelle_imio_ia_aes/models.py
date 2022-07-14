@@ -842,7 +842,7 @@ class ApimsAesConnector(BaseResource):
                 for meal in post_data["meals"]
             ],
         }
-        url = f"{self.server_url}/{self.aes_instance}/menus/registration"
+        url = f"{self.server_url}/{self.aes_instance}/menus/registrations"
         response = self.session.post(url, json=data)
         response.raise_for_status()
         return response.json()
@@ -861,10 +861,24 @@ class ApimsAesConnector(BaseResource):
         display_category="Repas",
     )
     def list_meal_registrations(self, request, child_id):
-        url = f"{self.server_url}/{self.aes_instance}/menus/registration?kid_id={child_id}"
+        url = f"{self.server_url}/{self.aes_instance}/school-meals/registrations?kid_id={child_id}"
         response = self.session.get(url)
         response.raise_for_status()
-        return response.json()["items"]
+        if isinstance(response.json(), list):
+            registrations = response.json()
+        else:
+            registrations = response.json().get("items")
+        result = list()
+        for registration in registrations:
+            meal_date = datetime.strftime(datetime.strptime(registration['meal_date'], "%Y-%m-%d"), "%d/%m/%Y")
+            result.append({
+                "id": int(registration["meal_detail_id"]),
+                "date": registration["meal_date"],
+                "text": f"{meal_date} {registration['meal_name']}",
+                "regime": registration["meal_regime"]
+            })
+        return {"data": result}
+
 
     ###################
     ### Fiche santé ###
