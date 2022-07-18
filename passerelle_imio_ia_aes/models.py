@@ -892,7 +892,7 @@ class ApimsAesConnector(BaseResource):
     def delete_menu_registration(self, request):
         data = dict()
         data["meals"] = [int(meal) for meal in json.loads(request.body).get("meals")]
-        url = f"{self.server_url}/{self.aes_instance}/school-meals/meal-details"
+        url = f"{self.server_url}/{self.aes_instance}/school-meals/registrations/delete"
         response = self.session.post(url, json=data)
         response.raise_for_status()
         return response.json()
