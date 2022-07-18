@@ -821,8 +821,8 @@ class ApimsAesConnector(BaseResource):
         perm="can_access",
         description="Inscrire un enfant aux repas",
         long_description="Crée les inscriptions aux repas dans iA.AES pour un enfant.",
-        example_pattern="registration",
-        pattern="^registration$",
+        example_pattern="registrations",
+        pattern="^registrations$",
         display_category="Repas",
     )
     def create_menu_registration(self, request):
@@ -830,19 +830,19 @@ class ApimsAesConnector(BaseResource):
         date_menu = datetime.strptime(post_data["meals"][0]["date"], "%Y-%m-%d")
         data = {
             "kid_id": int(post_data["child_id"]),
-            "month": str(date_menu.month),
+            "parent_id": post_data["parent_id"],
+            "month": date_menu.month,
             "year": date_menu.year,
-            "school_implantation_id": post_data["school_implantation_id"][0],
             "meals": [
                 {
-                    "date": meal["date"],
+                    "day": int(meal["date"][-2:]),
                     "activity_id": meal["activity_id"],
                     "meal_ids": [meal["meal_id"]],
                 }
                 for meal in post_data["meals"]
             ],
         }
-        url = f"{self.server_url}/{self.aes_instance}/menus/registrations"
+        url = f"{self.server_url}/{self.aes_instance}/school-meals/registrations"
         response = self.session.post(url, json=data)
         response.raise_for_status()
         return response.json()
