@@ -837,8 +837,8 @@ class ApimsAesConnector(BaseResource):
         perm="can_access",
         description="Inscrire un enfant aux repas",
         long_description="Crée les inscriptions aux repas dans iA.AES pour un enfant.",
-        example_pattern="registration",
-        pattern="^registration$",
+        example_pattern="registrations",
+        pattern="^registrations$",
         display_category="Repas",
     )
     def create_menu_registration(self, request):
@@ -846,19 +846,19 @@ class ApimsAesConnector(BaseResource):
         date_menu = datetime.strptime(post_data["meals"][0]["date"], "%Y-%m-%d")
         data = {
             "kid_id": int(post_data["child_id"]),
-            "month": str(date_menu.month),
+            "parent_id": post_data["parent_id"],
+            "month": date_menu.month,
             "year": date_menu.year,
-            "school_implantation_id": post_data["school_implantation_id"][0],
             "meals": [
                 {
-                    "date": meal["date"],
+                    "day": int(meal["date"][-2:]),
                     "activity_id": meal["activity_id"],
                     "meal_ids": [meal["meal_id"]],
                 }
                 for meal in post_data["meals"] if meal["meal_id"]
             ],
         }
-        url = f"{self.server_url}/{self.aes_instance}/menus/registration"
+        url = f"{self.server_url}/{self.aes_instance}/school-meals/registrations"
         response = self.session.post(url, json=data)
         response.raise_for_status()
         return response.json()
@@ -870,17 +870,57 @@ class ApimsAesConnector(BaseResource):
         description="Liste les inscriptions aux repas d'un enfant",
         long_description="Retourne, pour un enfant donné, ses inscriptions futures, dans le but de l'en désincrire.",
         parameters={
-            "child_id": CHILD_PARAM
+            "child_id": CHILD_PARAM,
+            "month": {
+                "description": "Mois sélectionné - 0 pour ce mois-ci, 1 pour le mois prochain, 2 pour le mois d'après.",
+                "example_value": 1
+            }
         },
         example_pattern="{child_id}/registrations",
         pattern="^(?P<child_id>\w+)/registrations$",
         display_category="Repas",
     )
-    def list_meal_registrations(self, request, child_id):
-        url = f"{self.server_url}/{self.aes_instance}/menus/registration?kid_id={child_id}"
+    def list_meal_registrations(self, request, child_id, month=None):
+        url = f"{self.server_url}/{self.aes_instance}/school-meals/registrations?kid_id={child_id}"
         response = self.session.get(url)
         response.raise_for_status()
-        return response.json()["items"]
+        if isinstance(response.json(), list):
+            registrations = response.json()
+        else:
+            registrations = response.json().get("items")
+        result = list()
+        for registration in registrations:
+            meal_date = datetime.strptime(registration['meal_date'], "%Y-%m-%d")
+            if month:
+                today = datetime.today()
+                selected_month = today.month + month if today.month < 13 else today.month + month - 12
+            if not month or meal_date.month == selected_month:
+                result.append({
+                    "id": f"_{datetime.strftime(meal_date, '%d-%m-%Y')}_{registration['meal_regime']}-{registration['meal_activity_id']}",
+                    "meal_detail_id": int(registration["meal_detail_id"]),
+                    "date": registration["meal_date"],
+                    "text": f"{datetime.strftime(meal_date, '%d/%m/%Y')} {registration['meal_name']}",
+                    "regime": registration["meal_regime"]
+                })
+        return {"data": result}
+
+    @endpoint(
+        name="children",
+        methods=["post"],
+        perm="can_access",
+        description="Désinscrire un enfant des repas",
+        long_description="Supprime des inscriptions aux repas dans iA.AES pour un enfant.",
+        example_pattern="registrations/delete",
+        pattern="^registrations/delete$",
+        display_category="Repas",
+    )
+    def delete_menu_registration(self, request):
+        data = dict()
+        data["meals"] = [meal["meal_detail_id"] for meal in json.loads(request.body).get("meals")]
+        url = f"{self.server_url}/{self.aes_instance}/school-meals/registrations/delete"
+        response = self.session.post(url, json=data)
+        response.raise_for_status()
+        return response.json()
 
     ###################
     ### Fiche santé ###

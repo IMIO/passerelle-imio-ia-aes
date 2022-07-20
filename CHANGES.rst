@@ -1,6 +1,11 @@
 Changelog
 =========
 
+1.1.0
+-----------------
+- Added: unregistration endpoint [nhi]
+- Updated: meals endpoints [nhi]
+
 1.0.0
 -----------------
 - Added: new version for AESv15
