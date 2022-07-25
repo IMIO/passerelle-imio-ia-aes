@@ -879,10 +879,10 @@ class ApimsAesConnector(BaseResource):
         result = list()
         for registration in registrations:
             meal_date = datetime.strptime(registration['meal_date'], "%Y-%m-%d")
-            if month:
+            if month is not None:
                 today = datetime.today()
                 selected_month = today.month + month if today.month < 13 else today.month + month - 12
-            if not month or meal_date.month == selected_month:
+            if month is None or meal_date.month == selected_month:
                 result.append({
                     "id": f"_{datetime.strftime(meal_date, '%d-%m-%Y')}_{registration['meal_regime']}-{registration['meal_activity_id']}",
                     "meal_detail_id": int(registration["meal_detail_id"]),
