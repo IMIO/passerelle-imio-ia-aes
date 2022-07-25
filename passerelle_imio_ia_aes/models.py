@@ -869,6 +869,8 @@ class ApimsAesConnector(BaseResource):
         display_category="Repas",
     )
     def list_meal_registrations(self, request, child_id, month=None):
+        if month is not None and month not in [0, 1, 2]:
+            raise ValueError("Le mois ne peut avoir comme valeur que 0, 1, ou 2. Voir la description du paramètre pour en savoir plus.")
         url = f"{self.server_url}/{self.aes_instance}/school-meals/registrations?kid_id={child_id}"
         response = self.session.get(url)
         response.raise_for_status()
