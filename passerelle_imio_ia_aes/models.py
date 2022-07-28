@@ -652,6 +652,7 @@ class ApimsAesConnector(BaseResource):
                 "start_date": activity["start_date"],
                 "end_date": activity["end_date"],
                 "age_group_manager_id": activity["age_group_manager_id"],
+                "remaining_places": activity["nb_remaining_place"]
             }
             if activity["week"] not in weeks:
                 available_plains.append(
