@@ -1,6 +1,10 @@
 Changelog
 =========
 
+1.2.0
+-----------------
+- Added: add deadline to meal unregistration endpoint [nhi]
+
 1.1.0
 -----------------
 - Added: unregistration endpoint [nhi]

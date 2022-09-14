@@ -29,12 +29,13 @@ from django.http import Http404
 from django.http import HttpResponse
 from django.urls import path, reverse
 from django.core.exceptions import MultipleObjectsReturned
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta, time
 from passerelle.base.models import BaseResource
 from passerelle.base.signature import sign_url
 from passerelle.utils.api import endpoint
 from passerelle.utils.jsonresponse import APIError
 from requests.exceptions import ConnectionError
+from workalendar.europe import Belgium
 
 
 logger = logging.getLogger(__name__)
@@ -757,6 +758,36 @@ class ApimsAesConnector(BaseResource):
     ### REPAS ###
     #############
 
+    def is_in_time(self, scheduled, days_in_delay, no_later_than):
+        """
+        Returns True if deadline isn't reached yead
+
+        Parameters
+        ----------
+            scheduled : datetime.datetime
+                datetime of scheduled event
+            days_in_delay : int
+                number of days in delay
+            no_later_than : datetime.time
+                last hour:minute before deadline
+        """
+        def is_workday(day):
+            cal = Belgium()
+            return date(day.year, day.month, day.day) not in cal.holidays(day.year)
+
+        now = datetime.now()
+        if days_in_delay < 1:
+            raise ValueError("days_in_delay must be superior to 1")
+        evaluated, remaining_delay = scheduled, days_in_delay
+        while remaining_delay > 0:
+            if now > evaluated:
+                break
+            evaluated = evaluated - timedelta(days=1)
+            if is_workday(evaluated):
+                remaining_delay = remaining_delay - 1
+        result = time(now.hour, now.minute) < no_later_than if (date(evaluated.year, evaluated.month, evaluated.day) - date(now.year, now.month, now.day)).days == 0 else now < evaluated
+        return result
+
     def get_month_menu(self, child_id, month):
         url = f"{self.server_url}/{self.aes_instance}/menus?kid_id={child_id}&month={month}"
         response = self.session.get(url)
@@ -869,7 +900,7 @@ class ApimsAesConnector(BaseResource):
         pattern="^(?P<child_id>\w+)/registrations$",
         display_category="Repas",
     )
-    def list_meal_registrations(self, request, child_id, month=None):
+    def list_meal_registrations(self, request, child_id, days_in_delay=1, no_later_than="19:00", month=None):
         if month is not None and month not in [0, 1, 2]:
             raise ValueError("Le mois ne peut avoir comme valeur que 0, 1, ou 2. Voir la description du paramètre pour en savoir plus.")
         url = f"{self.server_url}/{self.aes_instance}/school-meals/registrations?kid_id={child_id}"
@@ -885,7 +916,7 @@ class ApimsAesConnector(BaseResource):
             if month is not None:
                 today = datetime.today()
                 selected_month = today.month + month if today.month < 13 else today.month + month - 12
-            if month is None or meal_date.month == selected_month:
+            if (month is None or meal_date.month == selected_month) and self.is_in_time(meal_date, days_in_delay, time.fromisoformat(no_later_than)):
                 result.append({
                     "id": f"_{datetime.strftime(meal_date, '%d-%m-%Y')}_{registration['meal_regime']}-{registration['meal_activity_id']}",
                     "meal_detail_id": int(registration["meal_detail_id"]),
