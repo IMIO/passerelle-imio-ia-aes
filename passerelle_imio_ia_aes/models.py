@@ -662,10 +662,7 @@ class ApimsAesConnector(BaseResource):
                         "text": "Semaine {}".format(activity["week"]),
                         "activities": [new_activity],
                         "week": activity["week"],
-                        "monday": datetime.strptime(
-                            "{}-{}-1".format(datetime.today().year, activity["week"]),
-                            "%Y-%W-%w",
-                        ).date(),
+                        "monday": date.fromisocalendar(activity["year"], activity["week"], 1),
                         "year": activity["year"],
                     }
                 )

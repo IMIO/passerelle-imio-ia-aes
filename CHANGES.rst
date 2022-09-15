@@ -1,6 +1,10 @@
 Changelog
 =========
 
+1.2.1
+-----------------
+- Fixed: monday computing in plains [nhi]
+
 1.2.0
 -----------------
 - Added: add deadline to meal unregistration endpoint [nhi]
