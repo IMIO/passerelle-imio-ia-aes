@@ -777,8 +777,6 @@ class ApimsAesConnector(BaseResource):
             raise ValueError("days_in_delay must be superior to 1")
         evaluated, remaining_delay = scheduled, days_in_delay
         while remaining_delay > 0:
-            if now > evaluated:
-                break
             evaluated = evaluated - timedelta(days=1)
             if is_workday(evaluated):
                 remaining_delay = remaining_delay - 1
@@ -890,7 +888,15 @@ class ApimsAesConnector(BaseResource):
             "child_id": CHILD_PARAM,
             "month": {
                 "description": "Mois sélectionné - 0 pour ce mois-ci, 1 pour le mois prochain, 2 pour le mois d'après.",
+                "example_value": 0
+            },
+            "days_in_delay": {
+                "description": "Délai en jours avant le repas.",
                 "example_value": 1
+            },
+            "no_later_than": {
+                "description": "Dernier moment avant la désinscription, lors du dernier jour permis par le délai.",
+                "example_value": "19:00"
             }
         },
         example_pattern="{child_id}/registrations",
