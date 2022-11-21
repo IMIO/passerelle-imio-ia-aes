@@ -1,6 +1,10 @@
 Changelog
 =========
 
+1.3.0
+-----------------
+- Added: tool for getting age group birthdates [nhi]
+
 1.2.1
 -----------------
 - Fixed: monday computing in plains [nhi]

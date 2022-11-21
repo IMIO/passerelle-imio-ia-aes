@@ -1263,3 +1263,45 @@ class ApimsAesConnector(BaseResource):
         response = self.session.post(url, json=payment)
         response.raise_for_status()
         return response.json()
+
+    ###################
+    ### Utilitaires ###
+    ###################
+
+    @endpoint(
+        name="date-limite",
+        methods=["get"],
+        perm="can_access",
+        description="Calcule une date de naissance limite",
+        long_description="Calcule une date, qui correspond à une limite de\
+             date de naissance, en fonction de la date de début d'activité,\
+             ainsi que d'un âge en année, mois et jours.",
+        parameters={
+            "limit_date": {
+                "description": "Date au format DD/MM/YYYY",
+                "example_value": "26/12/2022",
+            },
+            "age_years": {
+                "description": "Années en entier, au moins 0.",
+                "example_value": 5,
+            },
+            "age_months": {
+                "description": "Mois, en entier, entre 0 et 12.",
+                "example_value": 11,
+            },
+            "age_days": {
+                "description": "Date, en jours, au moins 0.",
+                "example_value": 30,
+            },
+        },
+        display_category="Utilitaires",
+    )
+    def get_limit_birthdate(self, request, limit_date, age_years, age_months, age_days):
+        day, month, year = [int(el) for el in limit_date.split("/")]
+        if age_months > 12:
+            raise ValueError("month must be int between 0 and 12")
+        elif month > age_months:
+            result = date(year - age_years, month - age_months, day) - timedelta(days=age_days)
+        else:
+            result = date(year - 1 - age_years, month - age_months + 12, day) - timedelta(days=age_days)
+        return {"data": result}
