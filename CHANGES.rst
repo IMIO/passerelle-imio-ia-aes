@@ -1,6 +1,10 @@
 Changelog
 =========
 
+1.3.1
+-----------------
+- Changed: deadline for meal unregistration can now be current day [nhi]
+
 1.3.0
 -----------------
 - Added: tool for getting age group birthdates [nhi]

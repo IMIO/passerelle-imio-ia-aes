@@ -773,8 +773,8 @@ class ApimsAesConnector(BaseResource):
             return date(day.year, day.month, day.day) not in cal.holidays(day.year)
 
         now = datetime.now()
-        if days_in_delay < 1:
-            raise ValueError("days_in_delay must be superior to 1")
+        if days_in_delay < 0:
+            raise ValueError("days_in_delay must be equal or superior to 0")
         evaluated, remaining_delay = scheduled, days_in_delay
         while remaining_delay > 0:
             evaluated = evaluated - timedelta(days=1)
