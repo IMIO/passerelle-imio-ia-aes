@@ -1,6 +1,10 @@
 Changelog
 =========
 
+1.3.2
+-----------------
+- Changed: be less strict in zipcode recognition when searching localities [nhi]
+
 1.3.1
 -----------------
 - Changed: deadline for meal unregistration can now be current day [nhi]

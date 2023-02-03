@@ -179,7 +179,7 @@ class ApimsAesConnector(BaseResource):
         localities = [
             locality
             for locality in self.get_localities()["items"]
-            if locality["zip"] == zipcode
+            if locality["zip"][:3] == zipcode[:3]
         ]
         return localities
 
