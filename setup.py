@@ -45,7 +45,7 @@ class install_lib(_install_lib):
         self.run_command('compile_translations')
         _install_lib.run(self)
 
-version = "1.3.2"
+version = "1.4.0"
 
 setup(
     name='passerelle-imio-ia-aes',

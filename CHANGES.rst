@@ -1,6 +1,10 @@
 Changelog
 =========
 
+1.4.0
+-----------------
+- Added: fetch parent's structured communication for holiday plains [nhi]
+
 1.3.2
 -----------------
 - Changed: be less strict in zipcode recognition when searching localities [nhi]

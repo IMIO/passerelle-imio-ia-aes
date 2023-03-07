@@ -420,6 +420,26 @@ class ApimsAesConnector(BaseResource):
         name="parents",
         methods=["get"],
         perm="can_access",
+        description="Communication structurée pour les plaines",
+        long_description="Retourne la communication structurée d'un parent pour la catégorie d'activité plaines. "
+        "C'est l'API qui fait le filtre. Retourne une erreur si plusieurs sont trouvées.",
+        parameters={"parent_id": PARENT_PARAM},
+        example_pattern="{parent_id}/plain-structured-communication/",
+        pattern="^(?P<parent_id>\w+)/plain-structured-communication/$",
+        display_category="Parent",
+    )
+    def get_plain_structured_communication(self, request, parent_id):
+        url = f"{self.server_url}/{self.aes_instance}/parents/{parent_id}/structured-communications"
+        response = self.session.get(url)
+        response.raise_for_status()
+        if len(response.json()) > 1:
+            raise MultipleObjectsReturned
+        return response.json()[0]
+
+    @endpoint(
+        name="parents",
+        methods=["get"],
+        perm="can_access",
         description="Page d'accueil",
         long_description="Agrège les données dont la page d'accueil du Portail Parent a besoin.",
         parameters={"parent_id": PARENT_PARAM},
