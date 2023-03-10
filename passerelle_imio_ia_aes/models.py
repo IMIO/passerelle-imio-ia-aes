@@ -436,18 +436,37 @@ class ApimsAesConnector(BaseResource):
             raise MultipleObjectsReturned
         return response.json()[0]
 
+    def has_plain_registrations(self, user_uuid):
+        if not getattr(settings, "KNOWN_SERVICES", {}).get("wcs"):
+            return
+        eservices = list(settings.KNOWN_SERVICES["wcs"].values())[0]
+        signed_forms_url = sign_url(
+            url=f"{eservices['url']}api/users/{user_uuid}/forms?orig={eservices.get('orig')}",
+            key=eservices.get("secret"),
+        )
+        signed_forms_url_response = self.requests.get(signed_forms_url)
+        signed_forms_url_response.raise_for_status()
+        for demand in signed_forms_url_response.json()["data"]:
+            if demand["form_slug"] == "pp-fiche-inscription-plaine" and demand["form_status"] == "En attente de validation":
+                return True
+        return False
+
     @endpoint(
         name="parents",
         methods=["get"],
         perm="can_access",
         description="Page d'accueil",
         long_description="Agrège les données dont la page d'accueil du Portail Parent a besoin.",
-        parameters={"parent_id": PARENT_PARAM},
-        example_pattern="{parent_id}/homepage/",
-        pattern="^(?P<parent_id>\w+)/homepage/$",
+        parameters={"parent_id": PARENT_PARAM, "parent_uuid": {
+                "description": "UUID de l'utilisateur dans iA.Téléservices, utilisé pour vérifier s'il a des insriptions aux plaines en attente de validation",
+                "example_value": "38a1128f48f14880b1cb9e24ebd3e033",
+            }
+        },
+        example_pattern="{parent_id}/homepage?",
+        pattern="^(?P<parent_id>\w+)/homepage$",
         display_category="Parent",
     )
-    def homepage(self, request, parent_id):
+    def homepage(self, request, parent_id, parent_uuid):
         if not parent_id.isdigit():
             return None
         url = f"{self.server_url}/{self.aes_instance}/parents/{parent_id}/kids"
@@ -458,6 +477,7 @@ class ApimsAesConnector(BaseResource):
             children = response.json()["items"]
             result = {
                 "is_parent": True,
+                "has_plain_registrations": self.has_plain_registrations(parent_uuid),
                 "children": [],
             }
             for child in children:

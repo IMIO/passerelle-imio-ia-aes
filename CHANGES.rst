@@ -1,6 +1,10 @@
 Changelog
 =========
 
+1.5.0
+----------------
+- Added: is parent has pending plains registrations in homepage [nhi]
+
 1.4.0
 -----------------
 - Added: fetch parent's structured communication for holiday plains [nhi]
