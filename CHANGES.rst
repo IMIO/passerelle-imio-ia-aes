@@ -1,6 +1,10 @@
 Changelog
 =========
 
+1.6.0
+----------------
+- Added: rewrite parent's aes_id in case of merge in iA.AES. [nhi]
+
 1.5.0
 ----------------
 - Added: is parent has pending plains registrations in homepage [nhi]

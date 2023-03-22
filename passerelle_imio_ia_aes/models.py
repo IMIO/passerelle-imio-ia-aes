@@ -451,6 +451,24 @@ class ApimsAesConnector(BaseResource):
                 return True
         return False
 
+    def update_parent_id(self, new_parent_aes_id, parent_uuid):
+        """ Update user's aes_id
+
+        Keywor arguments:
+        new_parent_aes_id -- new parent's ID in iA.AES after a merge.
+        parent_uuid -- user's uuid in authentic
+        """
+        if not getattr(settings, "KNOWN_SERVICES", {}).get("authentic"):
+            return
+        authentic = list(settings.KNOWN_SERVICES["authentic"].values())[0]
+        url_with_signature = sign_url(
+            url=f"{authentic['url']}api/users/{parent_uuid}/?orig={authentic.get('orig')}",
+            key=authentic.get("secret"),
+        )
+        authentic_response = self.requests.patch(url_with_signature, json={"aes_id": new_parent_aes_id})
+        authentic_response.raise_for_status()
+        return authentic_response.json()
+
     @endpoint(
         name="parents",
         methods=["get"],
@@ -462,16 +480,37 @@ class ApimsAesConnector(BaseResource):
                 "example_value": "38a1128f48f14880b1cb9e24ebd3e033",
             }
         },
-        example_pattern="{parent_id}/homepage?",
+        example_pattern="{parent_id}/homepage",
         pattern="^(?P<parent_id>\w+)/homepage$",
         display_category="Parent",
     )
     def homepage(self, request, parent_id, parent_uuid):
+        """ Check and update user's aes_id and build parent portal data structure
+
+        Parameters:
+            new_parent_aes_id: new parent's ID in iA.AES after a merge.
+            parent_uuid: user's uuid in authentic
+
+        Returns:
+            json
+        """
         if not parent_id.isdigit():
             return None
-        url = f"{self.server_url}/{self.aes_instance}/parents/{parent_id}/kids"
+        # synchronizing parent id - step 1/2 : getting new ID from AES
+        merged_id_url = f"{self.server_url}/{self.aes_instance}/parents/{parent_id}/merged-id"
+        merged_id_response = self.session.get(merged_id_url)
+        if merged_id_response.status_code == 404:
+            raise Http404(f"No parent found with id {parent_id}")
+        consolidated_parent_id = parent_id
+        # synchronizing parent id - step 2/2 : updating parent aes_id in authentic
+        if merged_id_response.json() != parent_id:
+            consolidated_parent_id = merged_id_response.json()
+            self.update_parent_id(consolidated_parent_id, parent_uuid)
+        # getting children
+        url = f"{self.server_url}/{self.aes_instance}/parents/{consolidated_parent_id}/kids"
         response = self.session.get(url)
         response.raise_for_status()
+        # building data structure
         if response.status_code == 200:
             forms = self.get_pp_forms()
             children = response.json()["items"]
