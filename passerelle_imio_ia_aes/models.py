@@ -1223,6 +1223,19 @@ class ApimsAesConnector(BaseResource):
         return result
 
     @endpoint(
+        name="authorizations",
+        methods=["get"],
+        perm="can_access",
+        description="Rechercher les autorisations",
+        long_description="Rerchercher les autorisations que le parent doit cocher dans la fiche santé.",
+        display_category="Fiche santé",
+    )
+    def get_authorizations(self, request):
+        url = f"{self.server_url}/{self.aes_instance}/authorizations"
+        response = self.session.get(url).json()
+        return response
+
+    @endpoint(
         name="diseases",
         methods=["get"],
         perm="can_access",
