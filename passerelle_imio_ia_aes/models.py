@@ -1089,6 +1089,7 @@ class ApimsAesConnector(BaseResource):
         healthsheet["intervention_selection"] = data["intervention_selection"]
         healthsheet["last_date_tetanus"] = data["last_date_tetanus"]
         healthsheet["level_handicap"] = data["level_handicap"]
+        healthsheet["mutuality"] = data["mutuality"] or ""
         healthsheet["nap"] = data["nap"]
         # healthsheet["medication_type_selection"] = data.get("medication_type_selection") or []
         healthsheet["photo"] = data["photo"]
