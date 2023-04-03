@@ -1068,6 +1068,7 @@ class ApimsAesConnector(BaseResource):
         healthsheet["allergy_consequence"] = data["allergy_consequence"]
         healthsheet["allergy_ids"] = [str(allergy["id"]) for allergy in data["allergy_ids"]]
         healthsheet["allergy_selection"] = data["allergy_selection"]
+        healthsheet["allergy_treatment"] = data["allergy_treatment"] or ""
         healthsheet["allowed_contact_ids"] = data["allowed_contact_ids"]
         healthsheet["arnica"] = data["arnica"]
         healthsheet["bike"] = data["bike"]
