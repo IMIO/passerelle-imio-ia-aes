@@ -1070,6 +1070,7 @@ class ApimsAesConnector(BaseResource):
         healthsheet["allergy_selection"] = data["allergy_selection"]
         healthsheet["allowed_contact_ids"] = data["allowed_contact_ids"]
         healthsheet["arnica"] = data["arnica"]
+        healthsheet["bike"] = data["bike"]
         healthsheet["blood_type"] = data["blood_type"]
         healthsheet["comment"] = data["comment"]
         healthsheet["disease_ids"], healthsheet["disease_details"] = list(), list()
@@ -1077,13 +1078,17 @@ class ApimsAesConnector(BaseResource):
             healthsheet["disease_ids"].append(str(disease["disease_type_id"][0]))
             healthsheet["disease_details"].append({"gravity": disease["gravity"] or "", "treatment": disease["disease_text"]})
         healthsheet["doctor_id"] = data["doctor_id"]
+        healthsheet["emotional_support"] = data["emotional_support"]
         healthsheet["facebook"] = data["facebook"]
         healthsheet["first_date_tetanus"] = data["first_date_tetanus"]
         healthsheet["handicap_selection"] = data["handicap_selection"]
+        healthsheet["hearing_aid"] = data["hearing_aid"]
+        healthsheet["glasses"] = data["glasses"]
         healthsheet["intervention_text"] = data["intervention_text"] or ""
         healthsheet["intervention_selection"] = data["intervention_selection"]
         healthsheet["last_date_tetanus"] = data["last_date_tetanus"]
         healthsheet["level_handicap"] = data["level_handicap"]
+        healthsheet["nap"] = data["nap"]
         # healthsheet["medication_type_selection"] = data.get("medication_type_selection") or []
         healthsheet["photo"] = data["photo"]
         healthsheet["photo_general"] = data["photo_general"]
@@ -1095,6 +1100,7 @@ class ApimsAesConnector(BaseResource):
         healthsheet["tetanus_selection"] = data["tetanus_selection"]
         healthsheet["to_go_alone"] = data["to_go_alone"]
         healthsheet["type_handicap"] = data["type_handicap"]
+        healthsheet["weight"] = data["weight"] or ""
         return healthsheet
 
     @endpoint(
