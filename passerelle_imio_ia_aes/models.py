@@ -1170,7 +1170,7 @@ class ApimsAesConnector(BaseResource):
         if origin_data["arnica"]:
             put_data["arnica"] = origin_data["arnica"]
         if origin_data["authorizations"]:
-            put_data["authorization_ids"] = origin_data["authorizations"]
+            put_data["authorization_ids"] = [int(authorization) for authorization in origin_data["authorizations"]]
         if origin_data["bike"]:
             put_data["bike"] = origin_data["bike"]
         if origin_data["blood_type"]:
