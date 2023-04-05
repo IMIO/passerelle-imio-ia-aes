@@ -1171,6 +1171,8 @@ class ApimsAesConnector(BaseResource):
             put_data["arnica"] = origin_data["arnica"]
         if origin_data["authorizations"]:
             put_data["authorization_ids"] = origin_data["authorizations"]
+        if origin_data["bike"]:
+            put_data["bike"] = origin_data["bike"]
         if origin_data["blood_type"]:
             put_data["blood_type"] = origin_data["blood_type"]
         if origin_data["comment"]:
@@ -1179,14 +1181,22 @@ class ApimsAesConnector(BaseResource):
             put_data["child_id"] = int(origin_data["child_id"])
         if origin_data["doctor_id"]:
             put_data["doctor_id"] = origin_data["doctor_id"]
+        if origin_data["emotional_support"]:
+            put_data["emotional_support"] = origin_data["emotional_support"]
         if origin_data["facebook"]:
             put_data["facebook"] = origin_data["facebook"]
         if origin_data["first_date_tetanus"]:
             put_data["first_date_tetanus"] = origin_data["first_date_tetanus"]
+        if origin_data["glasses"]:
+            put_data["glasses"] = origin_data["glasses"]
+        if origin_data["hearing_aid"]:
+            put_data["hearing_aid"] = origin_data["hearing_aid"]
         if origin_data["last_date_tetanus"]:
             put_data["last_date_tetanus"] = origin_data["last_date_tetanus"]
         if origin_data["level_handicap"]:
             put_data["level_handicap"] = origin_data["level_handicap"]
+        if origin_data["nap"]:
+            put_data["nap"] = origin_data["nap"]
         if origin_data["photo"]:
             put_data["photo"] = origin_data["photo"]
         if origin_data["photo_general"]:
@@ -1201,6 +1211,8 @@ class ApimsAesConnector(BaseResource):
             put_data["to_go_alone"] = origin_data["to_go_alone"]
         if origin_data["type_handicap"]:
             put_data["type_handicap"] = origin_data["type_handicap"]
+        if origin_data["weight"]:
+            put_data["weight"] = origin_data["weight"]
 
         medication_ids, allowed_contact_ids = [], []
         for key, value in origin_data.items():
