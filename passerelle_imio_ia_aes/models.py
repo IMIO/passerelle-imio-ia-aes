@@ -1236,12 +1236,13 @@ class ApimsAesConnector(BaseResource):
                         {"partner_id": int(contact[0]), "parental_link": contact[1]}
                     )
         disease_ids = list()
-        for disease_id in enumerate(origin_data["disease_ids"]):
-            disease_ids.append({
-                "disease_type_id": int(disease_id[1]),
-                "gravity": origin_data.get(f"disease_{disease_id[0]}_gravity"),
-                "disease_text": origin_data.get(f"disease_{disease_id[0]}_treatment"),
-            })
+        if origin_data["disease_ids"]:
+            for disease_id in enumerate(origin_data["disease_ids"]):
+                disease_ids.append({
+                    "disease_type_id": int(disease_id[1]),
+                    "gravity": origin_data.get(f"disease_{disease_id[0]}_gravity"),
+                    "disease_text": origin_data.get(f"disease_{disease_id[0]}_treatment"),
+                })
         if medication_ids:
             put_data["medication_ids"] = medication_ids
         if allowed_contact_ids:
