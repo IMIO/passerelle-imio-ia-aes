@@ -1070,6 +1070,7 @@ class ApimsAesConnector(BaseResource):
         healthsheet["allergy_selection"] = data["allergy_selection"]
         healthsheet["allergy_treatment"] = data["allergy_treatment"] or ""
         healthsheet["allowed_contact_ids"] = data["allowed_contact_ids"]
+        healthsheet["authorization_ids"] = data["authorization_ids"]
         healthsheet["arnica"] = data["arnica"]
         healthsheet["bike"] = data["bike"]
         healthsheet["blood_type"] = data["blood_type"]
@@ -1128,6 +1129,8 @@ class ApimsAesConnector(BaseResource):
             put_data["allergy_ids"] = origin_data["allergy_ids"]
         if origin_data["arnica"]:
             put_data["arnica"] = origin_data["arnica"]
+        if origin_data["authorizations"]:
+            put_data["authorization_ids"] = origin_data["authorizations"]
         if origin_data["blood_type"]:
             put_data["blood_type"] = origin_data["blood_type"]
         if origin_data["comment"]:
