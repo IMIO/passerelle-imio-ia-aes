@@ -1,6 +1,14 @@
 Changelog
 =========
 
+1.7.0
+----------------
+- Added: allergy treatment, bike, emotional support, hearing aid, glasses, mutuality, nap and weight in child's healthsheet's data [nhi]
+- Added: get authorizations for healthsheet fields [nhi]
+- Added: authorizations in child's healthsheet's data [nhi]
+- Changed: use Passerelle for healthsheet questions [nhi]
+- Fixed: allergy consequences in healthsheet [nhi]
+
 1.6.0
 ----------------
 - Added: rewrite parent's aes_id in case of merge in iA.AES. [nhi]
