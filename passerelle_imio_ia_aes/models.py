@@ -1057,6 +1057,7 @@ class ApimsAesConnector(BaseResource):
             {'id': 'new_allergies', 'text': 'Permettre aux parents d\'ajouter d\'autres allergies ?'},
             {'id': 'diseases', 'text': 'L\'enfant a-t\'il des maladies ?'},
             {'id': 'new_diseases', 'text': 'Permettre aux parents d\'ajouter d\'autres maladies ?'},
+            {'id': 'mutuality', 'text': 'À quelle mutuelle l\enfant est-il affilié ?'},
             {'id': 'medication', 'text': 'L\'enfant doit-il prendre des médicaments ?'},
             {'id': 'medical_data', 'text': 'Y a-t-il des ' 'données médicales ' 'spécifiques ' 'importantes à ' 'connaître pour le ' 'bon déroulement ' 'des activités (' 'épilepsie,' 'problème ' 'cardiaque, ' 'asthme, ...) ?', 'disabled': True},
             {'id': 'other_contact_address', 'text': 'Demander l\'adresse des autres contacts'},
@@ -1195,6 +1196,8 @@ class ApimsAesConnector(BaseResource):
             put_data["last_date_tetanus"] = origin_data["last_date_tetanus"]
         if origin_data["level_handicap"]:
             put_data["level_handicap"] = origin_data["level_handicap"]
+        if origin_data["mutuality"]:
+            put_data["mutuality"] = origin_data["mutuality"]
         if origin_data["nap"]:
             put_data["nap"] = origin_data["nap"]
         if origin_data["photo"]:
