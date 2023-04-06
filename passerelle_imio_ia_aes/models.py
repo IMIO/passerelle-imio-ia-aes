@@ -1106,7 +1106,7 @@ class ApimsAesConnector(BaseResource):
         healthsheet["activity_no_available_reason"] = data["activity_no_available_reason"] or ""
         healthsheet["activity_no_available_selection"] = data["activity_no_available_selection"]
         healthsheet["activity_no_available_text"] = data["activity_no_available_text"] or ""
-        healthsheet["allergy_consequence"] = data["allergy_consequence"]
+        healthsheet["allergy_consequence"] = data["allergy_consequence"] or ""
         healthsheet["allergy_ids"] = [str(allergy["id"]) for allergy in data["allergy_ids"]]
         healthsheet["allergy_selection"] = data["allergy_selection"]
         healthsheet["allergy_treatment"] = data["allergy_treatment"] or ""
@@ -1168,6 +1168,8 @@ class ApimsAesConnector(BaseResource):
             put_data["allergy_consequence"] = origin_data["allergy_consequence"]
         if origin_data["allergy_ids"]:
             put_data["allergy_ids"] = origin_data["allergy_ids"]
+        if origin_data["allergy_treatment"]:
+            put_data["allergy_treatment"] = origin_data["allergy_treatment"]
         if origin_data["arnica"]:
             put_data["arnica"] = origin_data["arnica"]
         if origin_data["authorizations"]:
