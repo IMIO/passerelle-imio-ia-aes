@@ -1,9 +1,13 @@
 Changelog
 =========
 
+1.7.2
+----------------
+- Changed: manage optional and mandatory authorizations separatly [nhi]
+
 1.7.1
 ----------------
--Added: filter optional or mandatory authorizations [nhi]
+- Added: filter optional or mandatory authorizations [nhi]
 
 1.7.0
 ----------------

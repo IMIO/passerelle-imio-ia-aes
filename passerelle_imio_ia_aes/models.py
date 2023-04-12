@@ -1159,6 +1159,13 @@ class ApimsAesConnector(BaseResource):
     def update_healthsheet(self, request, child_id):
         origin_data = json.loads(request.body)
         put_data = dict()
+        # prepare authorizations
+        authorizations = list()
+        if origin_data["mandatory_authorizations"]:
+            authorizations += origin_data["mandatory_authorizations"]
+        if origin_data["optional_authorizations"]:
+            authorizations += origin_data["optional_authorizations"]
+        # prepare put_data
         if origin_data["activity_no_available_reason"]:
             put_data["activity_no_available_reason"] = origin_data[
                 "activity_no_available_reason"
@@ -1171,8 +1178,7 @@ class ApimsAesConnector(BaseResource):
             put_data["allergy_treatment"] = origin_data["allergy_treatment"]
         if origin_data["arnica"]:
             put_data["arnica"] = origin_data["arnica"]
-        if origin_data["authorizations"]:
-            put_data["authorization_ids"] = [int(authorization) for authorization in origin_data["authorizations"]]
+        put_data["authorization_ids"] = [int(authorization) for authorization in authorizations]
         if origin_data["bike"]:
             put_data["bike"] = origin_data["bike"]
         if origin_data["blood_type"]:
