@@ -26,7 +26,6 @@ import requests
 from django.db import models
 from django.conf import settings
 from django.http import Http404
-from django.http import HttpResponse
 from django.urls import path, reverse
 from django.core.exceptions import MultipleObjectsReturned
 from datetime import date, datetime, timedelta, time
@@ -1290,11 +1289,32 @@ class ApimsAesConnector(BaseResource):
         description="Rechercher les autorisations",
         long_description="Rerchercher les autorisations que le parent doit cocher dans la fiche santé.",
         display_category="Fiche santé",
+        parameters={
+            "filter": {
+                "description": "Filter le résultat. Laisser vide pour ne pas filtrer. Les deux valeurs possibles sont 'mandatory' et 'optional'.",
+                "example_value": "mandatory",
+                "optional": True,
+                "type": "str",
+                "default_value": "mandatory"
+            },
+        },
     )
-    def get_authorizations(self, request):
+    def get_authorizations(self, request, filter=None):
+        if filter and filter not in ["mandatory", "optional"]:
+            raise ValueError(f"Filter value '{filter}' is unknown. It must be 'mandatory' or 'optional'.")
         url = f"{self.server_url}/{self.aes_instance}/authorizations"
         response = self.session.get(url).json()
-        return response
+        if not filter:
+            return response
+        if filter == "mandatory":
+            is_mandatory = True
+        if filter == "optional":
+            is_mandatory = False
+        result = list()
+        for authorization in response["data"]:
+            if authorization["is_mandatory"] == is_mandatory:
+                result.append(authorization)
+        return {"data": result}
 
     @endpoint(
         name="diseases",
