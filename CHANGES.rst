@@ -1,6 +1,10 @@
 Changelog
 =========
 
+1.7.1
+----------------
+-Added: filter optional or mandatory authorizations [nhi]
+
 1.7.0
 ----------------
 - Added: allergy treatment, bike, emotional support, hearing aid, glasses, mutuality, nap and weight in child's healthsheet's data [nhi]
