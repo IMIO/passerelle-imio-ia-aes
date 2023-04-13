@@ -1,6 +1,10 @@
 Changelog
 =========
 
+1.7.3
+----------------
+- [MPP-432] Fixed: send allergy_ids as list of int when updating healthsheet [nhi]
+
 1.7.2
 ----------------
 - Changed: manage optional and mandatory authorizations separatly [nhi]

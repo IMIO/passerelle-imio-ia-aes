@@ -1173,7 +1173,7 @@ class ApimsAesConnector(BaseResource):
         if origin_data["allergy_consequence"]:
             put_data["allergy_consequence"] = origin_data["allergy_consequence"]
         if origin_data["allergy_ids"]:
-            put_data["allergy_ids"] = origin_data["allergy_ids"]
+            put_data["allergy_ids"] = [int(allergy) for allergy in origin_data["allergy_ids"]]
         if origin_data["allergy_treatment"]:
             put_data["allergy_treatment"] = origin_data["allergy_treatment"]
         if origin_data["arnica"]:
