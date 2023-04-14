@@ -1,6 +1,12 @@
 Changelog
 =========
 
+1.7.4
+-----------
+- [MPP-435] Added: get child medications
+- [MPP-435] Added: defined has_medication field items and child's related value
+- [MPP-435] Removed: child self medication, which does not exist in healthsheet forms
+
 1.7.3
 ----------------
 - [MPP-432] Fixed: send allergy_ids as list of int when updating healthsheet [nhi]

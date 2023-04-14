@@ -1124,12 +1124,20 @@ class ApimsAesConnector(BaseResource):
         healthsheet["facebook"] = data["facebook"]
         healthsheet["first_date_tetanus"] = data["first_date_tetanus"]
         healthsheet["handicap_selection"] = data["handicap_selection"]
+        healthsheet["has_medication"] = "yes" if len(data["medication_ids"]) > 0 else "not_specified"
         healthsheet["hearing_aid"] = data["hearing_aid"]
         healthsheet["glasses"] = data["glasses"]
         healthsheet["intervention_text"] = data["intervention_text"] or ""
         healthsheet["intervention_selection"] = data["intervention_selection"]
         healthsheet["last_date_tetanus"] = data["last_date_tetanus"]
         healthsheet["level_handicap"] = data["level_handicap"]
+        healthsheet["medication_ids"] = [
+            {
+                "name": medication["name"],
+                "quantity": medication["quantity"],
+                "period": medication["period"],
+                "self_medication": medication["self_medication_selection"]
+            } for medication in data["medication_ids"]]
         healthsheet["mutuality"] = data["mutuality"] or ""
         healthsheet["nap"] = data["nap"]
         # healthsheet["medication_type_selection"] = data.get("medication_type_selection") or []
@@ -1211,8 +1219,6 @@ class ApimsAesConnector(BaseResource):
             put_data["photo"] = origin_data["photo"]
         if origin_data["photo_general"]:
             put_data["photo_general"] = origin_data["photo_general"]
-        if origin_data["self_medication"]:
-            put_data["self_medication"] = origin_data["self_medication"]
         if origin_data["swim"]:
             put_data["swim"] = origin_data["swim"]
         if origin_data["swim_level"]:
@@ -1286,6 +1292,8 @@ class ApimsAesConnector(BaseResource):
                 result[k] = [
                     {"id": str(choice["id"]), "text": choice["name"]} for choice in v
                 ]
+        # Artificially add items of has_medication field that does not exist in iA.AES
+        result.update({"has_medication": [{"id": "not_specified","text": "Non renseigné"},{"id": "no","text": "Non"},{"id": "yes","text": "Oui"}]})
         return result
 
     @endpoint(
