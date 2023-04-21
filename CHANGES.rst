@@ -1,6 +1,10 @@
 Changelog
 =========
 
+1.7.5
+-----------------
+- [MPP-441] Added: text with zipcode and locality name.
+
 1.7.4
 -----------
 - [MPP-435] Added: get child medications

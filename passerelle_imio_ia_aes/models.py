@@ -172,7 +172,17 @@ class ApimsAesConnector(BaseResource):
     def get_localities(self):
         url = f"{self.server_url}/{self.aes_instance}/localities"
         response = self.session.get(url)
-        return response.json()
+        items = [
+            dict(
+                id=item["id"],
+                name=item["name"],
+                zip=item["zip"],
+                text=f"{item['zip']} - {item['name']}",
+            )
+            for item in response.json()["items"]
+        ]
+        result = dict(items=items, items_total=response.json()["items_total"])
+        return result
 
     def filter_localities_by_zipcode(self, zipcode):
         localities = [
