@@ -1,6 +1,10 @@
 Changelog
 =========
 
+1.7.6
+-----------------
+- [MPP-443] Changed: invalidate healthsheet after 30 days instead of 183
+
 1.7.5
 -----------------
 - [MPP-441] Added: text with zipcode and locality name.

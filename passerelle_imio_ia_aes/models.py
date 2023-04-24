@@ -1094,7 +1094,7 @@ class ApimsAesConnector(BaseResource):
         healthsheet_last_update = datetime.strptime(
             response.json()[0]["__last_update"][:10], "%Y-%m-%d"
         )
-        is_healthsheet_valid = 183 >= (datetime.today() - healthsheet_last_update).days
+        is_healthsheet_valid = 30 >= (datetime.today() - healthsheet_last_update).days
         return is_healthsheet_valid
 
     @endpoint(
