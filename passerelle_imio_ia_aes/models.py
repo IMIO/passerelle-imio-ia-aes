@@ -1137,6 +1137,7 @@ class ApimsAesConnector(BaseResource):
         healthsheet["has_medication"] = "yes" if len(data["medication_ids"]) > 0 else "not_specified"
         healthsheet["hearing_aid"] = data["hearing_aid"]
         healthsheet["glasses"] = data["glasses"]
+        healthsheet["id"] = data["id"]
         healthsheet["intervention_text"] = data["intervention_text"] or ""
         healthsheet["intervention_selection"] = data["intervention_selection"]
         healthsheet["last_date_tetanus"] = data["last_date_tetanus"]
