@@ -1364,7 +1364,7 @@ class ApimsAesConnector(BaseResource):
             url += f"?health_sheet_id={healthsheet}"
         response = self.session.get(url)
         response.raise_for_status()
-        return response.json()["data"]
+        return response.json()
 
     @endpoint(
         name="diseases",
@@ -1389,7 +1389,7 @@ class ApimsAesConnector(BaseResource):
             url += f"?health_sheet_id={healthsheet}"
         response = self.session.get(url)
         response.raise_for_status()
-        return response.json()["data"]
+        return response.json()
 
     ################
     ### Contacts ###
