@@ -5,6 +5,7 @@ Changelog
 -----------------
 - [MPP-444] Added: allergies endpoint using allergies aes-api endpoint
 - [MPP-444] Changed: diseases endpoint to use diseases aes-api endpoint
+- [MPP-444] Added: healthsheet id to child healthsheet endpoint
 
 1.7.6
 -----------------
