@@ -1,6 +1,11 @@
 Changelog
 =========
 
+1.8.0
+-----------------
+- [MPP-444] Added: allergies endpoint using allergies aes-api endpoint
+- [MPP-444] Changed: diseases endpoint to use diseases aes-api endpoint
+
 1.7.6
 -----------------
 - [MPP-443] Changed: invalidate healthsheet after 30 days instead of 183

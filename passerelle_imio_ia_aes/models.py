@@ -1341,21 +1341,54 @@ class ApimsAesConnector(BaseResource):
         return {"data": result}
 
     @endpoint(
+        name="allergies",
+        methods=["get"],
+        perm="can_access",
+        description="Lister les allergies",
+        long_description="Lister les allergies qui peuvent être proposées dans le contexte d'une fiche santé",
+        display_category="Fiche santé",
+        parameters={
+            "healthsheet": {
+                "description": "Identifiant d'une fiche santé",
+                "example_value": 1,
+                "optional": True,
+                "type": "int",
+                "default_value": None
+            },
+        },
+    )
+    def list_allergies(self, request, healthsheet=None):
+        url = f"{self.server_url}/{self.aes_instance}/allergies"
+        if healthsheet:
+            url += f"?health_sheet_id={healthsheet}"
+        response = self.session.get(url)
+        response.raise_for_status()
+        return response.json()["data"]
+
+    @endpoint(
         name="diseases",
         methods=["get"],
         perm="can_access",
         description="Lister les maladies",
-        long_description="Filtre les champs de la fiche santé pour ne récupérer que les maladies.",
-        # cache_duration=3600,
+        long_description="Lister les maladies qui peuvent être proposées dans le contexte d'une fiche santé",
         display_category="Fiche santé",
+        parameters={
+            "healthsheet": {
+                "description": "Identifiant d'une fiche santé",
+                "example_value": 1,
+                "optional": True,
+                "type": "int",
+                "default_value": None
+            },
+        },
     )
-    def list_diseases(self, request):
-        url = f"{self.server_url}/{self.aes_instance}/models/healthsheet"
-        response = self.session.get(url).json()
-        diseases = list()
-        for disease in response["disease_type"]:
-            diseases.append({"id": str(disease["id"]), "text": disease["name"]})
-        return {"data": diseases}
+    def list_diseases(self, request, healthsheet=None):
+        url = f"{self.server_url}/{self.aes_instance}/diseases"
+        if healthsheet:
+            url += f"?health_sheet_id={healthsheet}"
+        response = self.session.get(url)
+        response.raise_for_status()
+        return response.json()["data"]
 
     ################
     ### Contacts ###
