@@ -1372,7 +1372,10 @@ class ApimsAesConnector(BaseResource):
             url += f"?health_sheet_id={healthsheet}"
         response = self.session.get(url)
         response.raise_for_status()
-        return response.json()
+        result = dict(
+            data=[{"id": str(allergy["id"]), "name": allergy["name"]} for allergy in response.json()["data"]]
+        )
+        return result
 
     @endpoint(
         name="diseases",
