@@ -6,6 +6,7 @@ Changelog
 - [MPP-444] Added: allergies endpoint using allergies aes-api endpoint
 - [MPP-444] Changed: diseases endpoint to use diseases aes-api endpoint
 - [MPP-444] Added: healthsheet id to child healthsheet endpoint
+- [MPP-444] Added: send other allergies and diseases to iA.AES
 
 1.7.6
 -----------------
