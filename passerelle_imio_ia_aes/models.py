@@ -1191,8 +1191,7 @@ class ApimsAesConnector(BaseResource):
             ]
         if origin_data["allergy_consequence"]:
             put_data["allergy_consequence"] = origin_data["allergy_consequence"]
-        if origin_data["allergy_ids"]:
-            put_data["allergy_ids"] = [int(allergy) for allergy in origin_data["allergy_ids"]]
+        put_data["allergy_ids"] = [int(allergy) for allergy in origin_data["allergy_ids"]]
         if origin_data["allergy_treatment"]:
             put_data["allergy_treatment"] = origin_data["allergy_treatment"]
         if origin_data["arnica"]:
@@ -1282,8 +1281,10 @@ class ApimsAesConnector(BaseResource):
             put_data["medication_ids"] = medication_ids
         if allowed_contact_ids:
             put_data["allowed_contact_ids"] = allowed_contact_ids
-        if disease_ids:
-            put_data["disease_ids"] = disease_ids
+        put_data["disease_ids"] = disease_ids
+        if not disease_ids:
+            put_data["other_disease_gravity"] = origin_data.get(f"disease_0_gravity"),
+            put_data["other_disease_text"] = origin_data.get(f"disease_0_treatment"),
         url = f"{self.server_url}/{self.aes_instance}/kids/{child_id}/healthsheet"
         response = self.session.put(url, json=put_data)
         response.raise_for_status()

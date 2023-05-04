@@ -1,6 +1,10 @@
 Changelog
 =========
 
+1.8.1
+-----------------
+- [MPP-444] Fixed: send gravity and treatment for other diseases if no diseases_ids are checked
+
 1.8.0
 -----------------
 - [MPP-444] Added: allergies endpoint using allergies aes-api endpoint
