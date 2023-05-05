@@ -1,10 +1,13 @@
 Changelog
 =========
+1.8.3
+-----------------
+- [MPP-447] Fixed: explicitely remove allergies consequences and their treatment if no allergies nor other allergies
 
 1.8.2
 -----------------
 - [MPP-447] Added: set empty list of allergies instead of NoneType
-- [MPP-447] Fixed: explicitely remove data about allergies consequences and treatment if no allergies.
+- [MPP-447] Fixed: explicitely remove data about allergies consequences and treatment if no allergies
 
 1.8.1
 -----------------
