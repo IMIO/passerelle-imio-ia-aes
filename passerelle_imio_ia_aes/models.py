@@ -1189,11 +1189,15 @@ class ApimsAesConnector(BaseResource):
             put_data["activity_no_available_reason"] = origin_data[
                 "activity_no_available_reason"
             ]
-        if origin_data["allergy_consequence"]:
+        if origin_data["allergy_consequence"] and origin_data["allergy_ids"]:
             put_data["allergy_consequence"] = origin_data["allergy_consequence"]
-        put_data["allergy_ids"] = [int(allergy) for allergy in origin_data["allergy_ids"]]
-        if origin_data["allergy_treatment"]:
+        else:
+            put_data["allergy_consequence"] = ""
+        put_data["allergy_ids"] = [int(allergy) for allergy in origin_data["allergy_ids"]] if origin_data["allergy_ids"] else list()
+        if origin_data["allergy_treatment"] and origin_data["allergy_ids"]:
             put_data["allergy_treatment"] = origin_data["allergy_treatment"]
+        else:
+            put_data["allergy_treatment"] = ""
         if origin_data["arnica"]:
             put_data["arnica"] = origin_data["arnica"]
         put_data["authorization_ids"] = [int(authorization) for authorization in authorizations]

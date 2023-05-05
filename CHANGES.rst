@@ -1,6 +1,11 @@
 Changelog
 =========
 
+1.8.2
+-----------------
+- [MPP-447] Added: set empty list of allergies instead of NoneType
+- [MPP-447] Fixed: explicitely remove data about allergies consequences and treatment if no allergies.
+
 1.8.1
 -----------------
 - [MPP-444] Fixed: send gravity and treatment for other diseases if no diseases_ids are checked
