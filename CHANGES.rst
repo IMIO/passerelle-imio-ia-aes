@@ -1,5 +1,10 @@
 Changelog
 =========
+
+1.8.4
+-----------------
+- [MPP-446] Added: use new homepage endpoint from aes-api
+
 1.8.3
 -----------------
 - [MPP-447] Fixed: explicitely remove allergies consequences and their treatment if no allergies nor other allergies

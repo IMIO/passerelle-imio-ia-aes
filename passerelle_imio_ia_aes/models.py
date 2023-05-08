@@ -505,59 +505,44 @@ class ApimsAesConnector(BaseResource):
         """
         if not parent_id.isdigit():
             return None
-        # synchronizing parent id - step 1/2 : getting new ID from AES
-        merged_id_url = f"{self.server_url}/{self.aes_instance}/parents/{parent_id}/merged-id"
-        merged_id_response = self.session.get(merged_id_url)
-        if merged_id_response.status_code == 404:
-            raise Http404(f"No parent found with id {parent_id}")
-        consolidated_parent_id = parent_id
-        # synchronizing parent id - step 2/2 : updating parent aes_id in authentic
-        if merged_id_response.json() != parent_id:
-            consolidated_parent_id = merged_id_response.json()
-            self.update_parent_id(consolidated_parent_id, parent_uuid)
-        # getting children
-        url = f"{self.server_url}/{self.aes_instance}/parents/{consolidated_parent_id}/kids"
+        url = f"{self.server_url}/{self.aes_instance}/parents/{parent_id}/homepage"
         response = self.session.get(url)
         response.raise_for_status()
-        # building data structure
-        if response.status_code == 200:
-            forms = self.get_pp_forms()
-            children = response.json()["items"]
-            result = {
-                "is_parent": True,
-                "has_plain_registrations": self.has_plain_registrations(parent_uuid),
-                "children": [],
-            }
-            for child in children:
-                has_valid_healthsheet = self.has_valid_healthsheet(child["id"])
-                result["children"].append(
-                    {
-                        "id": child["id"],
-                        "national_number": child["national_number"],
-                        "name": child["display_name"],
-                        "age": child["age"],
-                        "activities": child["activity_ids"],
-                        "school_implantation": False
-                        if not child["school_implantation_id"]
-                        else child["school_implantation_id"][1],
-                        "level": child["level_id"],
-                        "healthsheet": has_valid_healthsheet,
-                        "forms": [
-                            {
-                                "title": form["title"],
-                                "slug": form["slug"],
-                                "status": self.set_form_status(
-                                    form["slug"], has_valid_healthsheet
-                                ),
-                                "image": self.FORMS_ICONS[form["slug"]],
-                            }
-                            for form in forms
-                            if form["slug"] in self.FORMS_ICONS
-                        ],
-                    }
-                )
-        else:
-            result = {"is_parent": False, "status": response.status_code}
+        consolidated_parent_id = response.json().get("parent_id")
+        if consolidated_parent_id != parent_id:
+            self.update_parent_id(consolidated_parent_id, parent_uuid) # TODO should be done asynchronously
+        forms = self.get_pp_forms()
+        result = dict(
+            parent_id=consolidated_parent_id,
+            has_plain_registrations=self.has_plain_registrations(parent_uuid),
+            children=list()
+        )
+        for child in response.json().get("children"):
+            child_forms = [
+                {
+                    "title": form["title"],
+                    "slug": form["slug"],
+                    "status": self.set_form_status(
+                        form["slug"], child["has_valid_healthsheet"]
+                    ),
+                    "image": self.FORMS_ICONS[form["slug"]],
+                }
+                for form in forms
+                if form["slug"] in self.FORMS_ICONS
+            ]
+            ts_child = dict(
+                id=child["id"],
+                national_number=child["national_number"],
+                name=child["name"],
+                age=child["age"],
+                school_implantation=False
+                        if not child["school_implantation"]
+                        else child["school_implantation"],
+                level=child["level"],
+                healthsheet=child["has_valid_healthsheet"],
+                forms=child_forms
+            )
+            result["children"].append(ts_child)
         return result
 
     ##############
