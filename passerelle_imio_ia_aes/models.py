@@ -219,7 +219,11 @@ class ApimsAesConnector(BaseResource):
             aes_locality["matching_score"] = self.compute_matching_score(
                 aes_locality["name"], locality
             )
-        return sorted(aes_localities, key=lambda x: x["matching_score"])[0]
+        sorted_localities = sorted(aes_localities, key=lambda x: x["matching_score"])
+        filtered_localities = [locality for locality in sorted_localities if locality["matching_score"] < 5]
+        if len(filtered_localities) == 0:
+            raise ValueError(f"L'association du code postal {zipcode} et de la localité {locality.capitalize()} n'est pas connu.")
+        return filtered_localities
 
     def list_countries(self):
         url = f"{self.server_url}/{self.aes_instance}/countries"
@@ -255,12 +259,7 @@ class ApimsAesConnector(BaseResource):
         display_category="Localités",
     )
     def search_and_list_localities(self, request, zipcode, locality):
-        aes_localities = self.filter_localities_by_zipcode(str(zipcode))
-        for aes_locality in aes_localities:
-            aes_locality["matching_score"] = self.compute_matching_score(
-                aes_locality["name"], locality
-            )
-        return sorted(aes_localities, key=lambda x: x["matching_score"])
+        return self.search_locality(zipcode, locality)
 
     @endpoint(
         name="localities",
@@ -354,7 +353,7 @@ class ApimsAesConnector(BaseResource):
         if post_data["country"].lower() == "belgique":
             parent["locality_id"] = self.search_locality(
                 post_data["zipcode"], post_data["locality"]
-            )["id"]
+            )[0]["id"]
         else:
             parent["zip"] = post_data["zipcode"]
             parent["city"] = post_data["locality"]

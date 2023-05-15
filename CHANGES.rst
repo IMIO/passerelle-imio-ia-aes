@@ -1,6 +1,10 @@
 Changelog
 =========
 
+1.8.5
+-----------------
+- [MPP-450] Added: raise exception if search localities return an empty list
+
 1.8.4
 -----------------
 - [MPP-446] Added: use new homepage endpoint from aes-api
