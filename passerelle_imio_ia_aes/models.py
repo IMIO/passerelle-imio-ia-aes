@@ -842,7 +842,7 @@ class ApimsAesConnector(BaseResource):
         """
         def is_workday(day):
             cal = Belgium()
-            return date(day.year, day.month, day.day) not in cal.holidays(day.year)
+            return cal.is_working_day(date(day.year, day.month, day.day))
 
         now = datetime.now()
         if days_in_delay < 0:

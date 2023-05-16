@@ -1,6 +1,10 @@
 Changelog
 =========
 
+1.8.6
+-----------------
+- [MPP-452] Fixed: meals unregistrations retake working days into account.
+
 1.8.5
 -----------------
 - [MPP-450] Added: raise exception if search localities return an empty list
