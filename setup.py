@@ -13,7 +13,7 @@ from setuptools import setup, find_packages
 
 
 class compile_translations(Command):
-    description = 'compile message catalogs to MO files via django compilemessages'
+    description = "compile message catalogs to MO files via django compilemessages"
     user_options = []
 
     def initialize_options(self):
@@ -25,52 +25,56 @@ class compile_translations(Command):
     def run(self):
         try:
             from django.core.management import call_command
-            for path, dirs, files in os.walk('passerelle_imio_ia_aes'):
-                if 'locale' not in dirs:
+
+            for path, dirs, files in os.walk("passerelle_imio_ia_aes"):
+                if "locale" not in dirs:
                     continue
                 curdir = os.getcwd()
                 os.chdir(os.path.realpath(path))
-                call_command('compilemessages')
+                call_command("compilemessages")
                 os.chdir(curdir)
         except ImportError:
-            sys.stderr.write('!!! Please install Django >= 1.4 to build translations\n')
+            sys.stderr.write("!!! Please install Django >= 1.4 to build translations\n")
 
 
 class build(_build):
-    sub_commands = [('compile_translations', None)] + _build.sub_commands
+    sub_commands = [("compile_translations", None)] + _build.sub_commands
 
 
 class install_lib(_install_lib):
     def run(self):
-        self.run_command('compile_translations')
+        self.run_command("compile_translations")
         _install_lib.run(self)
+
 
 version = "1.8.6"
 
 setup(
-    name='passerelle-imio-ia-aes',
+    name="passerelle-imio-ia-aes",
     version=version,
-    author='iA.Teleservices',
-    author_email='support-ts@imio.be',
+    author="iA.Teleservices",
+    author_email="support-ts@imio.be",
     packages=find_packages(),
     include_package_data=True,
-    url='https://github.com/IMIO/passerelle-imio-ia-aes/',
+    url="https://github.com/IMIO/passerelle-imio-ia-aes/",
     classifiers=[
-        'Development Status :: 2 - Pre-Alpha',
-        'Environment :: Web Environment',
-        'Framework :: Django',
-        'Intended Audience :: Developers',
-        'License :: OSI Approved :: GNU Affero General Public License v3 or later (AGPLv3+)',
-        'Operating System :: OS Independent',
-        'Programming Language :: Python',
-        'Programming Language :: Python :: 3',
+        "Development Status :: 2 - Pre-Alpha",
+        "Environment :: Web Environment",
+        "Framework :: Django",
+        "Intended Audience :: Developers",
+        "License :: OSI Approved :: GNU Affero General Public License v3 or later (AGPLv3+)",
+        "Operating System :: OS Independent",
+        "Programming Language :: Python",
+        "Programming Language :: Python :: 3",
     ],
-    install_requires=['django >=1.11, <2.3',],
+    install_requires=[
+        "django>=3.2, <3.3",
+    ],
     zip_safe=False,
     cmdclass={
-        'build': build,
-        'compile_translations': compile_translations,
-        'install_lib': install_lib,
+        "build": build,
+        "compile_translations": compile_translations,
+        "install_lib": install_lib,
         "sdist": version,
-    }
+    },
 )
