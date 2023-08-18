@@ -47,7 +47,7 @@ class install_lib(_install_lib):
         _install_lib.run(self)
 
 
-version = "1.8.6"
+version = "1.9.0"
 
 setup(
     name="passerelle-imio-ia-aes",
@@ -58,7 +58,7 @@ setup(
     include_package_data=True,
     url="https://github.com/IMIO/passerelle-imio-ia-aes/",
     classifiers=[
-        "Development Status :: 2 - Pre-Alpha",
+        "Development Status :: 5 - Production/Stable",
         "Environment :: Web Environment",
         "Framework :: Django",
         "Intended Audience :: Developers",

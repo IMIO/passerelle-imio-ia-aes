@@ -1,6 +1,11 @@
 Changelog
 =========
 
+1.9.0
+-----------------
+- [MPP-454] Added: school meals related forms appeared if the right school is checked in pp-repas-scolaires form options or all schools are unchecked
+- black
+
 1.8.6
 -----------------
 - [MPP-452] Fixed: meals unregistrations retake working days into account.

@@ -220,9 +220,13 @@ class ApimsAesConnector(BaseResource):
                 aes_locality["name"], locality
             )
         sorted_localities = sorted(aes_localities, key=lambda x: x["matching_score"])
-        filtered_localities = [locality for locality in sorted_localities if locality["matching_score"] < 5]
+        filtered_localities = [
+            locality for locality in sorted_localities if locality["matching_score"] < 5
+        ]
         if len(filtered_localities) == 0:
-            raise ValueError(f"L'association du code postal {zipcode} et de la localité {locality.capitalize()} n'est pas connu.")
+            raise ValueError(
+                f"L'association du code postal {zipcode} et de la localité {locality.capitalize()} n'est pas connu."
+            )
         return filtered_localities
 
     def list_countries(self):
@@ -392,26 +396,27 @@ class ApimsAesConnector(BaseResource):
         return {"items": result}
 
     @endpoint(
-        name="get-pp-forms",
+        name="get-forms",
         methods=["get"],
         perm="can_access",
         description="Lister les formulaires de la catégorie Portail Parent",
         display_category="WCS",
     )
-    def list_pp_forms(self, requests):
-        return self.get_pp_forms()
+    def list_forms(self, requests):
+        path = "api/categories/portail-parent/formdefs/"
+        return self.get_data_from_wcs(path)["data"]
 
-    def get_pp_forms(self):
+    def get_data_from_wcs(self, path):
         if not getattr(settings, "KNOWN_SERVICES", {}).get("wcs"):
             return
         eservices = list(settings.KNOWN_SERVICES["wcs"].values())[0]
         signed_forms_url = sign_url(
-            url=f"{eservices['url']}api/categories/portail-parent/formdefs/?orig={eservices.get('orig')}",
+            url=f"{eservices['url']}{path}?orig={eservices.get('orig')}",
             key=eservices.get("secret"),
         )
         signed_forms_url_response = self.requests.get(signed_forms_url)
         signed_forms_url_response.raise_for_status()
-        return signed_forms_url_response.json()["data"]
+        return signed_forms_url_response.json()
 
     def set_form_status(self, form_slug, has_valid_healthsheet):
         if form_slug == "pp-plaines-de-vacances":
@@ -455,14 +460,17 @@ class ApimsAesConnector(BaseResource):
         signed_forms_url_response = self.requests.get(signed_forms_url)
         signed_forms_url_response.raise_for_status()
         for demand in signed_forms_url_response.json()["data"]:
-            if demand["form_slug"] == "pp-fiche-inscription-plaine" and demand["form_status"] == "En attente de validation":
+            if (
+                demand["form_slug"] == "pp-fiche-inscription-plaine"
+                and demand["form_status"] == "En attente de validation"
+            ):
                 return True
         return False
 
     def update_parent_id(self, new_parent_aes_id, parent_uuid):
-        """ Update user's aes_id
+        """Update user's aes_id
 
-        Keywor arguments:
+        Keyword arguments:
         new_parent_aes_id -- new parent's ID in iA.AES after a merge.
         parent_uuid -- user's uuid in authentic
         """
@@ -473,7 +481,9 @@ class ApimsAesConnector(BaseResource):
             url=f"{authentic['url']}api/users/{parent_uuid}/?orig={authentic.get('orig')}",
             key=authentic.get("secret"),
         )
-        authentic_response = self.requests.patch(url_with_signature, json={"aes_id": new_parent_aes_id})
+        authentic_response = self.requests.patch(
+            url_with_signature, json={"aes_id": new_parent_aes_id}
+        )
         authentic_response.raise_for_status()
         return authentic_response.json()
 
@@ -483,17 +493,19 @@ class ApimsAesConnector(BaseResource):
         perm="can_access",
         description="Page d'accueil",
         long_description="Agrège les données dont la page d'accueil du Portail Parent a besoin.",
-        parameters={"parent_id": PARENT_PARAM, "parent_uuid": {
+        parameters={
+            "parent_id": PARENT_PARAM,
+            "parent_uuid": {
                 "description": "UUID de l'utilisateur dans iA.Téléservices, utilisé pour vérifier s'il a des insriptions aux plaines en attente de validation",
                 "example_value": "38a1128f48f14880b1cb9e24ebd3e033",
-            }
+            },
         },
         example_pattern="{parent_id}/homepage",
         pattern="^(?P<parent_id>\w+)/homepage$",
         display_category="Parent",
     )
     def homepage(self, request, parent_id, parent_uuid):
-        """ Check and update user's aes_id and build parent portal data structure
+        """Check and update user's aes_id and build parent portal data structure
 
         Parameters:
             new_parent_aes_id: new parent's ID in iA.AES after a merge.
@@ -509,12 +521,16 @@ class ApimsAesConnector(BaseResource):
         response.raise_for_status()
         consolidated_parent_id = response.json().get("parent_id")
         if consolidated_parent_id != parent_id:
-            self.update_parent_id(consolidated_parent_id, parent_uuid) # TODO should be done asynchronously
-        forms = self.get_pp_forms()
+            self.update_parent_id(
+                consolidated_parent_id, parent_uuid
+            )  # TODO should be done asynchronously
+        forms = self.get_data_from_wcs("api/categories/portail-parent/formdefs/")[
+            "data"
+        ]
         result = dict(
             parent_id=consolidated_parent_id,
             has_plain_registrations=self.has_plain_registrations(parent_uuid),
-            children=list()
+            children=list(),
         )
         for child in response.json().get("children"):
             child_forms = [
@@ -528,6 +544,10 @@ class ApimsAesConnector(BaseResource):
                 }
                 for form in forms
                 if form["slug"] in self.FORMS_ICONS
+                and (
+                    "repas" not in form["slug"]
+                    or self.does_school_have_meals(child["school_implantation"])
+                )
             ]
             ts_child = dict(
                 id=child["id"],
@@ -535,11 +555,11 @@ class ApimsAesConnector(BaseResource):
                 name=child["name"],
                 age=child["age"],
                 school_implantation=False
-                        if not child["school_implantation"]
-                        else child["school_implantation"],
+                if not child["school_implantation"]
+                else child["school_implantation"],
                 level=child["level"],
                 healthsheet=child["has_valid_healthsheet"],
-                forms=child_forms
+                forms=child_forms,
             )
             result["children"].append(ts_child)
         return result
@@ -646,9 +666,13 @@ class ApimsAesConnector(BaseResource):
         if national_number:
             url_parameters = f"national_number={national_number}"
         elif lastname and firstname and birthdate:
-            url_parameters = f"lastname={lastname}&firstname={firstname}&birthdate={birthdate}"
+            url_parameters = (
+                f"lastname={lastname}&firstname={firstname}&birthdate={birthdate}"
+            )
         else:
-            raise TypeError("You have to give either the national_number, or the lastname, firstname and birthdate.")
+            raise TypeError(
+                "You have to give either the national_number, or the lastname, firstname and birthdate."
+            )
         url = f"{self.server_url}/{self.aes_instance}/persons?{url_parameters}"
         response = self.session.get(url)
         response.raise_for_status()
@@ -657,7 +681,9 @@ class ApimsAesConnector(BaseResource):
         elif response.json()["items_total"] == 0:
             child = None
         else:
-            raise MultipleObjectsReturned("More than one child were found. A manual action is needed.")
+            raise MultipleObjectsReturned(
+                "More than one child were found. A manual action is needed."
+            )
         return {"child": child}
 
     @endpoint(
@@ -725,7 +751,7 @@ class ApimsAesConnector(BaseResource):
                 "start_date": activity["start_date"],
                 "end_date": activity["end_date"],
                 "age_group_manager_id": activity["age_group_manager_id"],
-                "remaining_places": activity["nb_remaining_place"]
+                "remaining_places": activity["nb_remaining_place"],
             }
             if activity["week"] not in weeks:
                 available_plains.append(
@@ -734,7 +760,9 @@ class ApimsAesConnector(BaseResource):
                         "text": "Semaine {}".format(activity["week"]),
                         "activities": [new_activity],
                         "week": activity["week"],
-                        "monday": date.fromisocalendar(activity["year"], activity["week"], 1),
+                        "monday": date.fromisocalendar(
+                            activity["year"], activity["week"], 1
+                        ),
                         "year": activity["year"],
                     }
                 )
@@ -827,6 +855,25 @@ class ApimsAesConnector(BaseResource):
     ### REPAS ###
     #############
 
+    def does_school_have_meals(self, school):
+        """Check if the school given by it's id offers meals
+        Parameters
+        ----------
+            school: int or str
+                id of school
+        Return
+        ------
+            Bool
+        """
+        path = "api/formdefs/pp-repas-scolaires/schema"
+        form_configuration = self.get_data_from_wcs(path)
+        if (
+            not form_configuration["options"]["implantations_scolaires"]
+            or str(school) in form_configuration["options"]["implantations_scolaires"]
+        ):
+            return True
+        return False
+
     def is_in_time(self, scheduled, days_in_delay, no_later_than):
         """
         Returns True if deadline isn't reached yead
@@ -840,6 +887,7 @@ class ApimsAesConnector(BaseResource):
             no_later_than : datetime.time
                 last hour:minute before deadline
         """
+
         def is_workday(day):
             cal = Belgium()
             return cal.is_working_day(date(day.year, day.month, day.day))
@@ -852,7 +900,15 @@ class ApimsAesConnector(BaseResource):
             evaluated = evaluated - timedelta(days=1)
             if is_workday(evaluated):
                 remaining_delay = remaining_delay - 1
-        result = time(now.hour, now.minute) < no_later_than if (date(evaluated.year, evaluated.month, evaluated.day) - date(now.year, now.month, now.day)).days == 0 else now < evaluated
+        result = (
+            time(now.hour, now.minute) < no_later_than
+            if (
+                date(evaluated.year, evaluated.month, evaluated.day)
+                - date(now.year, now.month, now.day)
+            ).days
+            == 0
+            else now < evaluated
+        )
         return result
 
     def get_month_menu(self, child_id, month):
@@ -880,17 +936,25 @@ class ApimsAesConnector(BaseResource):
         for menu in month_menu["data"]:
             if menu["id"] in checked_menu_ids:
                 index_menu = checked_menu_ids.index(menu["id"])
-                error = {"meal_id": menu["meal_id"], "name": menu["text"], "activity_id": menu["activity_id"]}
-                if not errors.get(menu['id']):
+                error = {
+                    "meal_id": menu["meal_id"],
+                    "name": menu["text"],
+                    "activity_id": menu["activity_id"],
+                }
+                if not errors.get(menu["id"]):
                     errors[menu["id"]] = {
                         "date": menu["date"],
                         "activity_id": menu["activity_id"],
                         "regime": menu["type"],
-                        "meal_ids": [{
-                            "meal_id": month_menu["data"][index_menu]["meal_id"],
-                            "name": month_menu["data"][index_menu]["text"],
-                            "activity_id": month_menu["data"][index_menu]["activity_id"]
-                        }]
+                        "meal_ids": [
+                            {
+                                "meal_id": month_menu["data"][index_menu]["meal_id"],
+                                "name": month_menu["data"][index_menu]["text"],
+                                "activity_id": month_menu["data"][index_menu][
+                                    "activity_id"
+                                ],
+                            }
+                        ],
                     }
                 errors[menu["id"]]["meal_ids"].append(error)
             checked_menu_ids.append(menu["id"])
@@ -960,24 +1024,28 @@ class ApimsAesConnector(BaseResource):
             "child_id": CHILD_PARAM,
             "month": {
                 "description": "Mois sélectionné - 0 pour ce mois-ci, 1 pour le mois prochain, 2 pour le mois d'après.",
-                "example_value": 0
+                "example_value": 0,
             },
             "days_in_delay": {
                 "description": "Délai en jours avant le repas.",
-                "example_value": 1
+                "example_value": 1,
             },
             "no_later_than": {
                 "description": "Dernier moment avant la désinscription, lors du dernier jour permis par le délai.",
-                "example_value": "19:00"
-            }
+                "example_value": "19:00",
+            },
         },
         example_pattern="{child_id}/registrations",
         pattern="^(?P<child_id>\w+)/registrations$",
         display_category="Repas",
     )
-    def list_meal_registrations(self, request, child_id, days_in_delay=1, no_later_than="19:00", month=None):
+    def list_meal_registrations(
+        self, request, child_id, days_in_delay=1, no_later_than="19:00", month=None
+    ):
         if month is not None and month not in [0, 1, 2]:
-            raise ValueError("Le mois ne peut avoir comme valeur que 0, 1, ou 2. Voir la description du paramètre pour en savoir plus.")
+            raise ValueError(
+                "Le mois ne peut avoir comme valeur que 0, 1, ou 2. Voir la description du paramètre pour en savoir plus."
+            )
         url = f"{self.server_url}/{self.aes_instance}/school-meals/registrations?kid_id={child_id}"
         response = self.session.get(url)
         response.raise_for_status()
@@ -987,18 +1055,26 @@ class ApimsAesConnector(BaseResource):
             registrations = response.json().get("items")
         result = list()
         for registration in registrations:
-            meal_date = datetime.strptime(registration['meal_date'], "%Y-%m-%d")
+            meal_date = datetime.strptime(registration["meal_date"], "%Y-%m-%d")
             if month is not None:
                 today = datetime.today()
-                selected_month = today.month + month if today.month < 13 else today.month + month - 12
-            if (month is None or meal_date.month == selected_month) and self.is_in_time(meal_date, days_in_delay, time.fromisoformat(no_later_than)):
-                result.append({
-                    "id": f"_{datetime.strftime(meal_date, '%d-%m-%Y')}_{registration['meal_regime']}-{registration['meal_activity_id']}",
-                    "meal_detail_id": int(registration["meal_detail_id"]),
-                    "date": registration["meal_date"],
-                    "text": f"{datetime.strftime(meal_date, '%d/%m/%Y')} {registration['meal_name']}",
-                    "regime": registration["meal_regime"]
-                })
+                selected_month = (
+                    today.month + month
+                    if today.month < 13
+                    else today.month + month - 12
+                )
+            if (month is None or meal_date.month == selected_month) and self.is_in_time(
+                meal_date, days_in_delay, time.fromisoformat(no_later_than)
+            ):
+                result.append(
+                    {
+                        "id": f"_{datetime.strftime(meal_date, '%d-%m-%Y')}_{registration['meal_regime']}-{registration['meal_activity_id']}",
+                        "meal_detail_id": int(registration["meal_detail_id"]),
+                        "date": registration["meal_date"],
+                        "text": f"{datetime.strftime(meal_date, '%d/%m/%Y')} {registration['meal_name']}",
+                        "regime": registration["meal_regime"],
+                    }
+                )
         return {"data": result}
 
     @endpoint(
@@ -1013,7 +1089,9 @@ class ApimsAesConnector(BaseResource):
     )
     def delete_menu_registration(self, request):
         data = dict()
-        data["meals"] = [meal["meal_detail_id"] for meal in json.loads(request.body).get("meals")]
+        data["meals"] = [
+            meal["meal_detail_id"] for meal in json.loads(request.body).get("meals")
+        ]
         url = f"{self.server_url}/{self.aes_instance}/school-meals/registrations/delete"
         response = self.session.post(url, json=data)
         response.raise_for_status()
@@ -1031,38 +1109,104 @@ class ApimsAesConnector(BaseResource):
         display_category="Fiche santé",
     )
     def healthsheet_questions(self, request):
-        return {'data': [
-            {'id': 'blood_type', 'text': 'Quel est le groupe sanguin de l\'enfant ?'},
-            {'id': 'bike', 'text': 'L\'enfant sait-il rouler à vélo ?'},
-            {'id': 'glasses', 'text': 'L\'enfant porte-t-il des lunettes ?'},
-            {'id': 'hearing_aid', 'text': 'L\'enfant porte-t-il un appareil auditif ?'},
-            {'id': 'nap', 'text': 'L\'enfant fait-il la sieste ?'},
-            {'id': 'emotional_support', 'text': 'L\'enfant a-t-il un doudou ou une tutute ?'},
-            {'id': 'weight', 'text': 'Quel est le poids de l\'enfant ?'},
-            {'id': 'tetanos', 'text': 'L\'enfant a-t\'il été vacciné contre le tétanos ?'},
-            {'id': 'intervention', 'text': 'L\'enfant a-t\'il subit une intervention récemment ?'},
-            {'id': 'swim', 'text': 'L\'enfant sait-il nager ?'},
-            {'id': 'handicap', 'text': 'L\'enfant souffre t\'il d\'un handicap ?'},
-            {'id': 'activity_no_available', 'text': 'Activités non praticables'},
-            {'id': 'regime', 'text': 'L\'enfant suit-il un régime spécifique ?'},
-            {'id': 'arnica', 'text': 'Autorisez-vous les accompagnants à utiliser du gel arnica ?'},
-            {'id': 'allergies', 'text': 'L\'enfant a-t\'il des allergies ?'},
-            {'id': 'new_allergies', 'text': 'Permettre aux parents d\'ajouter d\'autres allergies ?'},
-            {'id': 'diseases', 'text': 'L\'enfant a-t\'il des maladies ?'},
-            {'id': 'new_diseases', 'text': 'Permettre aux parents d\'ajouter d\'autres maladies ?'},
-            {'id': 'mutuality', 'text': 'À quelle mutuelle l\enfant est-il affilié ?'},
-            {'id': 'medication', 'text': 'L\'enfant doit-il prendre des médicaments ?'},
-            {'id': 'medical_data', 'text': 'Y a-t-il des ' 'données médicales ' 'spécifiques ' 'importantes à ' 'connaître pour le ' 'bon déroulement ' 'des activités (' 'épilepsie,' 'problème ' 'cardiaque, ' 'asthme, ...) ?', 'disabled': True},
-            {'id': 'other_contact_address', 'text': 'Demander l\'adresse des autres contacts'},
-            {'id': 'photo', 'text': 'L\'enfant peut-il être pris en photo durant les stages ou les plaines ?'},
-            {'id': 'photo_general', 'text': 'L\'enfant peut-il être pris en photo lors des garderies, ateliers, spectacles, ou autre ?'},
-            {'id': 'facebook', 'text': 'Les photos de l\'enfant peuvent-elles être publiées sur les réseaux sociaux (site de la commune, ' 'Facebook) ?'},
-            {'id': 'medical_autorisation', 'text': "Je marque mon accord pour que la prise en charge ou les traitements estimés nécessaires soient entrepris durant le séjour de mon enfant par les responsables de l’accueil ou par le service médical qui y est associé. J’autorise le médecin local à prendre les décisions qu’il juge urgentes et indispensables pour assurer l’état de santé de l’enfant, même s’il s’agit d’une intervention chirurgicale. En cas d’urgence, les parents/tuteurs seront avertis le plus rapidement possible. Néanmoins, s’ils ne sont pas joignables et que l’urgence le requiert, l’intervention se fera sans leur consentement."},
-            {'id': 'covid', 'text': "Je m’engage sur l’honneur à ce que moi-même ou un autre adulte de la bulle sociale de mon enfant soit joignable par téléphone et d’avoir la possibilité de venir chercher l’enfant immédiatement pendant toute la durée de l’activité si son état de santé le nécessite, et de s’engager dans ce cas à faire consulter le participant dès que possible (et endéans les 24h du retour au plus tard) par son médecin référent ou un autre médecin si ce dernier n’est pas disponible"},
-            {'id': 'rgpd', 'text': "Je consens au traitement de mes données à caractère personnel par l'Administration communale de Chaudfontaine conformément à sa charte relative à la protection de la vie privée."},
-        ]}
-
-
+        return {
+            "data": [
+                {
+                    "id": "blood_type",
+                    "text": "Quel est le groupe sanguin de l'enfant ?",
+                },
+                {"id": "bike", "text": "L'enfant sait-il rouler à vélo ?"},
+                {"id": "glasses", "text": "L'enfant porte-t-il des lunettes ?"},
+                {
+                    "id": "hearing_aid",
+                    "text": "L'enfant porte-t-il un appareil auditif ?",
+                },
+                {"id": "nap", "text": "L'enfant fait-il la sieste ?"},
+                {
+                    "id": "emotional_support",
+                    "text": "L'enfant a-t-il un doudou ou une tutute ?",
+                },
+                {"id": "weight", "text": "Quel est le poids de l'enfant ?"},
+                {
+                    "id": "tetanos",
+                    "text": "L'enfant a-t'il été vacciné contre le tétanos ?",
+                },
+                {
+                    "id": "intervention",
+                    "text": "L'enfant a-t'il subit une intervention récemment ?",
+                },
+                {"id": "swim", "text": "L'enfant sait-il nager ?"},
+                {"id": "handicap", "text": "L'enfant souffre t'il d'un handicap ?"},
+                {"id": "activity_no_available", "text": "Activités non praticables"},
+                {"id": "regime", "text": "L'enfant suit-il un régime spécifique ?"},
+                {
+                    "id": "arnica",
+                    "text": "Autorisez-vous les accompagnants à utiliser du gel arnica ?",
+                },
+                {"id": "allergies", "text": "L'enfant a-t'il des allergies ?"},
+                {
+                    "id": "new_allergies",
+                    "text": "Permettre aux parents d'ajouter d'autres allergies ?",
+                },
+                {"id": "diseases", "text": "L'enfant a-t'il des maladies ?"},
+                {
+                    "id": "new_diseases",
+                    "text": "Permettre aux parents d'ajouter d'autres maladies ?",
+                },
+                {
+                    "id": "mutuality",
+                    "text": "À quelle mutuelle l\enfant est-il affilié ?",
+                },
+                {
+                    "id": "medication",
+                    "text": "L'enfant doit-il prendre des médicaments ?",
+                },
+                {
+                    "id": "medical_data",
+                    "text": "Y a-t-il des "
+                    "données médicales "
+                    "spécifiques "
+                    "importantes à "
+                    "connaître pour le "
+                    "bon déroulement "
+                    "des activités ("
+                    "épilepsie,"
+                    "problème "
+                    "cardiaque, "
+                    "asthme, ...) ?",
+                    "disabled": True,
+                },
+                {
+                    "id": "other_contact_address",
+                    "text": "Demander l'adresse des autres contacts",
+                },
+                {
+                    "id": "photo",
+                    "text": "L'enfant peut-il être pris en photo durant les stages ou les plaines ?",
+                },
+                {
+                    "id": "photo_general",
+                    "text": "L'enfant peut-il être pris en photo lors des garderies, ateliers, spectacles, ou autre ?",
+                },
+                {
+                    "id": "facebook",
+                    "text": "Les photos de l'enfant peuvent-elles être publiées sur les réseaux sociaux (site de la commune, "
+                    "Facebook) ?",
+                },
+                {
+                    "id": "medical_autorisation",
+                    "text": "Je marque mon accord pour que la prise en charge ou les traitements estimés nécessaires soient entrepris durant le séjour de mon enfant par les responsables de l’accueil ou par le service médical qui y est associé. J’autorise le médecin local à prendre les décisions qu’il juge urgentes et indispensables pour assurer l’état de santé de l’enfant, même s’il s’agit d’une intervention chirurgicale. En cas d’urgence, les parents/tuteurs seront avertis le plus rapidement possible. Néanmoins, s’ils ne sont pas joignables et que l’urgence le requiert, l’intervention se fera sans leur consentement.",
+                },
+                {
+                    "id": "covid",
+                    "text": "Je m’engage sur l’honneur à ce que moi-même ou un autre adulte de la bulle sociale de mon enfant soit joignable par téléphone et d’avoir la possibilité de venir chercher l’enfant immédiatement pendant toute la durée de l’activité si son état de santé le nécessite, et de s’engager dans ce cas à faire consulter le participant dès que possible (et endéans les 24h du retour au plus tard) par son médecin référent ou un autre médecin si ce dernier n’est pas disponible",
+                },
+                {
+                    "id": "rgpd",
+                    "text": "Je consens au traitement de mes données à caractère personnel par l'Administration communale de Chaudfontaine conformément à sa charte relative à la protection de la vie privée.",
+                },
+            ]
+        }
 
     def has_valid_healthsheet(self, child_id):
         url = f"{self.server_url}/{self.aes_instance}/kids/{child_id}/healthsheet"
@@ -1096,11 +1240,19 @@ class ApimsAesConnector(BaseResource):
         response = self.session.get(url)
         data = response.json()[0]
         healthsheet = dict()
-        healthsheet["activity_no_available_reason"] = data["activity_no_available_reason"] or ""
-        healthsheet["activity_no_available_selection"] = data["activity_no_available_selection"]
-        healthsheet["activity_no_available_text"] = data["activity_no_available_text"] or ""
+        healthsheet["activity_no_available_reason"] = (
+            data["activity_no_available_reason"] or ""
+        )
+        healthsheet["activity_no_available_selection"] = data[
+            "activity_no_available_selection"
+        ]
+        healthsheet["activity_no_available_text"] = (
+            data["activity_no_available_text"] or ""
+        )
         healthsheet["allergy_consequence"] = data["allergy_consequence"] or ""
-        healthsheet["allergy_ids"] = [str(allergy["id"]) for allergy in data["allergy_ids"]]
+        healthsheet["allergy_ids"] = [
+            str(allergy["id"]) for allergy in data["allergy_ids"]
+        ]
         healthsheet["allergy_selection"] = data["allergy_selection"]
         healthsheet["allergy_treatment"] = data["allergy_treatment"] or ""
         healthsheet["allowed_contact_ids"] = data["allowed_contact_ids"]
@@ -1112,13 +1264,20 @@ class ApimsAesConnector(BaseResource):
         healthsheet["disease_ids"], healthsheet["disease_details"] = list(), list()
         for disease in data["disease_ids"]:
             healthsheet["disease_ids"].append(str(disease["disease_type_id"][0]))
-            healthsheet["disease_details"].append({"gravity": disease["gravity"] or "", "treatment": disease["disease_text"]})
+            healthsheet["disease_details"].append(
+                {
+                    "gravity": disease["gravity"] or "",
+                    "treatment": disease["disease_text"],
+                }
+            )
         healthsheet["doctor_id"] = data["doctor_id"]
         healthsheet["emotional_support"] = data["emotional_support"]
         healthsheet["facebook"] = data["facebook"]
         healthsheet["first_date_tetanus"] = data["first_date_tetanus"]
         healthsheet["handicap_selection"] = data["handicap_selection"]
-        healthsheet["has_medication"] = "yes" if len(data["medication_ids"]) > 0 else "not_specified"
+        healthsheet["has_medication"] = (
+            "yes" if len(data["medication_ids"]) > 0 else "not_specified"
+        )
         healthsheet["hearing_aid"] = data["hearing_aid"]
         healthsheet["glasses"] = data["glasses"]
         healthsheet["id"] = data["id"]
@@ -1131,8 +1290,10 @@ class ApimsAesConnector(BaseResource):
                 "name": medication["name"],
                 "quantity": medication["quantity"],
                 "period": medication["period"],
-                "self_medication": medication["self_medication_selection"]
-            } for medication in data["medication_ids"]]
+                "self_medication": medication["self_medication_selection"],
+            }
+            for medication in data["medication_ids"]
+        ]
         healthsheet["mutuality"] = data["mutuality"] or ""
         healthsheet["nap"] = data["nap"]
         # healthsheet["medication_type_selection"] = data.get("medication_type_selection") or []
@@ -1173,18 +1334,28 @@ class ApimsAesConnector(BaseResource):
             put_data["activity_no_available_reason"] = origin_data[
                 "activity_no_available_reason"
             ]
-        if origin_data["allergy_consequence"] and (origin_data["allergy_ids"] or origin_data["other_allergies"]):
+        if origin_data["allergy_consequence"] and (
+            origin_data["allergy_ids"] or origin_data["other_allergies"]
+        ):
             put_data["allergy_consequence"] = origin_data["allergy_consequence"]
         else:
             put_data["allergy_consequence"] = ""
-        put_data["allergy_ids"] = [int(allergy) for allergy in origin_data["allergy_ids"]] if origin_data["allergy_ids"] else list()
-        if origin_data["allergy_treatment"] and (origin_data["allergy_ids"] or origin_data["other_allergies"]):
+        put_data["allergy_ids"] = (
+            [int(allergy) for allergy in origin_data["allergy_ids"]]
+            if origin_data["allergy_ids"]
+            else list()
+        )
+        if origin_data["allergy_treatment"] and (
+            origin_data["allergy_ids"] or origin_data["other_allergies"]
+        ):
             put_data["allergy_treatment"] = origin_data["allergy_treatment"]
         else:
             put_data["allergy_treatment"] = ""
         if origin_data["arnica"]:
             put_data["arnica"] = origin_data["arnica"]
-        put_data["authorization_ids"] = [int(authorization) for authorization in authorizations]
+        put_data["authorization_ids"] = [
+            int(authorization) for authorization in authorizations
+        ]
         if origin_data["bike"]:
             put_data["bike"] = origin_data["bike"]
         if origin_data["blood_type"]:
@@ -1216,11 +1387,15 @@ class ApimsAesConnector(BaseResource):
         if origin_data["other_allergies"]:
             # As other_allergies is a list of list, we need to make it a list of string. It is a list of list
             # because of the type of other_allergies field in form.
-            put_data["other_allergies"] = [allergy[0] for allergy in origin_data["other_allergies"]]
+            put_data["other_allergies"] = [
+                allergy[0] for allergy in origin_data["other_allergies"]
+            ]
         if origin_data["other_diseases"]:
             # As other_diseases is a list of list, we need to make it a list of string. It is a list of list
             # because of the type of other_diseases field in form.
-            put_data["other_diseases"] = [disease[0] for disease in origin_data["other_diseases"]]
+            put_data["other_diseases"] = [
+                disease[0] for disease in origin_data["other_diseases"]
+            ]
         if origin_data["photo"]:
             put_data["photo"] = origin_data["photo"]
         if origin_data["photo_general"]:
@@ -1246,7 +1421,9 @@ class ApimsAesConnector(BaseResource):
                     medication_ids.append(
                         {
                             "name": medication[0],
-                            "quantity": int(medication[1]) if medication[1] and medication[1] != "None" else None,
+                            "quantity": int(medication[1])
+                            if medication[1] and medication[1] != "None"
+                            else None,
                             "period": medication[2],
                             "self_medication_selection": medication[3],
                         }
@@ -1260,19 +1437,23 @@ class ApimsAesConnector(BaseResource):
         disease_ids = list()
         if origin_data["disease_ids"]:
             for disease_id in enumerate(origin_data["disease_ids"]):
-                disease_ids.append({
-                    "disease_type_id": int(disease_id[1]),
-                    "gravity": origin_data.get(f"disease_{disease_id[0]}_gravity"),
-                    "disease_text": origin_data.get(f"disease_{disease_id[0]}_treatment"),
-                })
+                disease_ids.append(
+                    {
+                        "disease_type_id": int(disease_id[1]),
+                        "gravity": origin_data.get(f"disease_{disease_id[0]}_gravity"),
+                        "disease_text": origin_data.get(
+                            f"disease_{disease_id[0]}_treatment"
+                        ),
+                    }
+                )
         if medication_ids:
             put_data["medication_ids"] = medication_ids
         if allowed_contact_ids:
             put_data["allowed_contact_ids"] = allowed_contact_ids
         put_data["disease_ids"] = disease_ids
         if not disease_ids:
-            put_data["other_disease_gravity"] = origin_data.get(f"disease_0_gravity"),
-            put_data["other_disease_text"] = origin_data.get(f"disease_0_treatment"),
+            put_data["other_disease_gravity"] = (origin_data.get(f"disease_0_gravity"),)
+            put_data["other_disease_text"] = (origin_data.get(f"disease_0_treatment"),)
         url = f"{self.server_url}/{self.aes_instance}/kids/{child_id}/healthsheet"
         response = self.session.put(url, json=put_data)
         response.raise_for_status()
@@ -1301,7 +1482,15 @@ class ApimsAesConnector(BaseResource):
                     {"id": str(choice["id"]), "text": choice["name"]} for choice in v
                 ]
         # Artificially add items of has_medication field that does not exist in iA.AES
-        result.update({"has_medication": [{"id": "not_specified","text": "Non renseigné"},{"id": "no","text": "Non"},{"id": "yes","text": "Oui"}]})
+        result.update(
+            {
+                "has_medication": [
+                    {"id": "not_specified", "text": "Non renseigné"},
+                    {"id": "no", "text": "Non"},
+                    {"id": "yes", "text": "Oui"},
+                ]
+            }
+        )
         return result
 
     @endpoint(
@@ -1317,13 +1506,15 @@ class ApimsAesConnector(BaseResource):
                 "example_value": "mandatory",
                 "optional": True,
                 "type": "str",
-                "default_value": "mandatory"
+                "default_value": "mandatory",
             },
         },
     )
     def get_authorizations(self, request, filter=None):
         if filter and filter not in ["mandatory", "optional"]:
-            raise ValueError(f"Filter value '{filter}' is unknown. It must be 'mandatory' or 'optional'.")
+            raise ValueError(
+                f"Filter value '{filter}' is unknown. It must be 'mandatory' or 'optional'."
+            )
         url = f"{self.server_url}/{self.aes_instance}/authorizations"
         response = self.session.get(url).json()
         if not filter:
@@ -1351,7 +1542,7 @@ class ApimsAesConnector(BaseResource):
                 "example_value": 1,
                 "optional": True,
                 "type": "int",
-                "default_value": None
+                "default_value": None,
             },
         },
     )
@@ -1362,7 +1553,10 @@ class ApimsAesConnector(BaseResource):
         response = self.session.get(url)
         response.raise_for_status()
         result = dict(
-            data=[{"id": str(allergy["id"]), "name": allergy["name"]} for allergy in response.json()["data"]]
+            data=[
+                {"id": str(allergy["id"]), "name": allergy["name"]}
+                for allergy in response.json()["data"]
+            ]
         )
         return result
 
@@ -1379,7 +1573,7 @@ class ApimsAesConnector(BaseResource):
                 "example_value": 1,
                 "optional": True,
                 "type": "int",
-                "default_value": None
+                "default_value": None,
             },
         },
     )
@@ -1415,8 +1609,12 @@ class ApimsAesConnector(BaseResource):
             "mobile": post_data["mobile"] or "",
             "street": post_data["street"],
             "is_company": False,
-            "locality_id": int(post_data["locality_id"]) if post_data["locality_id"] else None,
-            "country_id": int(post_data["country_id"]) if post_data["country_id"] else None,
+            "locality_id": int(post_data["locality_id"])
+            if post_data["locality_id"]
+            else None,
+            "country_id": int(post_data["country_id"])
+            if post_data["country_id"]
+            else None,
             "zip": post_data.get("zipcode") or "",
             "city": post_data.get("city") or "",
         }
@@ -1496,8 +1694,8 @@ class ApimsAesConnector(BaseResource):
         url = f"{self.server_url}/{self.aes_instance}/payment"
         payment = {
             "parent_id": int(post_data["parent_id"]),
-            "amount": float(post_data["amount"].replace(",",".")),
-            "comment": post_data["comment"]
+            "amount": float(post_data["amount"].replace(",", ".")),
+            "comment": post_data["comment"],
         }
         response = self.session.post(url, json=payment)
         response.raise_for_status()
@@ -1540,7 +1738,11 @@ class ApimsAesConnector(BaseResource):
         if age_months > 12:
             raise ValueError("month must be int between 0 and 12")
         elif month > age_months:
-            result = date(year - age_years, month - age_months, day) - timedelta(days=age_days)
+            result = date(year - age_years, month - age_months, day) - timedelta(
+                days=age_days
+            )
         else:
-            result = date(year - 1 - age_years, month - age_months + 12, day) - timedelta(days=age_days)
+            result = date(
+                year - 1 - age_years, month - age_months + 12, day
+            ) - timedelta(days=age_days)
         return {"data": result}
