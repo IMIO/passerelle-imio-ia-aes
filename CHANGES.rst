@@ -1,6 +1,11 @@
 Changelog
 =========
 
+1.9.1
+-----------------
+- [MPP-454] Fixed: ask wcs only once for school implantations offering meals"
+- Revert Development Status
+
 1.9.0
 -----------------
 - [MPP-454] Added: school meals related forms appeared if the right school is checked in pp-repas-scolaires form options or all schools are unchecked

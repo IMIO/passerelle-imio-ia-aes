@@ -418,6 +418,15 @@ class ApimsAesConnector(BaseResource):
         signed_forms_url_response.raise_for_status()
         return signed_forms_url_response.json()
 
+    def get_school_implantations_with_meals(self):
+        """Return the list of school implantations offering meals as a list of int
+        Return
+        ------
+            List of str
+        """
+        path = "api/formdefs/pp-repas-scolaires/schema"
+        return self.get_data_from_wcs(path)["options"]["implantations_scolaires"]
+
     def set_form_status(self, form_slug, has_valid_healthsheet):
         if form_slug == "pp-plaines-de-vacances":
             result = None if has_valid_healthsheet else "locked"
@@ -527,6 +536,10 @@ class ApimsAesConnector(BaseResource):
         forms = self.get_data_from_wcs("api/categories/portail-parent/formdefs/")[
             "data"
         ]
+        if "pp-repas-scolaires" in [form["slug"] for form in forms]:
+            school_implantations_with_meals = self.get_school_implantations_with_meals()
+        else:
+            school_implantations_with_meals = []
         result = dict(
             parent_id=consolidated_parent_id,
             has_plain_registrations=self.has_plain_registrations(parent_uuid),
@@ -546,7 +559,9 @@ class ApimsAesConnector(BaseResource):
                 if form["slug"] in self.FORMS_ICONS
                 and (
                     "repas" not in form["slug"]
-                    or self.does_school_have_meals(child["school_implantation"])
+                    or self.does_school_have_meals(
+                        child["school_implantation"], school_implantations_with_meals
+                    )
                 )
             ]
             ts_child = dict(
@@ -855,21 +870,21 @@ class ApimsAesConnector(BaseResource):
     ### REPAS ###
     #############
 
-    def does_school_have_meals(self, school):
+    def does_school_have_meals(self, school, school_implantations_with_meals):
         """Check if the school given by it's id offers meals
         Parameters
         ----------
             school: int or str
                 id of school
+            school_implantations_with_meals: list of str
+                school implantations as a list of ids, can be empty
         Return
         ------
             Bool
         """
-        path = "api/formdefs/pp-repas-scolaires/schema"
-        form_configuration = self.get_data_from_wcs(path)
         if (
-            not form_configuration["options"]["implantations_scolaires"]
-            or str(school) in form_configuration["options"]["implantations_scolaires"]
+            not school_implantations_with_meals
+            or str(school) in school_implantations_with_meals
         ):
             return True
         return False

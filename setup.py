@@ -58,7 +58,7 @@ setup(
     include_package_data=True,
     url="https://github.com/IMIO/passerelle-imio-ia-aes/",
     classifiers=[
-        "Development Status :: 5 - Production/Stable",
+        "Development Status :: 2 - Pre-Alpha",
         "Environment :: Web Environment",
         "Framework :: Django",
         "Intended Audience :: Developers",
