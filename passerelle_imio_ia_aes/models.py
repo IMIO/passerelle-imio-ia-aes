@@ -788,7 +788,7 @@ class ApimsAesConnector(BaseResource):
                     for week in available_plains
                     if week["id"] == activity["week"]
                 ]
-        return sorted(available_plains, key=lambda x: x["week"])
+        return sorted(available_plains, key=lambda x: x["monday"])
 
     @endpoint(
         name="registrations",

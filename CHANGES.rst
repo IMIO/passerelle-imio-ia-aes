@@ -1,6 +1,10 @@
 Changelog
 =========
 
+1.9.2
+-----------------
+- [MPP-468] Fixed: order of available plain's weeks
+
 1.9.1
 -----------------
 - [MPP-454] Fixed: ask wcs only once for school implantations offering meals"
