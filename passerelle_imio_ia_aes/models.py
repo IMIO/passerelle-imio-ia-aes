@@ -387,7 +387,7 @@ class ApimsAesConnector(BaseResource):
                     "national_number": child["national_number"],
                     "name": child["display_name"],
                     "age": child["age"],
-                    "activities": child["activity_ids"],
+                    "activities": child.get("activity_ids"),
                     "school_implantation": child["school_implantation_id"],
                     "level": child["level_id"],
                     "healthsheet": child["health_sheet_ids"],
