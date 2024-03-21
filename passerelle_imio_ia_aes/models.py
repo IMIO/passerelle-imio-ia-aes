@@ -597,12 +597,20 @@ class ApimsAesConnector(BaseResource):
         return price_categories
 
     def set_price_category(
-        self, compute_price_category, parent_zipcode, municipality_zipcodes
+        self, is_invoicing_differs_by_home, is_invoicing_differs_by_school, is_parent_lives_in_municipality, is_child_scholarised_in_municipality
     ):
+        """
+        Défini la catégorie tarifaire de l'enfant en fonction de son implantation scolaire et du domicile de son parent
+        @param is_invoicing_differs_by_home: bool
+        @param is_invoicing_differs_by_school: bool
+        @param is_parent_lives_in_municipality : bool
+        @param is_child_scholarised_in_municipality: bool
+        @returns price_category: int
+        """
         price_categories = self.list_price_categories()
-        if compute_price_category == "non":
+        if not is_invoicing_differs_by_home and not is_invoicing_differs_by_school:
             price_category = price_categories["Aucun"]
-        elif parent_zipcode in municipality_zipcodes:
+        elif is_invoicing_differs_by_home and is_parent_lives_in_municipality or is_invoicing_differs_by_school and is_child_scholarised_in_municipality:
             price_category = price_categories["Commune"]
         else:
             price_category = price_categories["Hors Commune"]
@@ -623,9 +631,10 @@ class ApimsAesConnector(BaseResource):
         url = f"{self.server_url}/{self.aes_instance}/parents/{parent_id}/kids"
         post_data = json.loads(request.body)
         price_category_id = self.set_price_category(
-            post_data["compute_price_category"],
-            post_data["parent_zipcode"],
-            post_data["municipality_zipcodes"],
+            is_invoicing_differs_by_home=post_data["invoicing_differs_by_home"] in ("oui", "non_renseigne"), # non-renseigne est possible dans ce cas pour des raisons de rétro-compatibilité
+            is_invoicing_differs_by_school=post_data["invoicing_differs_by_school"] == "oui", # Ici, non-renseigne n'est pas possible car pas de rétro-compatibilité à gérer
+            is_parent_lives_in_municipality=post_data["parent_zipcode"] in post_data["municipality_zipcodes"],
+            is_child_scholarised_in_municipality=not (len(post_data["school_implantation"]) <= 6 and "autre" in post_data["school_implantation"].lower()), # La longueur pour gérer les cas comme l'école communale de Bautre et le vrai test.
         )
         child = {
             "firstname": post_data["firstname"],
@@ -637,7 +646,6 @@ class ApimsAesConnector(BaseResource):
         }
         if post_data["national_number"]:
             child["national_number"] = post_data["national_number"]
-        self.logger.info(f"CHILD : {child}")
         response = self.session.post(url, json=child)
         response.raise_for_status()
         return response.json()
