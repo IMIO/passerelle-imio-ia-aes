@@ -6,6 +6,7 @@ Changelog
 - [MPP-476] Added: child's price category can depend of his school implantation.
 - [AES-1559] Fixed: remove unused field.
 - [MPPNIVA-9][MPPNIVA-10] Added: update person endpoint.
+- [MPP-478] Added: disabled key on meal registrations and meal menu endpoints
 - Fix endpoint description.
 
 1.9.2

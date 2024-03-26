@@ -989,22 +989,43 @@ class ApimsAesConnector(BaseResource):
         )
         return result
 
+    def get_meal_registrations(self, child_id, parent_id=None):
+        url = f"{self.server_url}/{self.aes_instance}/school-meals/registrations?kid_id={child_id}"
+        response = self.session.get(url)
+        response.raise_for_status()
+        if isinstance(response.json(), list):
+            registrations = response.json()
+        else:
+            registrations = response.json().get("items")
+        return registrations
+
+    def reverse_date(self, date, separator):
+        return separator.join(reversed(date.split(separator)))
+
     def get_month_menu(self, child_id, month):
         url = f"{self.server_url}/{self.aes_instance}/menus?kid_id={child_id}&month={month}"
         response = self.session.get(url)
         response.raise_for_status()
+        registrations = {f"_{self.reverse_date(registration['meal_date'], '-')}_{registration['meal_regime']}-{registration['meal_activity_id']}": registration
+                         for registration in self.get_meal_registrations(child_id)}
         menus = []
         for menu in response.json()["items"]:
             for meal in menu["meal_ids"]:
                 if isinstance(meal, dict):
+                    meal_id = f"_{self.reverse_date(menu['date'], '-')}_{meal['regime']}-{meal['activity_id']}"
+                    registration = registrations.get(meal_id)
+                    disabled = False
+                    if registration:
+                        disabled = registration['meal_parent_id'] != 391
                     menus.append(
                         {
-                            "id": f"_{menu['date'][8:]}{menu['date'][4:8]}{menu['date'][:4]}_{meal['regime']}-{meal['activity_id']}",
+                            "id": meal_id,
                             "date": menu["date"],
                             "text": meal["name"],
                             "type": meal["regime"],
                             "meal_id": meal["meal_id"],
                             "activity_id": meal["activity_id"],
+                            "disabled": disabled
                         }
                     )
         return {"data": sorted(menus, key=lambda x: x["id"])}
@@ -1100,6 +1121,7 @@ class ApimsAesConnector(BaseResource):
         long_description="Retourne, pour un enfant donné, ses inscriptions futures, dans le but de l'en désincrire.",
         parameters={
             "child_id": CHILD_PARAM,
+            "parent_id": PARENT_PARAM,
             "month": {
                 "description": "Mois sélectionné - 0 pour ce mois-ci, 1 pour le mois prochain, 2 pour le mois d'après.",
                 "example_value": 0,
@@ -1118,19 +1140,13 @@ class ApimsAesConnector(BaseResource):
         display_category="Repas",
     )
     def list_meal_registrations(
-        self, request, child_id, days_in_delay=1, no_later_than="19:00", month=None
+        self, request, child_id, parent_id=None, days_in_delay=1, no_later_than="19:00", month=None
     ):
         if month is not None and month not in [0, 1, 2]:
             raise ValueError(
                 "Le mois ne peut avoir comme valeur que 0, 1, ou 2. Voir la description du paramètre pour en savoir plus."
             )
-        url = f"{self.server_url}/{self.aes_instance}/school-meals/registrations?kid_id={child_id}"
-        response = self.session.get(url)
-        response.raise_for_status()
-        if isinstance(response.json(), list):
-            registrations = response.json()
-        else:
-            registrations = response.json().get("items")
+        registrations = self.get_meal_registrations(child_id=child_id)
         result = list()
         for registration in registrations:
             meal_date = datetime.strptime(registration["meal_date"], "%Y-%m-%d")
@@ -1151,9 +1167,27 @@ class ApimsAesConnector(BaseResource):
                         "date": registration["meal_date"],
                         "text": f"{datetime.strftime(meal_date, '%d/%m/%Y')} {registration['meal_name']}",
                         "regime": registration["meal_regime"],
+                        "parent_id": registration["meal_parent_id"],
+                        "disabled": bool(parent_id) and parent_id != str(registration["meal_parent_id"])
                     }
                 )
         return {"data": result}
+
+    @endpoint(
+        name="children",
+        methods=["get"],
+        perm="can_access",
+        description="Liste brutalement les inscriptions aux repas d'un enfant",
+        long_description="Retourne, pour un enfant donné, ses inscriptions futures brutes, dans le but de voir ce qui s'y passe.",
+        parameters={
+            "child_id": CHILD_PARAM,
+        },
+        example_pattern="{child_id}/registrations/raw",
+        pattern="^(?P<child_id>\w+)/registrations/raw$",
+        display_category="Repas",
+    )
+    def get_meal_registrations_raw(self, request, child_id):
+        return self.get_meal_registrations(child_id=child_id)
 
     @endpoint(
         name="children",
