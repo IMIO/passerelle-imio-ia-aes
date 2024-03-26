@@ -312,13 +312,14 @@ class ApimsAesConnector(BaseResource):
             }
         elif partner_type == "parent":
             patch_data = {
-                "country_id": data["parent_country"],
+                "country_id": int(data["parent_country_id"]),
                 "email": data["parent_email"],
                 "locality_box": data["parent_num_box"],
                 "street_number": data["parent_num_house"],
                 "phone": data["parent_phone"],
                 "street": data["parent_street"],
-                "professionnal_phone": data["parent_professionnal_phone"]
+                "professional_phone": data["parent_professional_phone"],
+                "mobile": data["parent_mobile_phone"]
             }
             if data["parent_country"].lower() == "belgique":
                 patch_data.update({"locality_id": data["parent_locality_id"]})
