@@ -1002,7 +1002,17 @@ class ApimsAesConnector(BaseResource):
     def reverse_date(self, date, separator):
         return separator.join(reversed(date.split(separator)))
 
-    def get_month_menu(self, child_id, month):
+    def set_disabled_on_meal(self, registration, meal_date, parent_id):
+        disabled, reason = False, ""
+        if registration is not None and parent_id is not None and str(registration['meal_parent_id']) != parent_id:
+            disabled = True
+            reason += "Initial registering parent is not current parent -"
+        if meal_date < date.today():
+            disabled = True
+            reason += "Too late to register: the meal date has passed or is today"
+        return disabled, reason
+
+    def get_month_menu(self, child_id, parent_id, month):
         url = f"{self.server_url}/{self.aes_instance}/menus?kid_id={child_id}&month={month}"
         response = self.session.get(url)
         response.raise_for_status()
@@ -1014,9 +1024,7 @@ class ApimsAesConnector(BaseResource):
                 if isinstance(meal, dict):
                     meal_id = f"_{self.reverse_date(menu['date'], '-')}_{meal['regime']}-{meal['activity_id']}"
                     registration = registrations.get(meal_id)
-                    disabled = False
-                    if registration:
-                        disabled = registration['meal_parent_id'] != 391
+                    disabled, disabling_reason = self.set_disabled_on_meal(registration, datetime.strptime(menu['date'], "%Y-%m-%d").date(), parent_id)
                     menus.append(
                         {
                             "id": meal_id,
@@ -1025,7 +1033,8 @@ class ApimsAesConnector(BaseResource):
                             "type": meal["regime"],
                             "meal_id": meal["meal_id"],
                             "activity_id": meal["activity_id"],
-                            "disabled": disabled
+                            "disabled": disabled,
+                            "disabling_reason": disabling_reason
                         }
                     )
         return {"data": sorted(menus, key=lambda x: x["id"])}
@@ -1067,6 +1076,7 @@ class ApimsAesConnector(BaseResource):
         long_description="Retourne le menu auquel l'enfant peut être inscrit.",
         parameters={
             "child_id": CHILD_PARAM,
+            "parent_id": PARENT_PARAM,
             "month": {
                 "description": "0 pour le mois actuel, 1 pour le mois prochain, 2 pour le mois d'après.",
                 "example_value": "1",
@@ -1074,8 +1084,8 @@ class ApimsAesConnector(BaseResource):
         },
         display_category="Repas",
     )
-    def read_month_menu(self, request, child_id, month):
-        month_menu = self.get_month_menu(child_id, month)
+    def read_month_menu(self, request, child_id, month, parent_id=None):
+        month_menu = self.get_month_menu(child_id, parent_id, month)
         list_errors = self.validate_month_menu(month_menu)
         if len(list_errors) > 0:
             return {"errors_in_menus": list_errors}
