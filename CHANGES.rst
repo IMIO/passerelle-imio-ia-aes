@@ -1,6 +1,13 @@
 Changelog
 =========
 
+1.10.0
+-----------------
+- [MPP-476] Added: child's price category can depend of his school implantation.
+- [AES-1559] Fixed: remove unused field.
+- [MPPNIVA-9][MPPNIVA-10] Added: update person endpoint.
+- Fix endpoint description.
+
 1.9.2
 -----------------
 - [MPP-468] Fixed: order of available plain's weeks

@@ -25,7 +25,7 @@ import re
 import requests
 from django.db import models
 from django.conf import settings
-from django.http import Http404
+from django.http import Http404, HttpResponseBadRequest
 from django.urls import path, reverse
 from django.core.exceptions import MultipleObjectsReturned
 from datetime import date, datetime, timedelta, time
@@ -70,6 +70,10 @@ class ApimsAesConnector(BaseResource):
     CHILD_PARAM = {
         "description": "Identifiant Odoo interne de l'enfant",
         "example_value": "22",
+    }
+    PERSON_PARAM = {
+        "description": "Identifiant Odoo interne de la personne",
+        "example_value": "1",
     }
     CATEGORY_PARAM = {
         "description": "Identifiants du type d'activité",
@@ -277,6 +281,57 @@ class ApimsAesConnector(BaseResource):
         return self.get_localities()
 
     ##############
+    ### Person ###
+    ##############
+
+    @endpoint(
+        name="persons",
+        methods=["patch"],
+        perm="can_access",
+        description="Mettre à jour un enfant ou un parent",
+        long_description="Mets à jour un enfant ou un parent, en fonction de la démarche d'origine",
+        parameters={
+            "id": PERSON_PARAM,
+            "partner_type": {
+                "description": "'parent' or 'child'",
+                "example_value": "child",
+            }
+        },
+        example_pattern="{id}",
+        pattern="^(?P<id>\w+)$",
+        display_category="Personne",
+    )
+    def update_person(self, request, id, partner_type):
+        data = json.loads(request.body)
+        if partner_type == "child":
+            patch_data = {
+                "birthdate_date": "-".join(reversed(data["child_birthdate"].split("/"))),
+                "national_number": data["child_national_number"],
+                "school_implantation_id": int(data["child_school_implantation"]),
+                "other_ref": data["child_other_reference"] or ""
+            }
+        elif partner_type == "parent":
+            patch_data = {
+                "country_id": data["parent_country"],
+                "email": data["parent_email"],
+                "locality_box": data["parent_num_box"],
+                "street_number": data["parent_num_house"],
+                "phone": data["parent_phone"],
+                "street": data["parent_street"],
+                "professionnal_phone": data["parent_professionnal_phone"]
+            }
+            if data["parent_country"].lower() == "belgique":
+                patch_data.update({"locality_id": data["parent_locality_id"]})
+            else:
+                patch_data.update({"zip": data["parent_zipcode"], "city": data["parent_city"]})
+        else:
+            return HttpResponseBadRequest(f"{partner_type} is not a valid partner.")
+        url = f"{self.server_url}/{self.aes_instance}/persons/{id}"
+        response = self.session.patch(url, json=patch_data)
+        response.raise_for_status()
+        return True
+
+    ##############
     ### Parent ###
     ##############
 
@@ -318,7 +373,7 @@ class ApimsAesConnector(BaseResource):
         methods=["get"],
         perm="can_access",
         description="Lire un parent",
-        long_description="Rechercher et lire un parent selon son numéro de registre national ou son matricule",
+        long_description="Lire un parent selon son identifiant dans iA.AES",
         parameters={"parent_id": PARENT_PARAM},
         example_pattern="{parent_id}/",
         pattern="^(?P<parent_id>\w+)/$",
