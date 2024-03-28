@@ -242,7 +242,7 @@ class ApimsAesConnector(BaseResource):
         aes_countries = self.list_countries()
         for aes_country in aes_countries:
             aes_country["matching_score"] = self.compute_matching_score(
-                aes_country["name"], country
+                aes_country["value"], country
             )
         return sorted(aes_countries, key=lambda x: x["matching_score"])[0]
 
