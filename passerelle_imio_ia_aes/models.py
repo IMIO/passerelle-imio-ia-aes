@@ -1034,7 +1034,7 @@ class ApimsAesConnector(BaseResource):
                             "type": meal["regime"],
                             "meal_id": meal["meal_id"],
                             "activity_id": meal["activity_id"],
-                            "disabled": disabled,
+                            "is_disabled": disabled,
                             "disabling_reason": disabling_reason
                         }
                     )
