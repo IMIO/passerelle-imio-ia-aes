@@ -1107,7 +1107,7 @@ class ApimsAesConnector(BaseResource):
         date_menu = datetime.strptime(post_data["meals"][0]["date"], "%Y-%m-%d")
         data = {
             "kid_id": int(post_data["child_id"]),
-            "parent_id": post_data["parent_id"],
+            "parent_id": int(post_data["parent_id"]),
             "month": date_menu.month,
             "year": date_menu.year,
             "meals": [
@@ -1116,7 +1116,7 @@ class ApimsAesConnector(BaseResource):
                     "activity_id": meal["activity_id"],
                     "meal_ids": [meal["meal_id"]],
                 }
-                for meal in post_data["meals"]
+                for meal in post_data["meals"] if not meal.get("is_disabled")
             ],
         }
         url = f"{self.server_url}/{self.aes_instance}/school-meals/registrations"
