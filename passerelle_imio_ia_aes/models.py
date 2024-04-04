@@ -308,7 +308,7 @@ class ApimsAesConnector(BaseResource):
                 "birthdate_date": "-".join(reversed(data["child_birthdate"].split("/"))),
                 "national_number": data["child_national_number"],
                 "school_implantation_id": int(data["child_school_implantation"]),
-                "other_ref": data["child_other_reference"] or ""
+                "other_ref": data.get("child_other_reference") or ""
             }
         elif partner_type == "parent":
             patch_data = {
@@ -442,7 +442,10 @@ class ApimsAesConnector(BaseResource):
                     "id": child["id"],
                     "national_number": child["national_number"],
                     "name": child["display_name"],
+                    "lastname": child["lastname"],
+                    "firstname": child["firstname"],
                     "age": child["age"],
+                    "birthdate_date": child["birthdate_date"],
                     "activities": child.get("activity_ids"),
                     "school_implantation": child["school_implantation_id"],
                     "level": child["level_id"],
