@@ -7,9 +7,10 @@ Changelog
 - [AES-1559] Fixed: remove unused field.
 - [MPPNIVA-9][MPPNIVA-10] Added: update person endpoint.
 - [MPP-478] Added: is_disabled key on meal registrations and meal menu endpoints.
-- [MPP-478] Added: filter by parent on meal registrations sent to AES/
+- [MPP-478] Added: filter by parent on meal registrations sent to AES
 - [MPP-466] Updated: check delay and insert it in disabled in inscriptions of a child
 - [MPP-466] Updated: don't send meal registrations post if nothing to post
+- [MPP-480] Fixed: cast str into int for proper comparison in homepage method
 - Fix endpoint description.
 
 1.9.2

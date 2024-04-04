@@ -588,7 +588,7 @@ class ApimsAesConnector(BaseResource):
         response = self.session.get(url)
         response.raise_for_status()
         consolidated_parent_id = response.json().get("parent_id")
-        if consolidated_parent_id != parent_id:
+        if consolidated_parent_id != int(parent_id):
             self.update_parent_id(
                 consolidated_parent_id, parent_uuid
             )  # TODO should be done asynchronously
