@@ -1011,7 +1011,7 @@ class ApimsAesConnector(BaseResource):
         if registration is not None and parent_id is not None and str(registration['meal_parent_id']) != parent_id:
             disabled = True
             reason += "Initial registering parent is not current parent -"
-        if meal_date < date.today():
+        if meal_date <= date.today():
             disabled = True
             reason += "Too late to register: the meal date has passed or is today"
         return disabled, reason
@@ -1171,9 +1171,8 @@ class ApimsAesConnector(BaseResource):
                     if today.month < 13
                     else today.month + month - 12
                 )
-            if (month is None or meal_date.month == selected_month) and self.is_in_time(
-                meal_date, days_in_delay, time.fromisoformat(no_later_than)
-            ):
+            if (month is None or meal_date.month == selected_month):
+                is_disabling_delay = not self.is_in_time(meal_date, days_in_delay, time.fromisoformat(no_later_than))
                 result.append(
                     {
                         "id": f"_{datetime.strftime(meal_date, '%d-%m-%Y')}_{registration['meal_regime']}-{registration['meal_activity_id']}",
@@ -1182,7 +1181,7 @@ class ApimsAesConnector(BaseResource):
                         "text": f"{datetime.strftime(meal_date, '%d/%m/%Y')} {registration['meal_name']}",
                         "regime": registration["meal_regime"],
                         "parent_id": registration["meal_parent_id"],
-                        "disabled": bool(parent_id) and parent_id != str(registration["meal_parent_id"])
+                        "disabled": is_disabling_delay or (bool(parent_id) and parent_id != str(registration["meal_parent_id"]))
                     }
                 )
         return {"data": result}
