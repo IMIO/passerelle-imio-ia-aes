@@ -1122,6 +1122,8 @@ class ApimsAesConnector(BaseResource):
                 for meal in post_data["meals"] if not meal.get("is_disabled")
             ],
         }
+        if not len(data["meals"]):
+            return
         url = f"{self.server_url}/{self.aes_instance}/school-meals/registrations"
         response = self.session.post(url, json=data)
         response.raise_for_status()

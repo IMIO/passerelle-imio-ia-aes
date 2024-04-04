@@ -9,6 +9,7 @@ Changelog
 - [MPP-478] Added: is_disabled key on meal registrations and meal menu endpoints.
 - [MPP-478] Added: filter by parent on meal registrations sent to AES/
 - [MPP-466] Updated: check delay and insert it in disabled in inscriptions of a child
+- [MPP-466] Updated: don't send meal registrations post if nothing to post
 - Fix endpoint description.
 
 1.9.2
