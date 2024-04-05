@@ -11,6 +11,7 @@ Changelog
 - [MPP-466] Updated: check delay and insert it in disabled in inscriptions of a child
 - [MPP-466] Updated: don't send meal registrations post if nothing to post
 - [MPP-480] Fixed: cast str into int for proper comparison in homepage method
+- [MPP-467] Updated: add invoiceable parents in parent's children
 - Fix endpoint description.
 
 1.9.2
