@@ -596,7 +596,8 @@ class ApimsAesConnector(BaseResource):
         forms = self.get_data_from_wcs("api/categories/portail-parent/formdefs/")[
             "data"
         ]
-        if "pp-repas-scolaires" in [form["slug"] for form in forms]:
+        form_slugs = [form["slug"] for form in forms]
+        if "pp-repas-scolaires" in form_slugs:
             school_implantations_with_meals = self.get_school_implantations_with_meals()
         else:
             school_implantations_with_meals = []
@@ -604,26 +605,31 @@ class ApimsAesConnector(BaseResource):
             parent_id=consolidated_parent_id,
             has_plain_registrations=self.has_plain_registrations(parent_uuid),
             children=list(),
+            is_update_child_available="pp-modifier-les-donnees-d-un-enfant" in form_slugs,
+            is_update_parent_available="pp-modifier-mes-donnees-parent" in form_slugs,
+            is_become_invoiceable_available="pp-me-designer-facturable" in form_slugs
         )
         for child in response.json().get("children"):
-            child_forms = [
-                {
-                    "title": form["title"],
-                    "slug": form["slug"],
-                    "status": self.set_form_status(
-                        form["slug"], child["has_valid_healthsheet"]
-                    ),
-                    "image": self.FORMS_ICONS[form["slug"]],
-                }
-                for form in forms
-                if form["slug"] in self.FORMS_ICONS
-                and (
-                    "repas" not in form["slug"]
-                    or self.does_school_have_meals(
-                        child["school_implantation"], school_implantations_with_meals
+            child_forms = list()
+            if child["invoiceable_parent_id"]:
+                child_forms = [
+                    {
+                        "title": form["title"],
+                        "slug": form["slug"],
+                        "status": self.set_form_status(
+                            form["slug"], child["has_valid_healthsheet"]
+                        ),
+                        "image": self.FORMS_ICONS[form["slug"]],
+                    }
+                    for form in forms
+                    if form["slug"] in self.FORMS_ICONS
+                    and (
+                        "repas" not in form["slug"]
+                        or self.does_school_have_meals(
+                            child["school_implantation"], school_implantations_with_meals
+                        )
                     )
-                )
-            ]
+                ]
             ts_child = dict(
                 id=child["id"],
                 national_number=child["national_number"],
@@ -634,6 +640,7 @@ class ApimsAesConnector(BaseResource):
                 else child["school_implantation"],
                 level=child["level"],
                 healthsheet=child["has_valid_healthsheet"],
+                invoiceable_parent_id=child["invoiceable_parent_id"],
                 forms=child_forms,
             )
             result["children"].append(ts_child)

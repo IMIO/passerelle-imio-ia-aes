@@ -10,8 +10,11 @@ Changelog
 - [MPP-478] Added: filter by parent on meal registrations sent to AES
 - [MPP-466] Updated: check delay and insert it in disabled in inscriptions of a child
 - [MPP-466] Updated: don't send meal registrations post if nothing to post
-- [MPP-480] Fixed: cast str into int for proper comparison in homepage method
+- [MPP-480] Fixed: cast str into int for proper comparison in homepage's method
 - [MPP-467] Updated: add invoiceable parents in parent's children
+- [MPP-391] Added: get invoiceable parent in homepage's data
+- [MPPNIVA-9][MPPNIVA-10] Added: management of child and parent update forms in homepage's data
+- [MPP-391] Added: management of becoming invoiceable form in homepage's data
 - Fix endpoint description.
 
 1.9.2
