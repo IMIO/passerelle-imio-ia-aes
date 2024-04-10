@@ -451,6 +451,7 @@ class ApimsAesConnector(BaseResource):
                     "level": child["level_id"],
                     "healthsheet": child["health_sheet_ids"],
                     "invoiceable_parents": child["parent_ids"],
+                    "responsibility_id": child["responsibility_id"]
                 }
             )
         return {"items": result}
