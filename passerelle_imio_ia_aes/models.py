@@ -25,7 +25,7 @@ import re
 import requests
 from django.db import models
 from django.conf import settings
-from django.http import Http404, HttpResponseBadRequest
+from django.http import Http404, HttpResponse, HttpResponseBadRequest
 from django.urls import path, reverse
 from django.core.exceptions import MultipleObjectsReturned
 from datetime import date, datetime, timedelta, time
@@ -793,6 +793,28 @@ class ApimsAesConnector(BaseResource):
         response = self.session.patch(url, json=parent)
         response.raise_for_status()
         return True
+
+    @endpoint(
+        name="responsibilities",
+        methods=["patch"],
+        perm="can_access",
+        description="Ajoute facturable ou attestable",
+        long_description="Renseigne une responsabilité comme facturable, ce qui permet au parent d'entamer des démarches, et éventuellement attestable.",
+        parameters={"responsibility_id": {
+                "description": "Identifiant du lien entre le parent et l'enfant",
+                "example_value": "37",
+            },
+        },
+        example_pattern="{responsibility_id}",
+        pattern="^(?P<responsibility_id>\w+)$",
+        display_category="Responsabilités",
+    )
+    def update_responsibilities(self, request, responsibility_id):
+        url = f"{self.server_url}/{self.aes_instance}/responsibilities/{responsibility_id}"
+        data = json.loads(request.body)
+        response = self.session.patch(url, json=data)
+        response.raise_for_status()
+        return HttpResponse(status=204)
 
     ##############
     ### PLAINS ###

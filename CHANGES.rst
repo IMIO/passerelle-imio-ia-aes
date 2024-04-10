@@ -15,6 +15,7 @@ Changelog
 - [MPP-391] Added: get invoiceable parent in homepage's data
 - [MPPNIVA-9][MPPNIVA-10] Added: management of child and parent update forms in homepage's data
 - [MPP-391] Added: management of becoming invoiceable form in homepage's data
+- [MPP-391] Added: update responsibility patch method
 - Fix endpoint description.
 
 1.9.2
