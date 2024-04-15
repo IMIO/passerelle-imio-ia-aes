@@ -1042,7 +1042,7 @@ class ApimsAesConnector(BaseResource):
         if registration is not None and parent_id is not None and str(registration['meal_parent_id']) != parent_id:
             disabled = True
             reason += "Initial registering parent is not current parent -"
-        if meal_date <= date.today():
+        if meal_date <= date.today() + timedelta(days=1):
             disabled = True
             reason += "Too late to register: the meal date has passed or is today"
         return disabled, reason
