@@ -303,15 +303,23 @@ class ApimsAesConnector(BaseResource):
     )
     def update_person(self, request, id, partner_type):
         data = json.loads(request.body)
+        form_register_child_schema = self.get_data_from_wcs("api/formdefs/pp-enregistrer-un-enfant/schema")
+        patch_data = {
+            "is_invoicing_differs_by_home": True if form_register_child_schema["options"]["child_type_facturation"] == "oui" else False,
+            "is_invoicing_differs_by_school": True if form_register_child_schema["options"]["prefered_school_pricing"] == "oui" else False,
+            "municipality_zipcodes": data["municipality_zipcodes"]
+        }
         if partner_type == "child":
-            patch_data = {
+            patch_data.update({
+                "firstname": data["child_firstname"],
+                "lastname": data["child_lastname"],
                 "birthdate_date": "-".join(reversed(data["child_birthdate"].split("/"))),
                 "national_number": data["child_national_number"],
                 "school_implantation_id": int(data["child_school_implantation"]),
                 "other_ref": data.get("child_other_reference") or ""
-            }
+            })
         elif partner_type == "parent":
-            patch_data = {
+            patch_data.update({
                 "country_id": int(data["parent_country_id"]),
                 "email": data["parent_email"],
                 "locality_box": data["parent_num_box"],
@@ -320,7 +328,7 @@ class ApimsAesConnector(BaseResource):
                 "street": data["parent_street"],
                 "professional_phone": data["parent_professional_phone"],
                 "mobile": data["parent_mobile_phone"]
-            }
+            })
             if data["parent_country"].lower() == "belgique":
                 patch_data.update({"locality_id": data["parent_locality_id"]})
             else:

@@ -1,7 +1,7 @@
 Changelog
 =========
 
-1.10.0
+2.0.0
 -----------------
 - [MPP-476] Added: child's price category can depend of his school implantation.
 - [AES-1559] Fixed: remove unused field.
