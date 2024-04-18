@@ -1046,14 +1046,14 @@ class ApimsAesConnector(BaseResource):
         return separator.join(reversed(date.split(separator)))
 
     def set_disabled_on_meal(self, registration, meal_date, parent_id):
-        disabled, reason = False, ""
-        if registration is not None and parent_id is not None and str(registration['meal_parent_id']) != parent_id:
+        disabled, reasons = False, []
+        if registration is not None and parent_id is not None and int(parent_id) not in registration['meal_authorized_parent_ids']:
             disabled = True
-            reason += "Initial registering parent is not current parent -"
+            reasons.append("Initial registering parent is not current parent")
         if meal_date <= date.today() + timedelta(days=1):
             disabled = True
-            reason += "Too late to register: the meal date has passed or is today"
-        return disabled, reason
+            reasons.append("Too late to register: the meal date has passed or is today")
+        return disabled, " - ".join(reasons)
 
     def get_month_menu(self, child_id, parent_id, month):
         url = f"{self.server_url}/{self.aes_instance}/menus?kid_id={child_id}&month={month}"
@@ -1128,6 +1128,8 @@ class ApimsAesConnector(BaseResource):
         display_category="Repas",
     )
     def read_month_menu(self, request, child_id, month, parent_id=None):
+        if not parent_id.isdigit():
+            raise ValueError("parent_id is invalid")
         month_menu = self.get_month_menu(child_id, parent_id, month)
         list_errors = self.validate_month_menu(month_menu)
         if len(list_errors) > 0:
@@ -1222,7 +1224,7 @@ class ApimsAesConnector(BaseResource):
                         "text": f"{datetime.strftime(meal_date, '%d/%m/%Y')} {registration['meal_name']}",
                         "regime": registration["meal_regime"],
                         "parent_id": registration["meal_parent_id"],
-                        "disabled": is_disabling_delay or (bool(parent_id) and parent_id != str(registration["meal_parent_id"]))
+                        "disabled": is_disabling_delay or (bool(parent_id) and int(parent_id) not in registration['meal_authorized_parent_ids'])
                     }
                 )
         return {"data": result}
