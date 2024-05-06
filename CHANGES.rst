@@ -1,6 +1,10 @@
 Changelog
 =========
 
+2.0.1
+-----------------
+- [MPP-484] Added: caching some endpoints.
+
 2.0.0
 -----------------
 - [MPP-476] Added: child's price category can depend of his school implantation.

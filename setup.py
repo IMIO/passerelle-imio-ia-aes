@@ -47,7 +47,7 @@ class install_lib(_install_lib):
         _install_lib.run(self)
 
 
-version = "2.0.0"
+version = "2.0.1"
 
 setup(
     name="passerelle-imio-ia-aes",

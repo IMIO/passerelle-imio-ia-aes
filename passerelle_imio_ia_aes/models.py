@@ -123,6 +123,7 @@ class ApimsAesConnector(BaseResource):
         description="Lister les pays",
         long_description="Liste les pays de iA.AES",
         display_category="Données génériques",
+        cache_duration=3600,
     )
     # list_states instead of list_countries as list_countries didn't work, don't know why.
     def list_states(self, request):
@@ -137,6 +138,7 @@ class ApimsAesConnector(BaseResource):
         description="Lister les niveaux",
         long_description="Liste les niveaux scolaires.",
         display_category="Données génériques",
+        cache_duration=600
     )
     def list_levels(self, request):
         url = f"{self.server_url}/{self.aes_instance}/levels"
@@ -150,6 +152,7 @@ class ApimsAesConnector(BaseResource):
         description="Lister les lieux d'accueil",
         long_description="Liste les lieux d'accueil.",
         display_category="Données génériques",
+        cache_duration=600,
     )
     def list_places(self, request):
         url = f"{self.server_url}/{self.aes_instance}/places"
@@ -163,6 +166,7 @@ class ApimsAesConnector(BaseResource):
         description="Lister les implantations scolaires",
         long_description="Liste les implantations scolaires.",
         display_category="Données génériques",
+        cache_duration=600
     )
     def list_school_implantations(self, request):
         url = f"{self.server_url}/{self.aes_instance}/school-implantations"
@@ -276,6 +280,7 @@ class ApimsAesConnector(BaseResource):
         description="Lister les localités",
         long_description="Liste les localités et leurs codes postaux.",
         display_category="Localités",
+        cache_duration=600,
     )
     def list_localities(self, request):
         return self.get_localities()
@@ -387,6 +392,7 @@ class ApimsAesConnector(BaseResource):
         example_pattern="{parent_id}/",
         pattern="^(?P<parent_id>\w+)/$",
         display_category="Parent",
+        cache_duration=30
     )
     def read_parent(self, request, parent_id):
         url = f"{self.server_url}/{self.aes_instance}/parents/{parent_id}/"
@@ -439,6 +445,7 @@ class ApimsAesConnector(BaseResource):
         example_pattern="{parent_id}/children/",
         pattern="^(?P<parent_id>\w+)/children/$",
         display_category="Parent",
+        cache_duration=15
     )
     def list_children(self, request, parent_id):
         url = f"{self.server_url}/{self.aes_instance}/parents/{parent_id}/kids"
@@ -470,6 +477,7 @@ class ApimsAesConnector(BaseResource):
         perm="can_access",
         description="Lister les formulaires de la catégorie Portail Parent",
         display_category="WCS",
+        cache_duration=30
     )
     def list_forms(self, requests):
         path = "api/categories/portail-parent/formdefs/"
@@ -853,6 +861,7 @@ class ApimsAesConnector(BaseResource):
         long_description="Retourne les plaines auxquelles l'enfant passé peut être inscrit.",
         parameters={"child_id": CHILD_PARAM},
         display_category="Plaines",
+        cache_duration=15,
     )
     def list_available_plains(self, request, child_id):
         url = f"{self.server_url}/{self.aes_instance}/plains?kid_id={child_id}"
@@ -1677,6 +1686,7 @@ class ApimsAesConnector(BaseResource):
                 "default_value": "mandatory",
             },
         },
+        cache_duration=600,
     )
     def get_authorizations(self, request, filter=None):
         if filter and filter not in ["mandatory", "optional"]:
@@ -1713,6 +1723,7 @@ class ApimsAesConnector(BaseResource):
                 "default_value": None,
             },
         },
+        cache_duration=60
     )
     def list_allergies(self, request, healthsheet=None):
         url = f"{self.server_url}/{self.aes_instance}/allergies"
@@ -1744,6 +1755,7 @@ class ApimsAesConnector(BaseResource):
                 "default_value": None,
             },
         },
+        cache_duration=60,
     )
     def list_diseases(self, request, healthsheet=None):
         url = f"{self.server_url}/{self.aes_instance}/diseases"
