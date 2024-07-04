@@ -1084,6 +1084,7 @@ class ApimsAesConnector(BaseResource):
                             "text": meal["name"],
                             "type": meal["regime"],
                             "meal_id": meal["meal_id"],
+                            "price": meal["price"],
                             "activity_id": meal["activity_id"],
                             "is_disabled": disabled,
                             "disabling_reason": disabling_reason
@@ -1144,7 +1145,130 @@ class ApimsAesConnector(BaseResource):
         if len(list_errors) > 0:
             return {"errors_in_menus": list_errors}
         return month_menu
+    
+    def get_balance(self, parent_id, activity_category_type, child_id=None):
+        url = f"{self.server_url}/{self.aes_instance}/parents/{parent_id}/balances/{activity_category_type}"
+        if child_id:
+            url += f"?child_id={child_id}"
+        response = self.session.get(url)
+        response.raise_for_status()
+        return response.json()
 
+    def block_balance(self, parent_id, data):
+        url =  f"{self.server_url}/{self.aes_instance}/parents/{parent_id}/reserved-balances"
+        response = self.session.post(url, json=data)
+        response.raise_for_status()
+        return response.json()
+    
+    @endpoint(
+        name="parents",
+        methods=["get"],
+        perm="can_access",
+        description="Solde du parent pour un type de catégorie d'activité",
+        long_description="Renvoie la valeur du solde du parent.",
+        example_pattern="{parent_id}/balance/activity_category_type",
+        pattern="^(?P<parent_id>\w+)/balance/(?P<activity_category_type>\w+)$",
+        parameters={
+            "parent_id": PARENT_PARAM,
+            "activity_category_type": {
+                "description": "Identifiant du type de la catégorie d'activité",
+                "example_value": "meal",
+            },
+            "child_id": CHILD_PARAM
+        },
+        display_category="Parent",
+    )
+    def get_balance_for_activity_category_type(self, request, parent_id, activity_category_type, child_id=None):
+        return self.get_balance(parent_id, activity_category_type)
+        
+
+    @endpoint(
+        name="parents",
+        methods=["post"],
+        perm="can_access",
+        description="Montant d'une commande de repas",
+        long_description="Calcule le montant à payer en fonction de la commande et du solde du parent",
+        example_pattern="{parent_id}/menus/registrations/cost",
+        pattern="^(?P<parent_id>\w+)/menus/registrations/cost$",
+        parameters={
+            "parent_id": PARENT_PARAM
+        },
+        display_category="Repas",
+    )
+    def compute_meals_order_amount(self, request, parent_id):
+        body = json.loads(request.body)
+        order = body.get('order')
+        blocked_balance = None
+        total_amount = sum([meal['price'] for meal in order]) # TODO: check dates ! do not register for too late as AES will block those registration
+        balance = self.get_balance(parent_id, "meal", body.get("child_id"))
+        logging.error(f"What is balance ? {balance}")
+        if balance.get("amount") <= 0: # Vérifier si correct, notamment si le montant bloqué est supérieur au solde
+            logging.error("Balance is 0")
+            return {
+                "due_amount": total_amount, 
+                "spent_balance": 0, 
+                "total_amount": total_amount,
+                "initial_balance": balance["amount"],
+                "activity_category_id": balance["activity_category_id"],
+                "blocked_balance": blocked_balance
+            }
+        logging.error(f"Balance is {balance['amount']} and total_amount is {total_amount}")
+        # If total <= balance: due_amount set to 0, spent_balance set to balance - total
+        due_amount, spent_balance = 0, total_amount
+        # If total > balance
+        if total_amount > balance["amount"]:
+            due_amount = total_amount - balance["amount"]
+            spent_balance = balance["amount"]
+        logging.error(f"Due Amount: {due_amount}")
+        logging.error(f"Spent balance: {spent_balance}")
+        # Block spent balance
+        logging.error(f"Body: {body}")
+        if spent_balance:
+            logging.error(f"Blocking {spent_balance}")
+            blocked_balance = self.block_balance(parent_id, {
+                "prepayment_by_category_id": balance["prepayment_by_category_id"],
+                "amount": spent_balance,
+                "date": date.today().strftime("%Y-%m-%d"),
+                "blocking_request": int(body['form_number']),
+                "child_registration_line_id": None,
+            })
+
+        return {
+            "due_amount": due_amount,
+            "spent_balance": spent_balance,
+            "total_amount": total_amount,
+            "initial_balance": balance["amount"],
+            "activity_category_id": balance["activity_category_id"],
+            "blocked_balance": blocked_balance
+        }
+
+    @endpoint(
+        name="parents",
+        methods=["delete"],
+        perm="can_access",
+        description="Débloque un solde",
+        long_description="Supprime un blocage de solde.",
+        display_category="Parent",
+        parameters={
+            "parent_id": PARENT_PARAM,
+            "reserved_balance_id": {
+                "description": "Solde bloqué à supprimer",
+                "example_value": 1,
+            }
+        },
+        example_pattern="{parent_id}/reserved-balances/{reserved_balance_id}",
+        pattern="^(?P<parent_id>\d+)/reserved-balances/(?P<reserved_balance_id>\d+)$",
+    )
+    def delete_plain_registration(self, request, parent_id, reserved_balance_id):
+        logging.error(f"Suppression of reserved solde ({reserved_balance_id}) for parent {parent_id}")
+        url = f"{self.server_url}/{self.aes_instance}/parents/{parent_id}/reserved-balances/{reserved_balance_id}"
+        response = self.session.delete(url)
+        response.raise_for_status()
+        return True
+    
+    
+    
+    
     @endpoint(
         name="menus",
         methods=["post"],
