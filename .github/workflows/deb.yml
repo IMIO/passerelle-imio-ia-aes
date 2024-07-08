@@ -1,0 +1,29 @@
+name: Deb build push notify
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deb:
+    runs-on:
+      group: self-hosted
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set package version variable
+        shell: bash
+        run: |
+          echo VERSION=$(cat setup.py | grep "version =" | cut -d '"' -f 2 && echo "-" && date "+%Y%m%d%H%M%S" && echo "~" && echo ${{ github.sha }} | cut -c1-7 ) | tr -d [:space:] >> $GITHUB_ENV
+      - name: Deb build push and notify
+        uses: IMIO/gha/deb-build-push-notify@v1.1
+        with:
+          REPOSITORY_URL: ${{ secrets.NEXUS_BOOKWORM_URL }}
+          REPOSITORY_LOGIN: ${{ secrets.NEXUS_LOGIN }}
+          REPOSITORY_PASSWORD: ${{ secrets.NEXUS_PASSWORD }}
+          PACKAGE_NAME: ${{ github.event.repository.name }}
+          PACKAGE_VERSION: ${{ env.VERSION }}
+          SIGNER_KEY_PASSPHRASE: ${{ secrets.DEB_SIGNER_PASSPHRASE }}
+          SIGNER_KEY: ${{ secrets.DEB_SIGNER_KEY }}
+          MATTERMOST_WEBHOOK_URL: ${{ secrets.TELESERVICES_MATTERMOST_WEBHOOK_URL }}
