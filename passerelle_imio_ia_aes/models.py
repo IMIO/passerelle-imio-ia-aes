@@ -1154,10 +1154,12 @@ class ApimsAesConnector(BaseResource):
         response.raise_for_status()
         return response.json()
 
-    def block_balance(self, parent_id, data):
-        url =  f"{self.server_url}/{self.aes_instance}/parents/{parent_id}/reserved-balances"
+    def reserve_balance(self, parent_id, data):
+        url = f"{self.server_url}/{self.aes_instance}/parents/{parent_id}/reserved-balances"
+        logging.info(f"Reserving {data}")
         response = self.session.post(url, json=data)
         response.raise_for_status()
+        logging.error(response.status_code)
         return response.json()
     
     @endpoint(
@@ -1180,7 +1182,13 @@ class ApimsAesConnector(BaseResource):
     )
     def get_balance_for_activity_category_type(self, request, parent_id, activity_category_type, child_id=None):
         return self.get_balance(parent_id, activity_category_type)
-        
+
+    def get_or_create_child_registration_line(self, data):
+        logging.error(f"Child_registration_line for: {data}")
+        response = self.session.post(f"{self.server_url}/{self.aes_instance}/school-meals/registrations/lines", json=data)
+        response.raise_for_status()
+        logging.error(f"Response is: {response.json()}")
+        return response.json()
 
     @endpoint(
         name="parents",
@@ -1198,19 +1206,21 @@ class ApimsAesConnector(BaseResource):
     def compute_meals_order_amount(self, request, parent_id):
         body = json.loads(request.body)
         order = body.get('order')
-        blocked_balance = None
-        total_amount = sum([meal['price'] for meal in order]) # TODO: check dates ! do not register for too late as AES will block those registration
+        reserved_balance = None
+        total_amount = sum([meal['price'] for meal in order if not meal.get("is_disabled")])
         balance = self.get_balance(parent_id, "meal", body.get("child_id"))
         logging.error(f"What is balance ? {balance}")
         if balance.get("amount") <= 0: # Vérifier si correct, notamment si le montant bloqué est supérieur au solde
             logging.error("Balance is 0")
             return {
-                "due_amount": total_amount, 
+                "activity_category_id": balance["activity_category_id"],
+                "reserved_balance": reserved_balance,
+                "child_registration_line_id": "",
+                "due_amount": total_amount,
+                "initial_balance": balance["amount"],
+                "prepayment_by_category_id": balance["prepayment_by_category_id"],
                 "spent_balance": 0, 
                 "total_amount": total_amount,
-                "initial_balance": balance["amount"],
-                "activity_category_id": balance["activity_category_id"],
-                "blocked_balance": blocked_balance
             }
         logging.error(f"Balance is {balance['amount']} and total_amount is {total_amount}")
         # If total <= balance: due_amount set to 0, spent_balance set to balance - total
@@ -1221,26 +1231,109 @@ class ApimsAesConnector(BaseResource):
             spent_balance = balance["amount"]
         logging.error(f"Due Amount: {due_amount}")
         logging.error(f"Spent balance: {spent_balance}")
-        # Block spent balance
+        # Reserve spent balance
         logging.error(f"Body: {body}")
+        child_registration_line_response = None
+        reserved_balance = None
         if spent_balance:
-            logging.error(f"Blocking {spent_balance}")
-            blocked_balance = self.block_balance(parent_id, {
-                "prepayment_by_category_id": balance["prepayment_by_category_id"],
-                "amount": spent_balance,
-                "date": date.today().strftime("%Y-%m-%d"),
-                "blocking_request": int(body['form_number']),
-                "child_registration_line_id": None,
-            })
+            child_registration_line = {
+                "kid_id": body["child_id"],
+                "parent_id": int(parent_id),
+                "school_implantation_id": int(body["school_implantation_id"]),
+                "month": int(body["month"]),
+                "year": int(body["year"])
+            }
+            logging.info(f"Getting child registration line id : {child_registration_line}")
+            child_registration_line_response = self.get_or_create_child_registration_line(child_registration_line)
+            reserved_balance = None
+            if spent_balance - balance["already_reserved_amount"] > 0:
+                logging.error(f"Reserving {spent_balance}")
+                reserved_balance = self.reserve_balance(parent_id, {
+                    "prepayment_by_category_id": balance["prepayment_by_category_id"],
+                    "amount": spent_balance - balance["already_reserved_amount"],
+                    "date": date.today().strftime("%Y-%m-%d"),
+                    "reserving_request": int(body['form_number']),
+                    "child_registration_line_id": child_registration_line_response["id"]
+                })
 
         return {
+            "activity_category_id": balance["activity_category_id"],
+            "reserved_balance": reserved_balance,
+            "child_registration_line_id": child_registration_line_response["id"],
             "due_amount": due_amount,
+            "initial_balance": balance["amount"],
+            "prepayment_by_category_id": balance["prepayment_by_category_id"],
             "spent_balance": spent_balance,
             "total_amount": total_amount,
-            "initial_balance": balance["amount"],
-            "activity_category_id": balance["activity_category_id"],
-            "blocked_balance": blocked_balance
         }
+
+    def create_meals_payment(self, data):
+        logging.error(f"Create meals payment for: {data}")
+        response = self.session.post(f"{self.server_url}/{self.aes_instance}/school-meals/payments", json=data)
+        response.raise_for_status()
+        logging.error(f"Create meals payment response is: {response.json()}")
+        return response.json()
+
+    @endpoint(
+        name="parents",
+        methods=["post"],
+        perm="can_access",
+        description="Encode un paiement",
+        long_description="Encode un paiement générique.",
+        display_category="Parent",
+        parameters={
+            "parent_id": PARENT_PARAM,
+        },
+        example_pattern="{parent_id}/payments/",
+        pattern="^(?P<parent_id>\d+)/payments/$",
+    )
+    def generic_create_payment(self, request, parent_id):
+        body = json.loads(request.body)
+        logging.error(f"Encodage d'un paiement pour {body}")
+        payment = self.create_meals_payment({
+            "activity_category_id": body["activity_category_id"],
+            "amount": body["amount"].replace(",", "."),
+            "comment": body["comment"],
+            "date": date.today().strftime("%Y-%m-%d"),
+            "parent_id": parent_id, # TODO: parent facturable
+            "prepayment_by_category_id": body["prepayment_by_category_id"],
+            "type": "online"
+        })
+        return payment
+
+    @endpoint(
+        name="parents",
+        methods=["post"],
+        perm="can_access",
+        description="Réserve du solde",
+        long_description="Réserve du solde d'un parent pour le rendre non disponible pour d'autres commandes.",
+        display_category="Parent",
+        parameters={
+            "parent_id": PARENT_PARAM,
+        },
+        example_pattern="{parent_id}/reserved-balances/",
+        pattern="^(?P<parent_id>\d+)/reserved-balances/$",
+    )
+    def create_reserved_balance(self, request, parent_id):
+        body = json.loads(request.body)
+        if not body["child_registration_line_id"]:
+            child_registration_line = {
+                    "kid_id": body["child_id"],
+                    "parent_id": int(parent_id), # TODO: parent factu
+                    "school_implantation_id": int(body["school_implantation_id"]),
+                    "month": int(body["month"]),
+                    "year": int(body["year"])
+                }
+            child_registration_line_response = self.get_or_create_child_registration_line(child_registration_line)
+        reserved_balance = self.reserve_balance(parent_id, {
+                "prepayment_by_category_id": body["prepayment_by_category_id"],
+                "amount": body["amount"].replace(",", "."),
+                "date": date.today().strftime("%Y-%m-%d"),
+                "reserving_request": int(body['form_number']),
+                "child_registration_line_id": body["child_registration_line_id"] or child_registration_line_response["id"]
+            }
+        )
+        return reserved_balance
 
     @endpoint(
         name="parents",
@@ -1259,16 +1352,13 @@ class ApimsAesConnector(BaseResource):
         example_pattern="{parent_id}/reserved-balances/{reserved_balance_id}",
         pattern="^(?P<parent_id>\d+)/reserved-balances/(?P<reserved_balance_id>\d+)$",
     )
-    def delete_plain_registration(self, request, parent_id, reserved_balance_id):
+    def free_balance(self, request, parent_id, reserved_balance_id):
         logging.error(f"Suppression of reserved solde ({reserved_balance_id}) for parent {parent_id}")
         url = f"{self.server_url}/{self.aes_instance}/parents/{parent_id}/reserved-balances/{reserved_balance_id}"
         response = self.session.delete(url)
         response.raise_for_status()
         return True
-    
-    
-    
-    
+
     @endpoint(
         name="menus",
         methods=["post"],
