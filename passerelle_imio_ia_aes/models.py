@@ -23,6 +23,7 @@ import json
 import logging
 import re
 import requests
+from calendar import Calendar, monthrange
 from django.db import models
 from django.conf import settings
 from django.http import Http404, HttpResponse, HttpResponseBadRequest
@@ -1146,10 +1147,12 @@ class ApimsAesConnector(BaseResource):
             return {"errors_in_menus": list_errors}
         return month_menu
     
-    def get_balance(self, parent_id, activity_category_type, child_id=None):
+    def get_balance(self, parent_id, activity_category_type, child_id=None, start_date=None, end_date=None):
         url = f"{self.server_url}/{self.aes_instance}/parents/{parent_id}/balances/{activity_category_type}"
-        if child_id:
-            url += f"?child_id={child_id}"
+        if child_id or start_date or end_date:
+            url += "?"
+            url += "&".join(f"{k}={v}" for k, v in {"child_id": child_id, "start_date": start_date, "end_date": end_date}.items() if v)
+
         response = self.session.get(url)
         response.raise_for_status()
         return response.json()
@@ -1208,7 +1211,12 @@ class ApimsAesConnector(BaseResource):
         order = body.get('order')
         reserved_balance = None
         total_amount = sum([meal['price'] for meal in order if not meal.get("is_disabled")])
-        balance = self.get_balance(parent_id, "meal", body.get("child_id"))
+        start_date, end_date = None, None
+        if body.get("month") and body.get("year"):
+            year, month = int(body.get('year')), int(body.get('month'))
+            days = monthrange(year, month)[1]
+            start_date, end_date = f"{year}-{month}-01", f"{year}-{month}-{days}"
+        balance = self.get_balance(parent_id, "meal", body.get("child_id"), start_date, end_date)
         logging.error(f"What is balance ? {balance}")
         if balance.get("amount") <= 0: # Vérifier si correct, notamment si le montant bloqué est supérieur au solde
             logging.error("Balance is 0")
