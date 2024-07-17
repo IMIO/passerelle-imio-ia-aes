@@ -1,6 +1,12 @@
 Changelog
 =========
 
+2.1.0
+-----------------
+
+- [MPP-149] Add online payment for meals.
+- [MPP-499] Manage parent's balance for meal online payments
+
 2.0.1
 -----------------
 - [MPP-484] Added: caching some endpoints.
