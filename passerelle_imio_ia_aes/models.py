@@ -1211,12 +1211,9 @@ class ApimsAesConnector(BaseResource):
         order = body.get('order')
         reserved_balance = None
         total_amount = sum([meal['price'] for meal in order if not meal.get("is_disabled")])
-        start_date, end_date = None, None
         if body.get("month") and body.get("year"):
             year, month = int(body.get('year')), int(body.get('month'))
-            days = monthrange(year, month)[1]
-            start_date, end_date = f"{year}-{month}-01", f"{year}-{month}-{days}"
-        balance = self.get_balance(parent_id, "meal", body.get("child_id"), start_date, end_date)
+        balance = self.get_balance(parent_id, "meal", body.get("child_id"), year, month)
         logging.error(f"What is balance ? {balance}")
         if balance.get("amount") <= 0: # Vérifier si correct, notamment si le montant bloqué est supérieur au solde
             logging.error("Balance is 0")
