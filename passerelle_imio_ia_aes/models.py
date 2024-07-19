@@ -1147,11 +1147,11 @@ class ApimsAesConnector(BaseResource):
             return {"errors_in_menus": list_errors}
         return month_menu
     
-    def get_balance(self, parent_id, activity_category_type, child_id=None, start_date=None, end_date=None):
+    def get_balance(self, parent_id, activity_category_type, child_id=None, year=None, month=None):
         url = f"{self.server_url}/{self.aes_instance}/parents/{parent_id}/balances/{activity_category_type}"
-        if child_id or start_date or end_date:
+        if child_id or year or month:
             url += "?"
-            url += "&".join(f"{k}={v}" for k, v in {"child_id": child_id, "start_date": start_date, "end_date": end_date}.items() if v)
+            url += "&".join(f"{k}={v}" for k, v in {"child_id": child_id, "year": year, "month": month}.items() if v)
 
         response = self.session.get(url)
         response.raise_for_status()
