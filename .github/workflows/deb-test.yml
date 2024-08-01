@@ -7,8 +7,7 @@ on:
 
 jobs:
   deb:
-    runs-on:
-      group: self-hosted
+    runs-on: gha-runners-teleservices
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -17,7 +16,7 @@ jobs:
         run: |
           echo VERSION=$(cat setup.py | grep "version =" | cut -d '"' -f 2 && echo "-" && date "+%Y%m%d%H%M%S" && echo "~" && echo ${{ github.sha }} | cut -c1-7 ) | tr -d [:space:] >> $GITHUB_ENV
       - name: Deb build push and notify
-        uses: IMIO/gha/deb-build-push-notify@v3.2
+        uses: IMIO/gha/deb-build-push-notify@v3.7.2
         with:
           REPOSITORY_URL: ${{ secrets.NEXUS_BOOKWORM_TEST_URL }}
           REPOSITORY_LOGIN: ${{ secrets.NEXUS_LOGIN }}
