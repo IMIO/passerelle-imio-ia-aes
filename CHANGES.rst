@@ -1,6 +1,12 @@
 Changelog
 =========
 
+2.1.1
+-----------------
+
+- [TELE-1939] Fix get balance parameters
+- [TELE-1939] Remove logging
+
 2.1.0
 -----------------
 
