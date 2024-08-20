@@ -30,6 +30,7 @@ from django.http import Http404, HttpResponse, HttpResponseBadRequest
 from django.urls import path, reverse
 from django.core.exceptions import MultipleObjectsReturned
 from datetime import date, datetime, timedelta, time
+from dateutil.relativedelta import relativedelta
 from passerelle.base.models import BaseResource
 from passerelle.base.signature import sign_url
 from passerelle.utils.api import endpoint
@@ -1152,7 +1153,6 @@ class ApimsAesConnector(BaseResource):
         if child_id or year or month:
             url += "?"
             url += "&".join(f"{k}={v}" for k, v in {"child_id": child_id, "year": year, "month": month}.items() if v)
-
         response = self.session.get(url)
         response.raise_for_status()
         return response.json()
@@ -1162,7 +1162,6 @@ class ApimsAesConnector(BaseResource):
         logging.info(f"Reserving {data}")
         response = self.session.post(url, json=data)
         response.raise_for_status()
-        logging.error(response.status_code)
         return response.json()
     
     @endpoint(
@@ -1179,18 +1178,25 @@ class ApimsAesConnector(BaseResource):
                 "description": "Identifiant du type de la catégorie d'activité",
                 "example_value": "meal",
             },
-            "child_id": CHILD_PARAM
+            "child_id": CHILD_PARAM,
+            "month": {
+                "description": "0 pour le mois actuel, 1 pour le mois prochain, 2 pour le mois d'après.",
+                "example_value": "1",
+            },
         },
         display_category="Parent",
     )
-    def get_balance_for_activity_category_type(self, request, parent_id, activity_category_type, child_id=None):
-        return self.get_balance(parent_id, activity_category_type)
+    def get_balance_for_activity_category_type(self, request, parent_id, activity_category_type, child_id=None, month=None):
+        if month is not None and month not in ["0", "1", "2"]:
+            raise ValueError(
+                "Le mois ne peut avoir comme valeur que 0, 1, ou 2. Voir la description du paramètre pour en savoir plus."
+            )
+        reference_day = date.today() + relativedelta(months=int(month))
+        return self.get_balance(parent_id, activity_category_type, child_id=child_id, year=reference_day.year, month=reference_day.month)
 
     def get_or_create_child_registration_line(self, data):
-        logging.error(f"Child_registration_line for: {data}")
         response = self.session.post(f"{self.server_url}/{self.aes_instance}/school-meals/registrations/lines", json=data)
         response.raise_for_status()
-        logging.error(f"Response is: {response.json()}")
         return response.json()
 
     @endpoint(
@@ -1214,9 +1220,7 @@ class ApimsAesConnector(BaseResource):
         if body.get("month") and body.get("year"):
             year, month = int(body.get('year')), int(body.get('month'))
         balance = self.get_balance(parent_id, "meal", body.get("child_id"), year, month)
-        logging.error(f"What is balance ? {balance}")
         if balance.get("amount") <= 0: # Vérifier si correct, notamment si le montant bloqué est supérieur au solde
-            logging.error("Balance is 0")
             return {
                 "activity_category_id": balance["activity_category_id"],
                 "reserved_balance": reserved_balance,
@@ -1227,17 +1231,13 @@ class ApimsAesConnector(BaseResource):
                 "spent_balance": 0, 
                 "total_amount": total_amount,
             }
-        logging.error(f"Balance is {balance['amount']} and total_amount is {total_amount}")
         # If total <= balance: due_amount set to 0, spent_balance set to balance - total
         due_amount, spent_balance = 0, total_amount
         # If total > balance
         if total_amount > balance["amount"]:
             due_amount = total_amount - balance["amount"]
             spent_balance = balance["amount"]
-        logging.error(f"Due Amount: {due_amount}")
-        logging.error(f"Spent balance: {spent_balance}")
         # Reserve spent balance
-        logging.error(f"Body: {body}")
         child_registration_line_response = None
         reserved_balance = None
         if spent_balance:
@@ -1248,11 +1248,9 @@ class ApimsAesConnector(BaseResource):
                 "month": int(body["month"]),
                 "year": int(body["year"])
             }
-            logging.info(f"Getting child registration line id : {child_registration_line}")
             child_registration_line_response = self.get_or_create_child_registration_line(child_registration_line)
             reserved_balance = None
             if spent_balance - balance["already_reserved_amount"] > 0:
-                logging.error(f"Reserving {spent_balance}")
                 reserved_balance = self.reserve_balance(parent_id, {
                     "prepayment_by_category_id": balance["prepayment_by_category_id"],
                     "amount": spent_balance - balance["already_reserved_amount"],
@@ -1273,10 +1271,8 @@ class ApimsAesConnector(BaseResource):
         }
 
     def create_meals_payment(self, data):
-        logging.error(f"Create meals payment for: {data}")
         response = self.session.post(f"{self.server_url}/{self.aes_instance}/school-meals/payments", json=data)
         response.raise_for_status()
-        logging.error(f"Create meals payment response is: {response.json()}")
         return response.json()
 
     @endpoint(
@@ -1294,7 +1290,6 @@ class ApimsAesConnector(BaseResource):
     )
     def generic_create_payment(self, request, parent_id):
         body = json.loads(request.body)
-        logging.error(f"Encodage d'un paiement pour {body}")
         payment = self.create_meals_payment({
             "activity_category_id": body["activity_category_id"],
             "amount": body["amount"].replace(",", "."),
@@ -1358,7 +1353,6 @@ class ApimsAesConnector(BaseResource):
         pattern="^(?P<parent_id>\d+)/reserved-balances/(?P<reserved_balance_id>\d+)$",
     )
     def free_balance(self, request, parent_id, reserved_balance_id):
-        logging.error(f"Suppression of reserved solde ({reserved_balance_id}) for parent {parent_id}")
         url = f"{self.server_url}/{self.aes_instance}/parents/{parent_id}/reserved-balances/{reserved_balance_id}"
         response = self.session.delete(url)
         response.raise_for_status()
