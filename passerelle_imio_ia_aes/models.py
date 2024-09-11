@@ -504,7 +504,7 @@ class ApimsAesConnector(BaseResource):
             List of str
         """
         path = "api/formdefs/pp-repas-scolaires/schema"
-        return self.get_data_from_wcs(path)["options"]["implantations_scolaires"]
+        return self.get_data_from_wcs(path)["options"]["implantations_scolaires_raw"]
 
     def set_form_status(self, form_slug, has_valid_healthsheet):
         if form_slug == "pp-plaines-de-vacances":
