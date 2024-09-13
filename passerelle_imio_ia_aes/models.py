@@ -2094,6 +2094,36 @@ class ApimsAesConnector(BaseResource):
         response.raise_for_status()
         return response.json()
 
+
+    @endpoint(
+        name="payments",
+        methods=["post"],
+        perm="can_access",
+        description="Créer des paiements",
+        example_pattern="create",
+        pattern="^create$",
+        display_category="Paiement",
+    )
+    def create_payments(self, request):
+        post_data = json.loads(request.body)
+        url = f"{self.server_url}/{self.aes_instance}/payments"
+        payments = [
+            {
+                "parent_id": int(detail["parent_id"]),
+                "date": post_data["date"],
+                "type": "online",
+                "amount": float(detail["amount"]),
+                "activity_category_id": detail["activity_category_id"],
+                "comment": post_data["comment"],
+                "form_url": post_data["form_url"],
+                "online_transaction_id": post_data["transaction_id"],
+                "initial_amount": float(post_data["amount"].replace(",", "."))
+            }
+        for detail in post_data["details"]]
+        response = self.session.post(url, json=payments)
+        response.raise_for_status()
+        return response.json()
+
     ###################
     ### Utilitaires ###
     ###################
