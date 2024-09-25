@@ -1519,33 +1519,33 @@ class ApimsAesConnector(BaseResource):
                 {"id": "weight", "text": "Quel est le poids de l'enfant ?"},
                 {
                     "id": "tetanos",
-                    "text": "L'enfant a-t'il été vacciné contre le tétanos ?",
+                    "text": "L'enfant a-t-il été vacciné contre le tétanos ?",
                 },
                 {
                     "id": "intervention",
-                    "text": "L'enfant a-t'il subit une intervention récemment ?",
+                    "text": "L'enfant a-t-il subit une intervention récemment ?",
                 },
                 {"id": "swim", "text": "L'enfant sait-il nager ?"},
-                {"id": "handicap", "text": "L'enfant souffre t'il d'un handicap ?"},
+                {"id": "handicap", "text": "L'enfant souffre-t-il d'un handicap ?"},
                 {"id": "activity_no_available", "text": "Activités non praticables"},
                 {"id": "regime", "text": "L'enfant suit-il un régime spécifique ?"},
                 {
                     "id": "arnica",
                     "text": "Autorisez-vous les accompagnants à utiliser du gel arnica ?",
                 },
-                {"id": "allergies", "text": "L'enfant a-t'il des allergies ?"},
+                {"id": "allergies", "text": "L'enfant a-t-il des allergies ?"},
                 {
                     "id": "new_allergies",
                     "text": "Permettre aux parents d'ajouter d'autres allergies ?",
                 },
-                {"id": "diseases", "text": "L'enfant a-t'il des maladies ?"},
+                {"id": "diseases", "text": "L'enfant a-t-il des maladies ?"},
                 {
                     "id": "new_diseases",
                     "text": "Permettre aux parents d'ajouter d'autres maladies ?",
                 },
                 {
                     "id": "mutuality",
-                    "text": "À quelle mutuelle l\enfant est-il affilié ?",
+                    "text": "À quelle mutuelle l'enfant est-il affilié ?",
                 },
                 {
                     "id": "medication",
