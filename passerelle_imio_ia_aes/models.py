@@ -923,9 +923,7 @@ class ApimsAesConnector(BaseResource):
         plains = []
         for plain in post_data["plains"]:
             activity_id = plain["id"]
-            start_date = datetime.strptime(
-                f"1-{plain['week']}-{plain['year']}", "%w-%W-%Y"
-            )
+            start_date = datetime.fromisocalendar(plain['year'], plain['week'], 1)
             end_date = start_date + timedelta(days=6)
             plains.append(
                 {
