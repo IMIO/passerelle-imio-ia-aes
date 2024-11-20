@@ -1,6 +1,11 @@
 Changelog
 =========
 
+2.1.6
+-----------------
+
+- [PP-535] Update healthsheet diseases fields
+
 2.1.5
 -----------------
 

@@ -1654,6 +1654,7 @@ class ApimsAesConnector(BaseResource):
             healthsheet["disease_ids"].append(str(disease["disease_type_id"][0]))
             healthsheet["disease_details"].append(
                 {
+                    "id": disease["disease_type_id"][0],
                     "gravity": disease["gravity"] or "",
                     "treatment": disease["disease_text"],
                 }
@@ -1778,12 +1779,6 @@ class ApimsAesConnector(BaseResource):
             put_data["other_allergies"] = [
                 allergy[0] for allergy in origin_data["other_allergies"]
             ]
-        if origin_data["other_diseases"]:
-            # As other_diseases is a list of list, we need to make it a list of string. It is a list of list
-            # because of the type of other_diseases field in form.
-            put_data["other_diseases"] = [
-                disease[0] for disease in origin_data["other_diseases"]
-            ]
         if origin_data["photo"]:
             put_data["photo"] = origin_data["photo"]
         if origin_data["photo_general"]:
@@ -1798,7 +1793,6 @@ class ApimsAesConnector(BaseResource):
             put_data["type_handicap"] = origin_data["type_handicap"]
         if origin_data["weight"]:
             put_data["weight"] = origin_data["weight"]
-
         medication_ids, allowed_contact_ids = [], []
         for key, value in origin_data.items():
             if ("selection" in key or "text" in key) and value:
@@ -1822,26 +1816,26 @@ class ApimsAesConnector(BaseResource):
                     allowed_contact_ids.append(
                         {"partner_id": int(contact[0]), "parental_link": contact[1]}
                     )
-        disease_ids = list()
-        if origin_data["disease_ids"]:
-            for disease_id in enumerate(origin_data["disease_ids"]):
-                disease_ids.append(
-                    {
-                        "disease_type_id": int(disease_id[1]),
-                        "gravity": origin_data.get(f"disease_{disease_id[0]}_gravity"),
-                        "disease_text": origin_data.get(
-                            f"disease_{disease_id[0]}_treatment"
-                        ),
-                    }
-                )
+        disease_ids = []
+        other_diseases = []
+        for disease in origin_data["diseases"]:
+            disease_id = {
+                'gravity': disease['gravity'],
+                'disease_text': disease['treatment'],
+                'health_sheet_id': origin_data['healthsheet_id']
+            }
+            if disease['disease'] != 'autre':
+                disease_id.update({'disease_type_id': int(disease['disease'])})
+                disease_ids.append(disease_id)
+            else:
+                disease_id.update({'name': disease['other_disease']})
+                other_diseases.append(disease_id)
+        put_data["disease_ids"] = disease_ids
+        put_data["other_diseases"] = other_diseases
         if medication_ids:
             put_data["medication_ids"] = medication_ids
         if allowed_contact_ids:
             put_data["allowed_contact_ids"] = allowed_contact_ids
-        put_data["disease_ids"] = disease_ids
-        if not disease_ids:
-            put_data["other_disease_gravity"] = (origin_data.get(f"disease_0_gravity"),)
-            put_data["other_disease_text"] = (origin_data.get(f"disease_0_treatment"),)
         url = f"{self.server_url}/{self.aes_instance}/kids/{child_id}/healthsheet"
         response = self.session.put(url, json=put_data)
         response.raise_for_status()
