@@ -1770,6 +1770,8 @@ class ApimsAesConnector(BaseResource):
             put_data["last_date_tetanus"] = origin_data["last_date_tetanus"]
         if origin_data["level_handicap"]:
             put_data["level_handicap"] = origin_data["level_handicap"]
+        if origin_data["medications"]:
+            put_data["medication_ids"] = origin_data["medications"]
         if origin_data["mutuality"]:
             put_data["mutuality"] = origin_data["mutuality"]
         if origin_data["nap"]:
@@ -1793,23 +1795,10 @@ class ApimsAesConnector(BaseResource):
             put_data["type_handicap"] = origin_data["type_handicap"]
         if origin_data["weight"]:
             put_data["weight"] = origin_data["weight"]
-        medication_ids, allowed_contact_ids = [], []
+        allowed_contact_ids = []
         for key, value in origin_data.items():
             if ("selection" in key or "text" in key) and value:
                 put_data[key] = value or ""
-            elif "medication_" in key and value:
-                medication = value.split(" - ")
-                if medication[0] != "None":
-                    medication_ids.append(
-                        {
-                            "name": medication[0],
-                            "quantity": int(medication[1])
-                            if medication[1] and medication[1] != "None"
-                            else None,
-                            "period": medication[2],
-                            "self_medication_selection": medication[3],
-                        }
-                    )
             elif "contact" in key:
                 contact = value.split(" ; ")
                 if contact[0]:
@@ -1832,8 +1821,6 @@ class ApimsAesConnector(BaseResource):
                 other_diseases.append(disease_id)
         put_data["disease_ids"] = disease_ids
         put_data["other_diseases"] = other_diseases
-        if medication_ids:
-            put_data["medication_ids"] = medication_ids
         if allowed_contact_ids:
             put_data["allowed_contact_ids"] = allowed_contact_ids
         url = f"{self.server_url}/{self.aes_instance}/kids/{child_id}/healthsheet"
