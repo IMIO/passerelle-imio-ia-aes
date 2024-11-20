@@ -1774,10 +1774,9 @@ class ApimsAesConnector(BaseResource):
         if origin_data["nap"]:
             put_data["nap"] = origin_data["nap"]
         if origin_data["other_allergies"]:
-            # As other_allergies is a list of list, we need to make it a list of string. It is a list of list
-            # because of the type of other_allergies field in form.
+            # As other_allergies is a list of dict ([{"name": "other allergie 1"}]), we need to make it a list of string ["other allergie 1"].
             put_data["other_allergies"] = [
-                allergy[0] for allergy in origin_data["other_allergies"]
+                allergy["name"] for allergy in origin_data["other_allergies"]
             ]
         if origin_data["photo"]:
             put_data["photo"] = origin_data["photo"]
