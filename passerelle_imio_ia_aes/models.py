@@ -1540,6 +1540,7 @@ class ApimsAesConnector(BaseResource):
                 {
                     "id": "new_diseases",
                     "text": "Permettre aux parents d'ajouter d'autres maladies ?",
+                    "disabled": True,
                 },
                 {
                     "id": "mutuality",
