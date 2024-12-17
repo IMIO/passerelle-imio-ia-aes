@@ -1,6 +1,14 @@
 Changelog
 =========
 
+2.1.6
+-----------------
+
+- [PP-535] Replace healthsheet diseases fields with fields bloc
+- [PP-535] Replace healthsheet allergies fields with fields bloc
+- [PP-535] Replace healthsheet medications fields with fields bloc
+- [PP-535] Disable "new diseases" from questions as it is always True
+
 2.1.5
 -----------------
 
