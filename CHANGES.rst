@@ -4,6 +4,7 @@ Changelog
 2.1.7
 -----------------
 
+- [PP-542] Add endpoint to read translated country.
 - [SUP-41782] Set end_date as friday in plain registrations.
 
 2.1.6
