@@ -134,6 +134,30 @@ class ApimsAesConnector(BaseResource):
         return response.json()
 
     @endpoint(
+        name="countries",
+        methods=["get"],
+        perm="can_access",
+        description="Recherche un pays.",
+        parameters={
+            "country_id": {
+                "description": "Identifiant iA.AES interne du pays",
+                "example_value": "20",
+            }
+        },
+        long_description="Recherche un pays en fonction de son ID et renvoit son nom traduit.",
+        display_category="Données génériques",
+        cache_duration=3600,
+        example_pattern="{country_id}",
+        pattern="^(?P<country_id>\w+)$",
+    )
+    # get_state instead of get_country to be consistant with list_states.
+    def get_state(self, request, country_id):
+        url = f"{self.server_url}/{self.aes_instance}/countries/{country_id}"
+        response = self.session.get(url)
+        return response.json()
+
+
+    @endpoint(
         name="levels",
         methods=["get"],
         perm="can_access",
@@ -924,7 +948,7 @@ class ApimsAesConnector(BaseResource):
         for plain in post_data["plains"]:
             activity_id = plain["id"]
             start_date = datetime.fromisocalendar(plain['year'], plain['week'], 1)
-            end_date = start_date + timedelta(days=6)
+            end_date = start_date + timedelta(days=4)
             plains.append(
                 {
                     "activity_id": int(activity_id.split("_")[-1]),
