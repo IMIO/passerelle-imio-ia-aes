@@ -1,6 +1,11 @@
 Changelog
 =========
 
+2.1.8
+-----------------
+
+- [SUP-42572] Round computed amount in school meals.
+
 2.1.7
 -----------------
 
