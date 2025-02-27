@@ -1285,11 +1285,11 @@ class ApimsAesConnector(BaseResource):
             "activity_category_id": balance["activity_category_id"],
             "reserved_balance": reserved_balance,
             "child_registration_line_id": child_registration_line_response["id"],
-            "due_amount": due_amount,
-            "initial_balance": balance["amount"],
+            "due_amount": round(due_amount, 2),
+            "initial_balance": round(balance["amount"], 2),
             "prepayment_by_category_id": balance["prepayment_by_category_id"],
-            "spent_balance": spent_balance,
-            "total_amount": total_amount,
+            "spent_balance": round(spent_balance, 2),
+            "total_amount": round(total_amount, 2),
         }
 
     def create_meals_payment(self, data):
