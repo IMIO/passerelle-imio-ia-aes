@@ -336,8 +336,8 @@ class ApimsAesConnector(BaseResource):
         data = json.loads(request.body)
         form_register_child_schema = self.get_data_from_wcs("api/formdefs/pp-enregistrer-un-enfant/schema")
         patch_data = {
-            "is_invoicing_differs_by_home": True if form_register_child_schema["options"]["child_type_facturation"] == "oui" else False,
-            "is_invoicing_differs_by_school": True if form_register_child_schema["options"]["prefered_school_pricing"] == "oui" else False,
+            "is_invoicing_differs_by_home": True if form_register_child_schema["options"]["child_type_facturation"].lower() == "oui" else False,
+            "is_invoicing_differs_by_school": True if form_register_child_schema["options"]["prefered_school_pricing"].lower() == "oui" else False,
             "municipality_zipcodes": data["municipality_zipcodes"]
         }
         if partner_type == "child":
