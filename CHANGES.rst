@@ -1,6 +1,11 @@
 Changelog
 =========
 
+2.1.9
+-----------------
+
+- [PP-562] Fix options that trigger price category computing when updating personnal data
+
 2.1.8
 -----------------
 
