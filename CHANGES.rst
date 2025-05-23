@@ -1,6 +1,12 @@
 Changelog
 =========
 
+2.1.10
+-----------------
+
+- [SUP-44639] Return parent_id in get_balance response
+- [SUP-44639] Add some comments to explain get_balance
+
 2.1.9
 -----------------
 
