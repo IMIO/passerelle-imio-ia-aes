@@ -1242,18 +1242,21 @@ class ApimsAesConnector(BaseResource):
         if body.get("month") and body.get("year"):
             year, month = int(body.get('year')), int(body.get('month'))
         balance = self.get_balance(parent_id, "meal", body.get("child_id"), year, month)
-        if balance.get("amount") <= 0: # Vérifier si correct, notamment si le montant bloqué est supérieur au solde
+        if balance.get("amount") <= 0:
             return {
                 "activity_category_id": balance["activity_category_id"],
-                "reserved_balance": reserved_balance,
                 "child_registration_line_id": "",
                 "due_amount": total_amount,
                 "initial_balance": balance["amount"],
+                "parent_id": balance["parent_id"],
                 "prepayment_by_category_id": balance["prepayment_by_category_id"],
+                "reserved_balance": reserved_balance,
                 "spent_balance": 0, 
                 "total_amount": total_amount,
             }
-        # If total <= balance: due_amount set to 0, spent_balance set to balance - total
+        # Si le total est inférieur au solde (balance) du parent:
+        # le montant dû devient zéro et
+        # la portion de solde dépensée est égale au solde total moins le montant total
         due_amount, spent_balance = 0, total_amount
         # If total > balance
         if total_amount > balance["amount"]:
@@ -1280,14 +1283,14 @@ class ApimsAesConnector(BaseResource):
                     "reserving_request": int(body['form_number']),
                     "child_registration_line_id": child_registration_line_response["id"]
                 })
-
         return {
             "activity_category_id": balance["activity_category_id"],
-            "reserved_balance": reserved_balance,
             "child_registration_line_id": child_registration_line_response["id"],
             "due_amount": round(due_amount, 2),
             "initial_balance": round(balance["amount"], 2),
+            "parent_id": balance["parent_id"],
             "prepayment_by_category_id": balance["prepayment_by_category_id"],
+            "reserved_balance": reserved_balance,
             "spent_balance": round(spent_balance, 2),
             "total_amount": round(total_amount, 2),
         }
