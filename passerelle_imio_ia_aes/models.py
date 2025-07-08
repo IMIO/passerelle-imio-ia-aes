@@ -67,7 +67,7 @@ class ApimsAesConnector(BaseResource):
 
     PARENT_PARAM = {
         "description": "Identifiant Odoo interne du parent",
-        "example_value": "11",
+        "example_value": "279",
     }
     CHILD_PARAM = {
         "description": "Identifiant Odoo interne de l'enfant",
@@ -692,10 +692,27 @@ class ApimsAesConnector(BaseResource):
     ##############
     ### Enfant ###
     ##############
-
-    def read_child(self, child_id):
-        url = f"{self.url}/{self.aes_instance}/kids/{child_id}"
-        return self.session.get(url).json()
+    @endpoint(
+        name="children",
+        methods=["get"],
+        perm="can_access",
+        description="Récupérer les infos enfants via l'id enfant",
+        long_description="Récupérer les infos enfants via l'id enfant",
+        parameters={
+            "child_id": CHILD_PARAM
+        },
+        example_pattern="{child_id}/",
+        pattern="^(?P<child_id>\w+)/$",
+        display_category="Enfant",
+    )
+    def read_child(self, request, child_id):
+        from time import perf_counter
+        t0 = perf_counter()
+        url = f"{self.server_url}/{self.aes_instance}/kids/{child_id}"
+        logging.error(f"READ_CHILD {url} - temps : {perf_counter()-t0}")
+        result = self.session.get(url).json()
+        result["time"] = perf_counter()-t0
+        return result
 
     def list_price_categories(self):
         url = f"{self.server_url}/{self.aes_instance}/price_categories"
@@ -1170,6 +1187,28 @@ class ApimsAesConnector(BaseResource):
             return {"errors_in_menus": list_errors}
         return month_menu
     
+    @endpoint(
+        name="parents",
+        methods=["get"],
+        perm="can_access",
+        description="Tous les soldes du parent (par catégorie)",
+        long_description="Renvoie les soldes d'un parent pour toutes les catégories d'activité.",
+        example_pattern="{parent_id}/balances",
+        pattern=r"^(?P<parent_id>\w+)/balances$",
+        parameters={
+            "parent_id": PARENT_PARAM,
+        },
+        display_category="Parent",
+    )
+    def get_all_balances_for_parent(self, request, parent_id):
+        url = f"{self.server_url}/{self.aes_instance}/parents/{parent_id}/balances/"
+        headers = {
+            "Accept": "application/json",
+        }
+        response = requests.get(url, headers=headers, timeout=10)
+        response.raise_for_status()
+        return response.json()
+        
     def get_balance(self, parent_id, activity_category_type, child_id=None, year=None, month=None):
         url = f"{self.server_url}/{self.aes_instance}/parents/{parent_id}/balances/{activity_category_type}"
         if child_id or year or month:
