@@ -1201,11 +1201,8 @@ class ApimsAesConnector(BaseResource):
         display_category="Parent",
     )
     def get_all_balances_for_parent(self, request, parent_id):
-        url = f"{self.server_url}/{self.aes_instance}/parents/{parent_id}/balances/"
-        headers = {
-            "Accept": "application/json",
-        }
-        response = requests.get(url, headers=headers, timeout=10)
+        url = f"{self.server_url}/{self.aes_instance}/parents/{parent_id}/balances"
+        response = self.session.get(url, timeout=10)
         response.raise_for_status()
         return response.json()
         
