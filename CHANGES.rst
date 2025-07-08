@@ -1,6 +1,11 @@
 Changelog
 =========
 
+2.2.0
+-----------------
+
+- [PP-589] Add endpoint get_all_balances_for_parent
+
 2.1.10
 -----------------
 
