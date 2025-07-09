@@ -1186,7 +1186,23 @@ class ApimsAesConnector(BaseResource):
         if len(list_errors) > 0:
             return {"errors_in_menus": list_errors}
         return month_menu
-    
+    @endpoint(
+        name="activity_categories",
+        methods=["get"],
+        perm="can_access",
+        description="Liste les catégories d'activités",
+        long_description="Renvoie la liste des catégories d’activités pour une entité AES donnée (municipality_id).",
+        example_pattern="activity-categories",
+        pattern=r"^activity-categories$",
+        display_category="Données génériques",
+    )
+
+    def get_activity_categories(self, request):
+        url = f"{self.server_url}/{self.aes_instance}/activity-categories"
+        response = self.session.get(url, timeout=10)
+        response.raise_for_status()
+        return response.json()
+
     @endpoint(
         name="parents",
         methods=["get"],

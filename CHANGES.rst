@@ -1,5 +1,9 @@
 Changelog
 =========
+2.2.1
+-----------------
+
+- [PP-587] Add endpoint get_activity_categories
 
 2.2.0
 -----------------
