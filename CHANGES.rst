@@ -5,6 +5,7 @@ Changelog
 
 - [PP-587] Add endpoint get_activity_categories
 - [PP-588] Add 'transaction_id' for generic_create_payment
+- [PP-593] Add list_certificates endpoint
 
 2.2.0
 -----------------

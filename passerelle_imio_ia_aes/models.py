@@ -2126,7 +2126,27 @@ class ApimsAesConnector(BaseResource):
     )
     def list_invoices(self, request, parent_id):
         url = f"{self.server_url}/{self.aes_instance}/parents/{parent_id}/invoices"
-        return self.session.get(url).json()["items"]
+        return self.session.get(url).json()
+    
+    ################
+    # Attestations #
+    ################
+
+    @endpoint(
+        name="parents",
+        methods=["get"],
+        perm="can_access",
+        description="Lister les attestations d'un parent",
+        parameters={
+            "parent_id": PARENT_PARAM,
+        },
+        example_pattern="{parent_id}/certificates/",
+        pattern="^(?P<parent_id>\w+)/certificates/$",
+        display_category="Parent",
+    )
+    def list_certificates(self, request, parent_id):
+        url = f"{self.server_url}/{self.aes_instance}/parents/{parent_id}/certificates"
+        return self.session.get(url).json()
 
     ################
     ### Paiement ###
