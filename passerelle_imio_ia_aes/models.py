@@ -1374,7 +1374,8 @@ class ApimsAesConnector(BaseResource):
             "date": date.today().strftime("%Y-%m-%d"),
             "parent_id": parent_id, # TODO: parent facturable
             "prepayment_by_category_id": body["prepayment_by_category_id"],
-            "type": "online"
+            "type": "online",
+            "online_transaction_id": body.get("transaction_id") or ""
         })
         return payment
 

@@ -4,6 +4,7 @@ Changelog
 -----------------
 
 - [PP-587] Add endpoint get_activity_categories
+- [PP-588] Add 'transaction_id' for generic_create_payment
 
 2.2.0
 -----------------
