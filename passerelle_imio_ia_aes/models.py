@@ -503,11 +503,28 @@ class ApimsAesConnector(BaseResource):
         perm="can_access",
         description="Lister les formulaires de la catégorie Portail Parent",
         display_category="WCS",
-        cache_duration=30
+        cache_duration=30,
+        parameters= {
+            "keywords": {
+                "example_value":"Inscriptions,Désinscriptions",
+                "description": "Récupére les formulaires dont au moins un mot-clef correspond à un des 'keyword' de la requête"
+                }
+            }
     )
-    def list_forms(self, requests):
+    def list_forms(self, request, keywords=None):
         path = "api/categories/portail-parent/formdefs/"
-        return self.get_data_from_wcs(path)["data"]
+        forms =  self.get_data_from_wcs(path)["data"]
+        result = []
+        if keywords:
+            keywords = keywords.split(",")
+            for form in forms:
+                for keyword in keywords:
+                    if keyword.lower() in [k.lower() for k in form["keywords"]]:
+                        result.append(form)
+                        break
+        else:
+            return forms
+        return result
 
     def get_data_from_wcs(self, path):
         if not getattr(settings, "KNOWN_SERVICES", {}).get("wcs"):

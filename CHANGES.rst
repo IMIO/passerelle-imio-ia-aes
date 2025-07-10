@@ -6,6 +6,7 @@ Changelog
 - [PP-587] Add endpoint get_activity_categories
 - [PP-588] Add 'transaction_id' for generic_create_payment
 - [PP-593] Add list_certificates endpoint
+- [PP-595] Adapt get_forms with multiple keywords 
 
 2.2.0
 -----------------
