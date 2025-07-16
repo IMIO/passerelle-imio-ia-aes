@@ -7,6 +7,7 @@ Changelog
 - [PP-588] Add 'transaction_id' for generic_create_payment
 - [PP-593] Add list_certificates endpoint
 - [PP-595] Adapt get_forms with multiple keywords 
+- [PP-604] Add pay_invoice endpoint
 
 2.2.0
 -----------------

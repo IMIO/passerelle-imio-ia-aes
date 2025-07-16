@@ -2145,6 +2145,40 @@ class ApimsAesConnector(BaseResource):
         url = f"{self.server_url}/{self.aes_instance}/parents/{parent_id}/invoices"
         return self.session.get(url).json()
     
+    @endpoint(
+        name="parents",
+        methods=["post"],
+        perm="can_access",
+        description="Payer une facture",
+        parameters={
+            "parent_id": PARENT_PARAM,
+            "invoice_id": {
+                "example_value": 1,
+                "description" : "Identifiant d'une facture d'un parent" 
+                }
+        },
+        example_pattern="{parent_id}/invoices/{invoice_id}/pay",
+        pattern="^(?P<parent_id>\w+)/invoices/(?P<invoice_id>\w+)/pay$",
+        display_category="Parent",
+    )
+    def pay_invoice(self, request, parent_id, invoice_id):
+        post_data = json.loads(request.body)
+        url = f"{self.server_url}/{self.aes_instance}/parents/{parent_id}/invoices/{invoice_id}/pay"
+        payment = {
+                "date": post_data["date"],
+                "type": "online",
+                "amount": float(post_data["amount"]),
+                "activity_category_id": post_data["activity_category_id"],
+                "comment": post_data["comment"],
+                "form_url": post_data["form_url"],
+                "online_transaction_id": post_data["transaction_id"],
+                "prepayment_by_category_id": post_data["prepayment_by_category_id"]
+            }
+        logger.info(f"POST_DATA:", post_data)
+        response = self.session.post(url, json=payment)
+        response.raise_for_status()
+        return response.json()
+
     ################
     # Attestations #
     ################
