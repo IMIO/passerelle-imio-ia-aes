@@ -2273,7 +2273,7 @@ class ApimsAesConnector(BaseResource):
         payment = {
             "date": post_data["date"],
             "type": "online",
-            "amount": float(post_data["amount"]),
+            "amount": post_data["amount"],
             "activity_category_id": post_data["activity_category_id"],
             "comment": post_data["comment"],
             "form_url": post_data["form_url"],

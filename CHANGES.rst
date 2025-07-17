@@ -9,6 +9,7 @@ Changelog
 - [PP-595] Adapt get_forms with multiple keywords 
 - [PP-604] Add pay_invoice endpoint
 
+
 2.2.0
 -----------------
 
