@@ -2471,15 +2471,6 @@ class ApimsAesConnector(BaseResource):
         pattern=r"^pedagogical-days-inscriptions/$",
         display_category="Journées pédagogiques",
     )
-    @endpoint(
-        name="pedagogical_days",
-        methods=["post"],
-        perm="can_access",
-        description="Créer des inscriptions aux journées pédagogiques",
-        example_pattern="pedagogical-days-inscriptions/",
-        pattern=r"^pedagogical-days-inscriptions/$",
-        display_category="Journées pédagogiques",
-    )
     def create_pedagogical_days_inscriptions(self, request):
         post_data = json.loads(request.body)
         logger.info(f"Données : {post_data}")
