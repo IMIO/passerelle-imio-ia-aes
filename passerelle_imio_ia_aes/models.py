@@ -2444,54 +2444,62 @@ class ApimsAesConnector(BaseResource):
     ###########################
 
     @endpoint(
-        name="pedagogical_days",
+        name="pedagogical-days",
         methods=["get"],
         perm="can_access",
         description="Lister les journées pédagogiques pour une commune",
-        example_pattern="pedagogical-days/",
-        pattern=r"^pedagogical-days/$",
+        #example_pattern="",
+        #pattern=r"^$",
         display_category="Journées pédagogiques",
+        parameters={
+            "school_implantation_id": {
+                "example_value": 2,
+                "description": "ID de l'implantation scolaire"
+                },
+            "child_id": {
+                "example_value": 518,
+                "description": "ID de l'enfant"
+                }
+            } 
     )
-    def list_pedagogicals_days(self, request):
-        url = f"{self.server_url}/{self.aes_instance}/dates/"
+    def list_pedagogicals_days(self, request, school_implantation_id, child_id):
+        url = f"{self.server_url}/{self.aes_instance}/pedagogical-days?school_implantation_id={school_implantation_id}"
         response = self.session.get(url)
         response.raise_for_status()
         data = response.json()
+        
         for item in data.get("items", []):
             if "date" in item:
-                item["date"] = self.format_date(item["date"])
+                item["text"] = self.format_date(item["date"])
+                item["disabled"] = child_id in item["child_ids"]
         return data
 
     @endpoint(
-        name="pedagogical_days",
+        name="pedagogical-days",
         methods=["post"],
         perm="can_access",
         description="Créer des inscriptions aux journées pédagogiques",
-        example_pattern="pedagogical-days-inscriptions/",
-        pattern=r"^pedagogical-days-inscriptions/$",
+        example_pattern="create-registrations/",
+        pattern=r"^create-registrations/$",
         display_category="Journées pédagogiques",
     )
     def create_pedagogical_days_inscriptions(self, request):
         post_data = json.loads(request.body)
         logger.info(f"Données : {post_data}")
+        url = f"{self.server_url}/{self.aes_instance}/pedagogical-days"
+        registrations = []
+        for registration in post_data["registrations"]:
+            registrations.append({
+                "activity_id": registration["activity_id"],
+                "date": registration["date"],
+                "school_implantation_id": int(post_data["school_implantation_id"]),
+                "place_id": int(post_data["place_id"]),
+                "child_id": int(post_data["child_id"]),
+                "parent_id": int(post_data["parent_id"]),
+            })
 
-        url = f"{self.server_url}/{self.aes_instance}/pedagogical_days/"
-
-        activity_id = int(post_data["activity_id"][0]["activity_schedule_id"][0])
-        raw_date = post_data["date"][0]["date"]  # "Jeudi 23 octobre 2025"
-        date_iso = self.parse_french_date(raw_date)
-
-
-        registration = {
-            "activity_id": activity_id,
-            "date": date_iso,
-            "school_implantation_id": int(post_data["school_implantation_id"]),
-            "place_id": int(post_data["place_id"]),
-            "child_id": int(post_data["child_id"]),
-            "parent_id": int(post_data["parent_id"]),
-        }
-
-        payload = {"registrations": [registration]}
+        payload = {"registrations": registrations}
         response = self.session.post(url, json=payload)
         response.raise_for_status()
         return response.json()
+
