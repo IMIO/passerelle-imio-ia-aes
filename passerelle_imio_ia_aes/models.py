@@ -2504,10 +2504,3 @@ class ApimsAesConnector(BaseResource):
         response = self.session.post(url, json=payload)
         response.raise_for_status()
         return response.json()
-
-#TODO:
-#place_id : Plus tard (dictionnaire) {{form_var_journee_pedagogique_structured}} - rien à faire pour l'instant
-
-#date : {{form_var_journee_pedagogique_structured}} -> passerelle , envoyer date:  mais garder text: pour l'usager
-
-#activity_id : {{form_var_journee_pedagogique_structured}} -> passerelle
