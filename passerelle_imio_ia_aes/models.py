@@ -37,6 +37,7 @@ from passerelle.utils.api import endpoint
 from passerelle.utils.jsonresponse import APIError
 from requests.exceptions import ConnectionError
 from workalendar.europe import Belgium
+from datetime import datetime
 
 
 logger = logging.getLogger(__name__)
@@ -2405,3 +2406,108 @@ class ApimsAesConnector(BaseResource):
                 year - 1 - age_years, month - age_months + 12, day
             ) - timedelta(days=age_days)
         return {"data": result}
+    
+    @staticmethod
+    def format_date(date_str):
+        """Formate une date 'YYYY-MM-DD' en 'Vendredi 18 juillet 2025'"""
+        jours = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche']
+        mois = [
+            'janvier', 'février', 'mars', 'avril', 'mai', 'juin',
+            'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'
+        ]
+        try:
+            d = datetime.strptime(date_str, "%Y-%m-%d").date()
+            return f"{jours[d.weekday()]} {d.day} {mois[d.month - 1]} {d.year}"
+        except Exception:
+            return date_str 
+        
+    @staticmethod
+    def parse_french_date(text_date):
+        """Convertit une date 'Jeudi 23 octobre 2025' en '2025-10-23'"""
+        mois = {
+            'janvier': 1, 'février': 2, 'mars': 3, 'avril': 4, 'mai': 5, 'juin': 6,
+            'juillet': 7, 'août': 8, 'septembre': 9, 'octobre': 10,
+            'novembre': 11, 'décembre': 12
+        }
+        try:
+            parts = text_date.split(" ")  # ['Jeudi', '23', 'octobre', '2025']
+            jour = int(parts[1])
+            mois_num = mois[parts[2].lower()]
+            annee = int(parts[3])
+            return f"{annee:04d}-{mois_num:02d}-{jour:02d}"
+        except Exception:
+            return text_date  # fallback si ça plante
+
+    
+    ###########################
+    ## Journées pédagogiques ##
+    ###########################
+
+    @endpoint(
+        name="pedagogical_days",
+        methods=["get"],
+        perm="can_access",
+        description="Lister les journées pédagogiques pour une commune",
+        example_pattern="pedagogical-days/",
+        pattern=r"^pedagogical-days/$",
+        display_category="Journées pédagogiques",
+    )
+    def list_pedagogicals_days(self, request):
+        url = f"{self.server_url}/{self.aes_instance}/dates/"
+        response = self.session.get(url)
+        response.raise_for_status()
+        data = response.json()
+        for item in data.get("items", []):
+            if "date" in item:
+                item["date"] = self.format_date(item["date"])
+        return data
+
+    @endpoint(
+        name="pedagogical_days",
+        methods=["post"],
+        perm="can_access",
+        description="Créer des inscriptions aux journées pédagogiques",
+        example_pattern="pedagogical-days-inscriptions/",
+        pattern=r"^pedagogical-days-inscriptions/$",
+        display_category="Journées pédagogiques",
+    )
+    @endpoint(
+        name="pedagogical_days",
+        methods=["post"],
+        perm="can_access",
+        description="Créer des inscriptions aux journées pédagogiques",
+        example_pattern="pedagogical-days-inscriptions/",
+        pattern=r"^pedagogical-days-inscriptions/$",
+        display_category="Journées pédagogiques",
+    )
+    def create_pedagogical_days_inscriptions(self, request):
+        post_data = json.loads(request.body)
+        logger.info(f"Données : {post_data}")
+
+        url = f"{self.server_url}/{self.aes_instance}/pedagogical_days/"
+
+        activity_id = int(post_data["activity_id"][0]["activity_schedule_id"][0])
+        raw_date = post_data["date"][0]["date"]  # "Jeudi 23 octobre 2025"
+        date_iso = self.parse_french_date(raw_date)
+
+
+        registration = {
+            "activity_id": activity_id,
+            "date": date_iso,
+            "school_implantation_id": int(post_data["school_implantation_id"]),
+            "place_id": int(post_data["place_id"]),
+            "child_id": int(post_data["child_id"]),
+            "parent_id": int(post_data["parent_id"]),
+        }
+
+        payload = {"registrations": [registration]}
+        response = self.session.post(url, json=payload)
+        response.raise_for_status()
+        return response.json()
+
+#TODO:
+#place_id : Plus tard (dictionnaire) {{form_var_journee_pedagogique_structured}} - rien à faire pour l'instant
+
+#date : {{form_var_journee_pedagogique_structured}} -> passerelle , envoyer date:  mais garder text: pour l'usager
+
+#activity_id : {{form_var_journee_pedagogique_structured}} -> passerelle
