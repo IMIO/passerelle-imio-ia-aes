@@ -9,8 +9,7 @@ Changelog
 - [PP-595] Adapt get_forms with multiple keywords 
 - [PP-604] Add pay_invoice endpoint
 - [PP-608] Add list_pedagogicals_days
-- [PP-609] Add create_pedagogicals_days_inscriptions
-
+- [PP-609] Add create_pedagogicals_days_inscriptions & list_pedagogical_days_per_dates
 
 
 2.2.0
