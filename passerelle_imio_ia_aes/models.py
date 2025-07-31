@@ -2443,11 +2443,18 @@ class ApimsAesConnector(BaseResource):
     ## Journées pédagogiques ##
     ###########################
 
+    def fetch_pedagogical_days(self, parent_id):
+        url = f"{self.server_url}/{self.aes_instance}/pedagogical-days?parent_id={parent_id}"
+        response = self.session.get(url)
+        response.raise_for_status()
+        return response.json()
+
     @endpoint(
         name="pedagogical-days",
         methods=["get"],
         perm="can_access",
-        description="Lister les journées pédagogiques pour une commune",
+        description="Lister les journées pédagogiques",
+        long_description="Lis les journées pédagogiques dans iA.AES et les complète pour leur utilisation dans un formulaire.",
         #example_pattern="",
         #pattern=r"^$",
         display_category="Journées pédagogiques",
@@ -2456,29 +2463,14 @@ class ApimsAesConnector(BaseResource):
                 "example_value": 279,
                 "description": "ID du parent"             
             },
-            "grouped_by_date": {
-                "example_value": "False",
-                "description": "Faut-il regrouper les éléments par date ?"
-            }
         }
     )
-    def list_pedagogical_days(self, request, parent_id, grouped_by_date=False):
-        url = f"{self.server_url}/{self.aes_instance}/pedagogical-days?parent_id={parent_id}"
-        response = self.session.get(url)
-        response.raise_for_status()
-        data = response.json()
+    def list_pedagogical_days(self, request, parent_id):
+        data = self.fetch_pedagogical_days(parent_id)
         for item in data.get("items", []):
-                item["text"] = f"{item['child_lastname']} {item['child_firstname']}"
-                item["disabled"] = item["is_child_already_registered"]
-                item["id"] = f"{item['activity_id']}_{item['activity_date_id']}_{item['child_id']}"
-        logging.info(f"GROUPED_BY_DATE: {grouped_by_date}")
-        if grouped_by_date == "date":
-            items_dict = {}
-            for item in data.get("items"):
-                if items_dict.get(item["date"]) is None:
-                    items_dict[item["date"]] = []
-                items_dict[item["date"]].append(item)
-            data["items"] = items_dict
+            item["text"] = f"{item['child_lastname']} {item['child_firstname']}"
+            item["disabled"] = item["is_child_already_registered"]
+            item["id"] = f"{item['activity_id']}_{item['activity_date_id']}_{item['child_id']}"
         return data
 
 
@@ -2486,7 +2478,8 @@ class ApimsAesConnector(BaseResource):
         name="pedagogical-days",
         methods=["get"],
         perm="can_access",
-        description="Lister les journées pédagogiques pour une commune",
+        description="Lister les journées pédagogiques, regroupée par date",
+        long_description="Lis les journées pédagogiques dans iA.AES, les complète et les regroupe par date pour affichage.",
         example_pattern="per-dates",
         pattern=r"^per-dates$",
         display_category="Journées pédagogiques",
@@ -2498,10 +2491,7 @@ class ApimsAesConnector(BaseResource):
         }
     )
     def list_pedagogical_days_per_dates(self, request, parent_id):
-        url = f"{self.server_url}/{self.aes_instance}/pedagogical-days?parent_id={parent_id}"
-        response = self.session.get(url)
-        response.raise_for_status()
-        data = response.json()
+        data = self.fetch_pedagogical_days(parent_id)
         items = {}
         for item in data.get("items", []):
             if items.get(item["date"]) is None:
@@ -2518,6 +2508,7 @@ class ApimsAesConnector(BaseResource):
         methods=["post"],
         perm="can_access",
         description="Créer des inscriptions aux journées pédagogiques",
+        long_description="Enregistre des inscriptions aux journées pédagogiques dans iA.AES",
         example_pattern="create-registrations/",
         pattern=r"^create-registrations/$",
         display_category="Journées pédagogiques",
@@ -2542,5 +2533,3 @@ class ApimsAesConnector(BaseResource):
         response = self.session.post(url, json=payload)
         response.raise_for_status()
         return response.json()
-
-
