@@ -734,6 +734,38 @@ class ApimsAesConnector(BaseResource):
             result["children"].append(ts_child)
         return result
 
+
+    @endpoint(
+        name="parents",
+        methods=["get"],
+        perm="can_access",
+        description="Informations enfants du parents",
+        long_description="Récupére les données contenue dans le endpoint homepage de apims",
+        parameters={
+            "parent_id": PARENT_PARAM,
+        },
+        example_pattern="{parent_id}/homepage_lite",
+        pattern="^(?P<parent_id>\w+)/homepage_lite$",
+        display_category="Parent",
+    )
+    def homepage_lite(self, request, parent_id):
+        """Check and update user's aes_id and build parent portal data structure
+
+        Parameters:
+            new_parent_aes_id: new parent's ID in iA.AES after a merge.
+            parent_uuid: user's uuid in authentic
+
+        Returns:
+            json
+        """
+        if not parent_id.isdigit():
+            return None
+        url = f"{self.server_url}/{self.aes_instance}/parents/{parent_id}/homepage"
+        response = self.session.get(url)
+        response.raise_for_status()
+        return response.json()
+
+
     ##############
     ### Enfant ###
     ##############
