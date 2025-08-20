@@ -2506,7 +2506,7 @@ class ApimsAesConnector(BaseResource):
         data = self.fetch_pedagogical_days(parent_id)
         for item in data.get("items", []):
             item["text"] = f"{item['child_lastname']} {item['child_firstname']}"
-            item["disabled"] = item["is_child_already_registered"]
+            item["disabled"] = item["is_child_already_registered"] or not item["invoiceable_parent_id"]
             item["id"] = f"{item['activity_id']}_{item['activity_date_id']}_{item['child_id']}"
             format_date = date.fromisoformat(item["date"])
             item["group_by"] = f"{jours[format_date.weekday()]} {format_date.day} {mois[format_date.month - 1]} {format_date.year}"
