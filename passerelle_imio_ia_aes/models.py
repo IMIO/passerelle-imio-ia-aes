@@ -1380,13 +1380,14 @@ class ApimsAesConnector(BaseResource):
             raise ValueError(
                 "Le mois ne peut avoir comme valeur que 0, 1, ou 2. Voir la description du paramètre pour en savoir plus."
             )
-        reference_day = date.today() + relativedelta(months=int(month))
+        if month is not None:
+            reference_day = date.today() + relativedelta(months=int(month))
         return self.get_balance(
             parent_id,
             activity_category_type,
             child_id=child_id,
-            year=reference_day.year,
-            month=reference_day.month,
+            year=reference_day.year if month else None,
+            month=reference_day.month if month else None,
         )
 
     def get_or_create_child_registration_line(self, data):
