@@ -1386,8 +1386,8 @@ class ApimsAesConnector(BaseResource):
             parent_id,
             activity_category_type,
             child_id=child_id,
-            year=reference_day.year if month else None,
-            month=reference_day.month if month else None,
+            year=reference_day.year if month is not None else None,
+            month=reference_day.month if month is not None else None,
         )
 
     def get_or_create_child_registration_line(self, data):
