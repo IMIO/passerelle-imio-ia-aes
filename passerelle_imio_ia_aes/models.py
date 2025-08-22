@@ -1398,17 +1398,6 @@ class ApimsAesConnector(BaseResource):
         response.raise_for_status()
         return response.json()
 
-    @endpoint(
-        name="parents",
-        methods=["post"],
-        perm="can_access",
-        description="Montant d'une commande de repas",
-        long_description="Calcule le montant à payer en fonction de la commande et du solde du parent",
-        example_pattern="{parent_id}/menus/registrations/cost",
-        pattern="^(?P<parent_id>\w+)/menus/registrations/cost$",
-        parameters={"parent_id": PARENT_PARAM},
-        display_category="Repas",
-    )
     def compute_meals_order_amount(self, request, parent_id):
         body = json.loads(request.body)
         order = body.get("order")
@@ -2572,3 +2561,57 @@ class ApimsAesConnector(BaseResource):
         response = self.session.post(url, json=payload)
         response.raise_for_status()
         return response.json()
+
+
+    def compute_childcare_amount(self, request, parent_id):
+        response = {
+                      "cost": 270,
+                      "details": [
+                        {
+                          "parent_id": 187,
+                          "amount": 90,
+                          "child_id": [
+                            188
+                          ],
+                          "activity_category_id": 2
+                        },
+                        {
+                          "parent_id": 670,
+                          "amount": 180,
+                          "child_id": [
+                            671
+                          ],
+                          "activity_category_id": 2
+                        }
+                      ]
+                    }
+        return response
+
+    ###############################
+    ## Calcul du montant à payer ##
+    ###############################
+
+    @endpoint(
+        name="parents",
+        methods=["post"],
+        perm="can_access",
+        description="Demander le coût des inscriptions",
+        long_description="Calcule le montant à payer en fonction de la commande et du solde du parent",
+        example_pattern="{parent_id}/{activity_category_type}/registrations/cost",
+        pattern="^(?P<parent_id>\w+)/(?P<activity_category_type>\w+)/registrations/cost$",
+        parameters={"parent_id": PARENT_PARAM, 
+            "activity_category_type": {
+            "description": "Type de catégorie d'activité",
+            "example_value": "meal",
+        }},
+        display_category="Calcul du montant à payer",
+    )
+    def compute_amount(self, request, parent_id, activity_category_type):
+        compute_amount_function = {
+            "meal": self.compute_meals_order_amount,
+            "childcare": self.compute_childcare_amount
+        }
+        if activity_category_type not in compute_amount_function.keys():
+            raise ValueError(f"{activity_category_type} is not a valid activity category type")
+
+        return compute_amount_function[activity_category_type](request, parent_id) 
