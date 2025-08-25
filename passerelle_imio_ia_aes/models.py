@@ -1569,6 +1569,30 @@ class ApimsAesConnector(BaseResource):
         return True
 
     @endpoint(
+        name="parents",
+        methods=["delete"],
+        perm="can_access",
+        description="Débloque plusieurs soldes",
+        long_description="Supprime plusieurs blocages de soldes.",
+        display_category="Parent",
+        parameters={
+            "parent_id": PARENT_PARAM,
+        },
+        example_pattern="{parent_id}/reserved-balances/list",
+        pattern="^(?P<parent_id>\d+)/reserved-balances/list$",
+    )
+    def free_balances(self, request, parent_id):
+        data = json.loads(request.body)
+        responses = []
+        for identifiant in data.get("details"):
+            url = f"{self.server_url}/{self.aes_instance}/parents/{parent_id}/reserved-balances/{reserved_balance_id}"
+            response = self.session.delete(url)
+            if response.status_code == 404:
+                responses.append({"reserved_balance_id_error": identifiant})
+
+        return responses or True
+
+    @endpoint(
         name="menus",
         methods=["post"],
         perm="can_access",
