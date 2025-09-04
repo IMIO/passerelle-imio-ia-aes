@@ -2574,9 +2574,8 @@ class ApimsAesConnector(BaseResource):
             registrations.append({
                 "activity_id": registration["activity_id"],
                 "date": registration["date"],
-                "school_implantation_id": int(post_data["school_implantation_id"]),
-                "place_id": int(post_data["place_id"]),
-                "child_id": int(post_data["child_id"]),
+                "school_implantation_id": int(registration["school_implantation_ids"]),
+                "child_id": int(registration["child_id"]),
                 "parent_id": int(post_data["parent_id"]),
             })
         
@@ -2588,28 +2587,26 @@ class ApimsAesConnector(BaseResource):
 
 
     def compute_childcare_amount(self, request, parent_id):
-        response = {
-                      "cost": 270,
-                      "details": [
-                        {
-                          "parent_id": 187,
-                          "amount": 90,
-                          "child_id": [
-                            188
-                          ],
-                          "activity_category_id": 2
-                        },
-                        {
-                          "parent_id": 670,
-                          "amount": 180,
-                          "child_id": [
-                            671
-                          ],
-                          "activity_category_id": 2
-                        }
-                      ]
-                    }
-        return response
+        post_data = json.loads(request.body)
+        logger.info(f"Données : {post_data}")
+        url = f"{self.server_url}/{self.aes_instance}/pedagogical-days/cost" #adapter l'url
+        registrations = []
+        for registration in post_data.get("registrations"):
+            registrations.append({
+                "activity_id":int(registration["activity_id"]),
+                "child_id":int(registration["child_id"]),
+                "date":registration["date"],
+                "invoiceable_parent_id":int(post_data["invoiceable_parent_id"]),
+                "parent_id":int(post_data["parent_id"]),
+                "price_category_id":int(registration["price_category_id"]),
+                "activity_category_id":int(registration["activity_category_id"]),
+            })
+        
+        payload = {"registrations": registrations}
+        logger.info(payload)
+        response = self.session.post(url, json=payload)
+        response.raise_for_status()
+        return response.json()
 
     ###############################
     ## Calcul du montant à payer ##
@@ -2639,3 +2636,4 @@ class ApimsAesConnector(BaseResource):
             raise ValueError(f"{activity_category_type} is not a valid activity category type")
 
         return compute_amount_function[activity_category_type](request, parent_id) 
+
