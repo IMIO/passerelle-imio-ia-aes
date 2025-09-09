@@ -1399,6 +1399,33 @@ class ApimsAesConnector(BaseResource):
         return response.json()
 
     def compute_meals_order_amount(self, request, parent_id):
+        """
+        Calcule le montant total d'une commande de repas pour un enfant donné,
+        en tenant compte du solde disponible du parent et des repas réservés.
+
+        Args:
+            request (HttpRequest): L'objet de requête contenant les détails de la commande,
+                                y compris les repas et les informations sur l'enfant.
+            parent_id (int): L'identifiant du parent pour lequel le solde est vérifié.
+
+        Returns:
+            dict: Un dictionnaire contenant les informations suivantes :
+                - activity_category_id (int): L'identifiant de la catégorie d'activité.
+                - child_registration_line_id (str): L'identifiant de la ligne d'inscription de l'enfant.
+                - due_amount (float): Le montant dû par le parent après application du solde.
+                - initial_balance (float): Le solde initial du parent avant la commande.
+                - parent_id (int): L'identifiant du parent.
+                - prepayment_by_category_id (int): L'identifiant de la prépaiement par catégorie.
+                - reserved_balance (float or None): Le solde réservé pour cette commande,
+                                                    ou None si aucun solde n'est réservé.
+                - spent_balance (float): Le montant du solde dépensé pour cette commande.
+                - total_amount (float): Le montant total de la commande de repas.
+
+        Notes:
+            - Si le parent n'a pas de solde disponible, le montant dû sera égal au montant total de la commande.
+            - Si le montant total de la commande est inférieur ou égal au solde, le montant dû sera zéro.
+            - La méthode réserve le solde utilisé pour la commande, si nécessaire.
+        """
         body = json.loads(request.body)
         order = body.get("order")
         reserved_balance = None
@@ -1407,7 +1434,11 @@ class ApimsAesConnector(BaseResource):
         )
         if body.get("month") and body.get("year"):
             year, month = int(body.get("year")), int(body.get("month"))
+        # Récupération du solde du parent, en tenant compte d'une éventuelle commande pour la même période
+        # et le même enfant
         balance = self.get_balance(parent_id, "meal", body.get("child_id"), year, month)
+        # Si le parent n'a pas de solde, on retourne directement le résultat et le parent doit payer l'intégralité de
+        # la commande
         if balance.get("amount") <= 0:
             return {
                 "activity_category_id": balance["activity_category_id"],
@@ -1420,18 +1451,23 @@ class ApimsAesConnector(BaseResource):
                 "spent_balance": 0,
                 "total_amount": total_amount,
             }
-        # Si le total est inférieur au solde (balance) du parent:
-        # le montant dû devient zéro et
-        # la portion de solde dépensée est égale au solde total moins le montant total
+        # Situation par défaut : si le total est inférieur au solde (balance) du parent :
+        # le montant dû devient zéro (le parent n'aura rien à payer) et
+        # la portion de solde dépensée est égale au montant total.
         due_amount, spent_balance = 0, total_amount
-        # If total > balance
+        # Si le total est supérieur au solde (balance) du parent :
+        # le montant dû devient le montant total moins le montant du solde
+        # et l'entièreté du solde disponible est consommé pour diminuer le montant dû.
         if total_amount > balance["amount"]:
             due_amount = total_amount - balance["amount"]
             spent_balance = balance["amount"]
-        # Reserve spent balance
+        # Maintenant qu'on connaît la part du solde du parent consommé pour diminuer son montant dû,
+        # on réserve cette part dans AES en créant un "solde réservé" (reserved_balance).
         child_registration_line_response = None
         reserved_balance = None
         if spent_balance:
+            # On commence par récupérer la ligne d'inscription concernée. Les soldes réservés sont en effet
+            # liés à une ligne d'inscription.
             child_registration_line = {
                 "kid_id": body["child_id"],
                 "parent_id": int(parent_id),
@@ -1443,7 +1479,12 @@ class ApimsAesConnector(BaseResource):
                 self.get_or_create_child_registration_line(child_registration_line)
             )
             reserved_balance = None
+            # On vérifie également que le parent le solde dépensé par parent pour cette commande est bien
+            # supérieur à un éventuel solde réservé préexistant pour le même enfant et la même période.
+            # Si c'est le cas, il faut réserver davantage de solde.
+            # Si ce n'est pas le cas, pas besoin de réserver davantage de solde.
             if spent_balance - balance["already_reserved_amount"] > 0:
+                # Voici la réservation du solde proprement dite.
                 reserved_balance = self.reserve_balance(
                     parent_id,
                     {
@@ -1458,6 +1499,7 @@ class ApimsAesConnector(BaseResource):
                         ],
                     },
                 )
+        # Enfin, on retourne les informations nécessaires pour le workflow
         return {
             "activity_category_id": balance["activity_category_id"],
             "child_registration_line_id": child_registration_line_response["id"],
