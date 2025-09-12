@@ -12,6 +12,8 @@ Changelog
 - [PP-609] Add create_pedagogicals_days_inscriptions & list_pedagogical_days_per_dates
 - [PP-614] Add compute_childcare_amount endpoint
 - [PP-634] Add comments into compute_meals_order_amount.
+- [PP-635] Add delete_pedagogical_registration def
+- [PP-612] Add read_pedagogical_registrations def
 
 
 2.2.0

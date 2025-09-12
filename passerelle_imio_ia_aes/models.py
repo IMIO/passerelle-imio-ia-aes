@@ -1610,29 +1610,29 @@ class ApimsAesConnector(BaseResource):
         response.raise_for_status()
         return True
 
-    @endpoint(
-        name="parents",
-        methods=["delete"],
-        perm="can_access",
-        description="Débloque plusieurs soldes",
-        long_description="Supprime plusieurs blocages de soldes.",
-        display_category="Parent",
-        parameters={
-            "parent_id": PARENT_PARAM,
-        },
-        example_pattern="{parent_id}/reserved-balances/list",
-        pattern="^(?P<parent_id>\d+)/reserved-balances/list$",
-    )
-    def free_balances(self, request, parent_id):
-        data = json.loads(request.body)
-        responses = []
-        for identifiant in data.get("details"):
-            url = f"{self.server_url}/{self.aes_instance}/parents/{parent_id}/reserved-balances/{reserved_balance_id}"
-            response = self.session.delete(url)
-            if response.status_code == 404:
-                responses.append({"reserved_balance_id_error": identifiant})
+    # @endpoint(
+    #     name="parents",
+    #     methods=["delete"],
+    #     perm="can_access",
+    #     description="Débloque plusieurs soldes",
+    #     long_description="Supprime plusieurs blocages de soldes.",
+    #     display_category="Parent",
+    #     parameters={
+    #         "parent_id": PARENT_PARAM,
+    #     },
+    #     example_pattern="{parent_id}/reserved-balances/list",
+    #     pattern="^(?P<parent_id>\d+)/reserved-balances/list$",
+    # )
+    # def free_balances(self, request, parent_id):
+    #     data = json.loads(request.body)
+    #     responses = []
+    #     for identifiant in data.get("details"):
+    #         url = f"{self.server_url}/{self.aes_instance}/parents/{parent_id}/reserved-balances/"
+    #         response = self.session.delete(url)
+    #         if response.status_code == 404:
+    #             responses.append({"reserved_balance_id_error": identifiant})
 
-        return responses or True
+    #     return responses or True
 
     @endpoint(
         name="menus",
@@ -2626,12 +2626,70 @@ class ApimsAesConnector(BaseResource):
         response = self.session.post(url, json=payload)
         response.raise_for_status()
         return response.json()
+    
+    @endpoint(
+        name="pedagogical-days",
+        methods=["get"],
+        perm="can_access",
+        description="Lire les inscriptions aux journées pédagogiques pour un enfant",
+        long_description="Lire les inscriptions aux journées pédagogiques pour un enfant",
+        parameters={
+            "child_id": CHILD_PARAM,
+            "parent_id": PARENT_PARAM,
+        },
+        display_category="Journées pédagogiques",
+        example_pattern="registrations/",
+        pattern=r"^registrations/$",
+    )
+    def read_pedagogical_registrations(self, request, child_id=None, parent_id=None):
+        parameters= []
+        if child_id:
+            parameters.append(f"child_id={child_id}")
+        if parent_id:
+            parameters.append(f"parent_id={parent_id}")
+        url = f"{self.server_url}/{self.aes_instance}/pedagogical-days/registrations"
+        if parameters:
+            url = url + "?" + "&".join(parameters)
+        response = self.session.get(url)
+        items = response.json().get("items", [])
+        for item in items:
+            format_date = date.fromisoformat(item["date"])
+            item["group_by"] = f"{format_date.day}/{format_date.month - 1}/{format_date.year}"
+            item["text"] = item["child_id"][1]
+            item["id"] = f"{item['child_registration_line_id']}_{item['day']}"
+        response.raise_for_status()
+        logging.info(f"Items: {items}")
+        logging.info(f"Response: {response.json()}")
+        return {"data": items}
 
+    @endpoint(
+        name="pedagogical-days",
+        methods=["delete"],
+        perm="can_access",
+        description="Désinscrire un enfant d'une ou plusieurs journées pédagogiques",
+        long_description="Désinscrit un enfant d'une ou plusieurs journées pédagogiques",
+        display_category="Journées pédagogiques",
+        example_pattern="registrations/delete",
+        pattern=r"^registrations/delete$",
+    )
+
+    def delete_pedagogical_registration(self, request):
+        url = f"{self.server_url}/{self.aes_instance}/pedagogical-days/registrations"
+        registrations = json.loads(request.body)["registrations"]
+        data =  {}
+        for registration in registrations:
+            if data.get(str(registration["child_registration_line_id"])) is None:
+                data[str(registration["child_registration_line_id"])] = [registration["day"]]
+            else:
+                data[str(registration["child_registration_line_id"])].append(registration["day"])
+        response = self.session.delete(url, json=data)
+        response.raise_for_status()
+        return response.json()
 
     def compute_childcare_amount(self, request, parent_id):
         post_data = json.loads(request.body)
         logger.info(f"Données : {post_data}")
-        url = f"{self.server_url}/{self.aes_instance}/pedagogical-days/cost" #adapter l'url
+        url = f"{self.server_url}/{self.aes_instance}/pedagogical-days/cost" 
         registrations = []
         for registration in post_data.get("registrations"):
             registrations.append({
