@@ -1563,7 +1563,7 @@ class ApimsAesConnector(BaseResource):
     )
     def create_reserved_balance(self, request, parent_id):
         body = json.loads(request.body)
-        if not body["child_registration_line_id"]:
+        if body.get("child_registration_line_id") is None:
             child_registration_line = {
                 "kid_id": body["child_id"],
                 "parent_id": int(parent_id),  # TODO: parent factu
@@ -2654,8 +2654,8 @@ class ApimsAesConnector(BaseResource):
         items = response.json().get("items", [])
         for item in items:
             format_date = date.fromisoformat(item["date"])
-            item["group_by"] = f"{format_date.day}/{format_date.month - 1}/{format_date.year}"
-            item["text"] = item["child_id"][1]
+            item["group_by"] = f"{format_date.day}/{format_date.month}/{format_date.year}"
+            item["text"] = item["child_name"]
             item["id"] = f"{item['child_registration_line_id']}_{item['day']}"
         response.raise_for_status()
         logging.info(f"Items: {items}")
@@ -2687,26 +2687,135 @@ class ApimsAesConnector(BaseResource):
         return response.json()
 
     def compute_childcare_amount(self, request, parent_id):
-        post_data = json.loads(request.body)
-        logger.info(f"Données : {post_data}")
-        url = f"{self.server_url}/{self.aes_instance}/pedagogical-days/cost" 
+        # Je récupère les données JSON que j'encapsule dans la variable "body"
+        body = json.loads(request.body)
+        logging.info(f"Données dans le body: {body}")
+
+        # Je déclare une liste vide pour stocker les inscriptions "registrations"
         registrations = []
-        for registration in post_data.get("registrations"):
+        # Je crée une boucle for pour parcourir chaque inscription dans "body" avec la clé "registrations" et j'alimente la liste "registrations"
+        for r in body.get("registrations", []):
             registrations.append({
-                "activity_id":int(registration["activity_id"]),
-                "child_id":int(registration["child_id"]),
-                "date":registration["date"],
-                "invoiceable_parent_id":int(post_data["invoiceable_parent_id"]),
-                "parent_id":int(post_data["parent_id"]),
-                "price_category_id":int(registration["price_category_id"]),
-                "activity_category_id":int(registration["activity_category_id"]),
+                # Je construis un dictionnaire pour chaque inscription avec les champs requis
+                "activity_id": int(r["activity_id"]),
+                "child_id": int(r["child_id"]),
+                "date": r["date"],
+                "invoiceable_parent_id": int(r["invoiceable_parent_id"]),
+                "parent_id": int(r["parent_id"]),
+                "price_category_id": int(r["price_category_id"]),
+                "activity_category_id": int(r["activity_category_id"]),
+                "school_implantation_id": int(r["school_implantation_id"]),
             })
-        
+
+        # Je prépare le "payload" pour la requête POST (ce qui sera envoyé à l'API AES et donc c'est le contenu de la liste registrations)
         payload = {"registrations": registrations}
-        logger.info(payload)
+        # Je logge le payload
+        logger.info(f"Payload : {payload}")
+        # Je construis l'URL pour la requête POST, c'est le endpoint AES pour calculer le coût des journées pédagogiques
+        url = f"{self.server_url}/{self.aes_instance}/pedagogical-days/cost"
+        # j'envoie la requête HTTP POST à l’URL donnée avec le payload (données) en JSON
         response = self.session.post(url, json=payload)
+        # Je vérifie que la requête s'est bien passée 
         response.raise_for_status()
-        return response.json()
+        # Je récupère les données de coût de la réponse JSON
+        cost_data = response.json()
+        logging.info(f"Données de coût : {cost_data}")
+
+        # Montant total renvoyé par AES
+        total_amount = float(cost_data.get("cost", 0.0))
+        # Infos du body
+        initial_balance = float(body.get("initial_balance", 0.0))
+        activity_category_id = body.get("activity_category_id")
+
+        # Si le solde initial est <= 0 :
+        if initial_balance <= 0:
+            return {
+                "activity_category_id": activity_category_id,
+                "due_amount": round(total_amount, 2),
+                "initial_balance": round(initial_balance, 2),
+                "reserved_balances": [], 
+                "final_solde": 0,
+                "total_amount": round(total_amount, 2),
+            }
+
+        reserved_balances = []
+        balance = initial_balance
+        details = cost_data.get("details", {})
+        due_amount = total_amount
+        logging.info(f"Détails  : {details}")
+        for detail in details:
+            for price_details in detail.get("details", []):
+                for item in price_details:
+                    line_amount = float(item.get("price", 0.0))
+                    amount = line_amount - (line_amount - balance)
+                    if amount > line_amount:
+                        amount = line_amount 
+                    balance -= line_amount
+                    due_amount -= amount
+                    if balance < 0:
+                        #due_amount += abs(balance)
+                        
+                        balance = 0.0
+                    reserved_balances.append({
+                        "amount": amount,
+                        "child_registration_line_id": item.get("child_registration_line_id"),
+                        "prepayment_by_category_id": item.get("prepayment_by_category_id"),
+                        "date": item.get("date"),
+                        "reserving_request": body.get("form_number_raw"),
+                    })
+                    if balance <= 0:
+                        return {
+                            "activity_category_id": activity_category_id,
+                            "due_amount": round(due_amount, 2),
+                            "balance": balance,
+                            "initial_balance": round(initial_balance, 2),
+                            "reserved_balances": reserved_balances,
+                            "total_amount": round(total_amount, 2)
+                        }
+        return {
+            "activity_category_id": activity_category_id,
+            "due_amount": round(due_amount, 2),
+            "balance": balance,
+            "initial_balance": round(initial_balance, 2),
+            "reserved_balances": reserved_balances,
+            "total_amount": round(total_amount, 2)
+        }
+        
+        # registration_lines = [
+        #     {
+        #         "id": item.get("child_registration_line_id"),
+        #         "reserved_amount": float(item.get("price", 0.0)),
+        #     }
+        #     #astuce filée par copilot pour le triple for imbriqué ?
+        #     for group in cost_data.get("details", [])
+        #     for bucket in group.get("details", [])
+        #     for item in bucket
+        # ]
+
+        # final_solde = initial_balance
+        # due_amount = 0.0
+
+        # for line in registration_lines:
+        #     line_amount = float(line.get("reserved_amount", 0.0))
+        #     final_solde -= line_amount
+        #     if final_solde < 0:
+        #         due_amount += abs(final_solde)
+        #         final_solde = 0.0
+
+        # spent_balance = initial_balance - final_solde  
+
+        # return {
+        #     "activity_category_id": activity_category_id,
+        #     "child_registration_line_ids": [line["id"] for line in registration_lines],
+        #     "due_amount": round(due_amount, 2),
+        #     "initial_balance": round(initial_balance, 2),
+        #     "parent_id": int(parent_id),
+        #     "prepayment_by_category_id": prepayment_by_category_id,
+        #     "reserved_balance": None,  # ici on ne fait que le calcul, pas la réservation
+        #     "spent_balance": round(spent_balance, 2),
+        #     "total_amount": round(total_amount, 2),
+        # }
+
 
     ###############################
     ## Calcul du montant à payer ##
@@ -2732,8 +2841,27 @@ class ApimsAesConnector(BaseResource):
             "meal": self.compute_meals_order_amount,
             "childcare": self.compute_childcare_amount
         }
+        logging.info(f"REQUEST: {request, json.loads(request.body)}") 
         if activity_category_type not in compute_amount_function.keys():
             raise ValueError(f"{activity_category_type} is not a valid activity category type")
 
-        return compute_amount_function[activity_category_type](request, parent_id) 
+        return compute_amount_function[activity_category_type](request, parent_id)
+
+    @endpoint(
+        name="reserved-balances",
+        methods=["post"],
+        perm="can_access",
+        description="Réserve des soldes",
+        long_description="Réserve des soldes pour un ou plusieurs parents pour une ou plusieurs catégories d'activités.",
+        display_category="Solde",
+        example_pattern="",
+        pattern="^$",
+    )
+    def reserve_balances(self, request):
+        url = f"{self.server_url}/{self.aes_instance}/reserved-balances"
+        payload = json.loads(request.body)
+        response = self.session.post(url, json=payload)
+        response.raise_for_status()
+        return response.json()
+
 
