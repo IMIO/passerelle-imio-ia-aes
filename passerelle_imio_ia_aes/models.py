@@ -2616,7 +2616,7 @@ class ApimsAesConnector(BaseResource):
             registrations.append({
                 "activity_id": registration["activity_id"],
                 "date": registration["date"],
-                "school_implantation_id": int(registration["school_implantation_ids"]),
+                "school_implantation_id": int(registration["school_implantation_id"]),
                 "child_id": int(registration["child_id"]),
                 "parent_id": int(post_data["parent_id"]),
             })
@@ -2729,6 +2729,7 @@ class ApimsAesConnector(BaseResource):
 
         # Si le solde initial est <= 0 :
         if initial_balance <= 0:
+            #TODO: renvoyer la clef payments 
             return {
                 "activity_category_id": activity_category_id,
                 "due_amount": round(total_amount, 2),
@@ -2737,7 +2738,7 @@ class ApimsAesConnector(BaseResource):
                 "final_solde": 0,
                 "total_amount": round(total_amount, 2),
             }
-
+        payments = []
         reserved_balances = []
         balance = initial_balance
         details = cost_data.get("details", {})
@@ -2747,6 +2748,15 @@ class ApimsAesConnector(BaseResource):
             for price_details in detail.get("details", []):
                 for item in price_details:
                     line_amount = float(item.get("price", 0.0))
+                    payment = {
+                        "parent_id": int(item["invoiceable_parent_id"]),
+                        "activity_category_id": detail["activity_category_id"],
+                        "type": "online",
+                        "comment": body.get("comment", ""),
+                        "form_url": body.get("form_url", ""),
+                        "amount": line_amount - balance if line_amount > balance else 0.0,
+                    }
+                    logging.info(f"payment: {payment}")
                     amount = line_amount - (line_amount - balance)
                     if amount > line_amount:
                         amount = line_amount 
@@ -2756,29 +2766,37 @@ class ApimsAesConnector(BaseResource):
                         #due_amount += abs(balance)
                         
                         balance = 0.0
-                    reserved_balances.append({
-                        "amount": amount,
-                        "child_registration_line_id": item.get("child_registration_line_id"),
-                        "prepayment_by_category_id": item.get("prepayment_by_category_id"),
-                        "date": item.get("date"),
-                        "reserving_request": body.get("form_number_raw"),
-                    })
-                    if balance <= 0:
-                        return {
-                            "activity_category_id": activity_category_id,
-                            "due_amount": round(due_amount, 2),
-                            "balance": balance,
-                            "initial_balance": round(initial_balance, 2),
-                            "reserved_balances": reserved_balances,
-                            "total_amount": round(total_amount, 2)
-                        }
+                    if amount > 0.01:
+                        reserved_balances.append({
+                            "amount": amount,
+                            "child_registration_line_id": item.get("child_registration_line_id"),
+                            "prepayment_by_category_id": item.get("prepayment_by_category_id"),
+                            "date": item.get("date"),
+                            "reserving_request": body.get("form_number_raw"),
+                        })
+                    logging.info(f"Payment amount > 0 ? : {payment['amount']} {type(payment['amount'])} > 0 => {payment['amount'] > 0.0}")
+                    if payment["amount"] > 0.0:
+                        logging.info(f"Ajout du paiement : {payment}")
+                        payments.append(payment)
+                    # if balance <= 0:
+                    #     return {
+                    #         "activity_category_id": activity_category_id,
+                    #         "due_amount": round(due_amount, 2),
+                    #         "balance": balance,
+                    #         "initial_balance": round(initial_balance, 2),
+                    #         "reserved_balances": reserved_balances,
+                    #         "total_amount": round(total_amount, 2),
+                    #         "payments": payments
+                    #     }
+        logging.info(f"Payments : {payments}")
         return {
             "activity_category_id": activity_category_id,
             "due_amount": round(due_amount, 2),
             "balance": balance,
             "initial_balance": round(initial_balance, 2),
             "reserved_balances": reserved_balances,
-            "total_amount": round(total_amount, 2)
+            "total_amount": round(total_amount, 2),
+            "payments": payments
         }
         
         # registration_lines = [
