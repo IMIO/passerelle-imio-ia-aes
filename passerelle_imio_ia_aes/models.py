@@ -26,7 +26,7 @@ import requests
 from calendar import Calendar, monthrange
 from django.db import models
 from django.conf import settings
-from django.http import Http404, HttpResponse, HttpResponseBadRequest
+from django.http import Http404, HttpResponse, HttpResponseBadRequest, HttpResponseNotAllowed
 from django.urls import path, reverse
 from django.core.exceptions import MultipleObjectsReturned
 from datetime import date, datetime, timedelta, time
@@ -1625,14 +1625,13 @@ class ApimsAesConnector(BaseResource):
     # )
     # def free_balances(self, request, parent_id):
     #     data = json.loads(request.body)
-    #     responses = []
+    #     for id in data[""]
     #     for identifiant in data.get("details"):
     #         url = f"{self.server_url}/{self.aes_instance}/parents/{parent_id}/reserved-balances/"
     #         response = self.session.delete(url)
-    #         if response.status_code == 404:
-    #             responses.append({"reserved_balance_id_error": identifiant})
+    #         response.raise_for_status()
 
-    #     return responses or True
+    #     return responses 
 
     @endpoint(
         name="menus",
@@ -2864,22 +2863,47 @@ class ApimsAesConnector(BaseResource):
             raise ValueError(f"{activity_category_type} is not a valid activity category type")
 
         return compute_amount_function[activity_category_type](request, parent_id)
-
-    @endpoint(
-        name="reserved-balances",
-        methods=["post"],
-        perm="can_access",
-        description="Réserve des soldes",
-        long_description="Réserve des soldes pour un ou plusieurs parents pour une ou plusieurs catégories d'activités.",
-        display_category="Solde",
-        example_pattern="",
-        pattern="^$",
-    )
-    def reserve_balances(self, request):
+    
+    def create_reserved_balances(self, payload):
         url = f"{self.server_url}/{self.aes_instance}/reserved-balances"
-        payload = json.loads(request.body)
         response = self.session.post(url, json=payload)
         response.raise_for_status()
         return response.json()
-
-
+    
+    def delete_reserved_balances(self, payload):
+        url = f"{self.server_url}/{self.aes_instance}/reserved-balances"
+        reserved_balances = payload.get("reserved_balances", [])
+        if not reserved_balances:
+            return HttpResponse(status_code=422)
+        response = self.session.delete(url, json=[
+            reserved_balance.get("id") for reserved_balance in reserved_balances if reserved_balance.get("id") is not None
+        ])
+        response.raise_for_status()
+        return HttpResponse(status=204)
+      
+    @endpoint(
+        name="reserved-balances",
+        methods=["get", "post", "delete"],
+        perm="can_access",
+        description="Permet de gérer des soldes réservés par batch",
+        description_post="Réserve des soldes",
+        description_delete="Supprime des soldes réservés",
+        long_description="Permet de gérer des soldes réservés par batch",
+        long_description_post="Réserve des soldes",
+        long_description_delete="Supprime des soldes réservés.",
+        display_category="Solde",
+    )
+    def reserved_balances(self, request):
+        methods = {
+            "POST": self.create_reserved_balances,
+            "DELETE": self.delete_reserved_balances,
+        }
+        method = methods.get(request.method)
+        logging.info("got reserve-balance request")
+        payload = None
+        if request.body:
+            payload = json.loads(request.body)
+        if method is None:
+            return HttpResponseNotAllowed()
+        result = method(payload)
+        return result
