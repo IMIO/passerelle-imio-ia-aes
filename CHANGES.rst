@@ -14,6 +14,7 @@ Changelog
 - [PP-634] Add comments into compute_meals_order_amount.
 - [PP-635] Add delete_pedagogical_registration def
 - [PP-612] Add read_pedagogical_registrations def
+- [PP-608] Add list_pedagogical_days date filtering
 
 
 2.2.0

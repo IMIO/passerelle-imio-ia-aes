@@ -2542,30 +2542,48 @@ class ApimsAesConnector(BaseResource):
         perm="can_access",
         description="Lister les journées pédagogiques",
         long_description="Lis les journées pédagogiques dans iA.AES et les complète pour leur utilisation dans un formulaire.",
-        #example_pattern="",
-        #pattern=r"^$",
         display_category="Journées pédagogiques",
         parameters={
             "parent_id": {
                 "example_value": 279,
                 "description": "ID du parent"             
             },
+            "end_date": {
+                "description": "Délai en jours pour masquer les dates au-delà",
+                "example_value": 30
+            },
+            "start_date": {
+                "description": "Délai en jours pour masquer les dates en deçà",
+                "example_value": 1
+            },
         }
     )
-    def list_pedagogical_days(self, request, parent_id):
+
+    def list_pedagogical_days(self, request, parent_id, end_date=None, start_date=1):
         jours = ('lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche')
         mois = ('janvier', 'février', 'mars', 'avril', 'mai', 'juin',
                 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre')
+        data = self.fetch_pedagogical_days(parent_id) 
 
-        data = self.fetch_pedagogical_days(parent_id)
+        start_date = date.today() + timedelta(int(start_date))
+        end_date = date.today() + timedelta(int(end_date))
+        pedagogical_days = []
+
         for item in data.get("items", []):
-            item["text"] = f"{item['child_lastname']} {item['child_firstname']}"
-            item["disabled"] = item["is_child_already_registered"] or not item["invoiceable_parent_id"]
-            item["id"] = f"{item['activity_id']}_{item['activity_date_id']}_{item['child_id']}"
-            format_date = date.fromisoformat(item["date"])
-            item["group_by"] = f"{jours[format_date.weekday()]} {format_date.day} {mois[format_date.month - 1]} {format_date.year}"
+            item_date = date.fromisoformat(item["date"])
+            logging.info(f"Item date: {item_date}, Start date: {start_date}, End date: {end_date}")
+            logging.info(f"expression end: {end_date is None} or {item_date <= end_date}")
+            logging.info(f"expression start: {(item_date >= start_date)}")
+            if (end_date is None or item_date <= end_date) and (item_date >= start_date):
+                item['text'] = f"{item['child_lastname']} {item['child_firstname']}"
+                item['disabled'] = item.get('is_child_already_registered') or not item.get('invoiceable_parent_id')
+                item['id'] = f"{item['activity_id']}_{item['activity_date_id']}_{item['child_id']}"
+                d = date.fromisoformat(item['date'])
+                item['group_by'] = f"{jours[d.weekday()]} {d.day} {mois[d.month - 1]} {d.year}"
+                pedagogical_days.append(item)
+        data["items"] = pedagogical_days
+          
         return data
-
 
     @endpoint(
         name="pedagogical-days",
