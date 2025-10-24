@@ -2446,6 +2446,7 @@ class ApimsAesConnector(BaseResource):
         ]
         response = self.session.post(url, json=payments)
         response.raise_for_status()
+        logging.info(f"Response payment creation: {response.json()}")
         return response.json()
 
     ###################
@@ -2739,14 +2740,46 @@ class ApimsAesConnector(BaseResource):
         logging.info(f"Données de coût : {cost_data}")
 
         # Montant total renvoyé par AES
-        total_amount = float(cost_data.get("cost", 0.0))
+        total_amount = float(cost_data["cost"])
         # Infos du body
-        initial_balance = float(body.get("initial_balance", 0.0))
+        initial_balance = float(body["initial_balance"]) - float(body["already_reserved_amount"])
+        if initial_balance < 0:
+            initial_balance = 0
         activity_category_id = body.get("activity_category_id")
+        details = cost_data.get("details", {})
+        payments = []
+        post_payments_reserved_balances = []
 
         # Si le solde initial est <= 0 :
         if initial_balance <= 0:
-            #TODO: renvoyer la clef payments 
+            payments_dict = {}
+            for detail in details:
+                for price_details in detail.get("details", []):
+                    for item in price_details:
+                        if payments_dict.get((item["invoiceable_parent_id"], detail["activity_category_id"])) is None:
+                            payments_dict[(item["invoiceable_parent_id"], detail["activity_category_id"])] = {
+                                "payment": {
+                                    "parent_id": int(item["invoiceable_parent_id"]),
+                                    "activity_category_id": detail["activity_category_id"],
+                                    "type": "online",
+                                    "comment": body.get("comment", ""),
+                                    "form_url": body.get("form_url", ""),
+                                    "amount": 0.0
+                                },
+                                "post_payments_reserved_balances": {
+                                    "amount": 0.0,
+                                    "child_registration_line_id": item.get("child_registration_line_id"),
+                                    "prepayment_by_category_id": item.get("prepayment_by_category_id"),
+                                    "date": item.get("date"),
+                                    "reserving_request": body.get("form_number_raw"),
+                                }
+                            }
+                        payments_dict[(item["invoiceable_parent_id"], detail["activity_category_id"])]["payment"]["amount"] += float(item.get("price", 0.0))
+                        payments_dict[(item["invoiceable_parent_id"], detail["activity_category_id"])]["post_payments_reserved_balances"]["amount"] += float(item.get("price", 0.0))
+            
+            for value in payments_dict.values():
+                payments.append(value["payment"])
+                post_payments_reserved_balances.append(value["post_payments_reserved_balances"])
             return {
                 "activity_category_id": activity_category_id,
                 "due_amount": round(total_amount, 2),
@@ -2754,11 +2787,12 @@ class ApimsAesConnector(BaseResource):
                 "reserved_balances": [], 
                 "final_solde": 0,
                 "total_amount": round(total_amount, 2),
+                "payments": payments,
+                "post_payments_reserved_balances": post_payments_reserved_balances
             }
-        payments = []
+
         reserved_balances = []
         balance = initial_balance
-        details = cost_data.get("details", {})
         due_amount = total_amount
         logging.info(f"Détails  : {details}")
         for detail in details:
@@ -2795,6 +2829,13 @@ class ApimsAesConnector(BaseResource):
                     if payment["amount"] > 0.0:
                         logging.info(f"Ajout du paiement : {payment}")
                         payments.append(payment)
+                        post_payments_reserved_balances.append({
+                            "amount": payment["amount"],
+                            "child_registration_line_id": item.get("child_registration_line_id"),
+                            "prepayment_by_category_id": item.get("prepayment_by_category_id"),
+                            "date": item.get("date"),
+                            "reserving_request": body.get("form_number_raw"),
+                        })
                     # if balance <= 0:
                     #     return {
                     #         "activity_category_id": activity_category_id,
@@ -2813,7 +2854,8 @@ class ApimsAesConnector(BaseResource):
             "initial_balance": round(initial_balance, 2),
             "reserved_balances": reserved_balances,
             "total_amount": round(total_amount, 2),
-            "payments": payments
+            "payments": payments,
+            "post_payments_reserved_balances": post_payments_reserved_balances
         }
         
         # registration_lines = [
@@ -2884,6 +2926,7 @@ class ApimsAesConnector(BaseResource):
     
     def create_reserved_balances(self, payload):
         url = f"{self.server_url}/{self.aes_instance}/reserved-balances"
+        logging.info(f"Payload reserved balances: {payload}")
         response = self.session.post(url, json=payload)
         response.raise_for_status()
         return response.json()
@@ -2925,3 +2968,4 @@ class ApimsAesConnector(BaseResource):
             return HttpResponseNotAllowed()
         result = method(payload)
         return result
+
