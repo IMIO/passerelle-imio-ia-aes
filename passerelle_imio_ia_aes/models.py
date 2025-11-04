@@ -2914,7 +2914,7 @@ class ApimsAesConnector(BaseResource):
     )
     def compute_amount(self, request, parent_id, activity_category_type):
         compute_amount_function = {
-            "meal": self.compute_meals_order_amount,
+            "menus": self.compute_meals_order_amount,
             "childcare": self.compute_childcare_amount
         }
         logging.info(f"REQUEST: {request, json.loads(request.body)}") 
