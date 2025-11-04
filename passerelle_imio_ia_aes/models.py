@@ -41,7 +41,9 @@ from datetime import datetime
 
 
 logger = logging.getLogger(__name__)
-
+JOURS = ('lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche')
+MOIS = ('janvier', 'février', 'mars', 'avril', 'mai', 'juin',
+        'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre')
 
 class ApimsAesConnector(BaseResource):
     """
@@ -2561,9 +2563,6 @@ class ApimsAesConnector(BaseResource):
     )
 
     def list_pedagogical_days(self, request, parent_id, end_date=None, start_date=1):
-        jours = ('lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche')
-        mois = ('janvier', 'février', 'mars', 'avril', 'mai', 'juin',
-                'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre')
         data = self.fetch_pedagogical_days(parent_id) 
 
         start_date = date.today() + timedelta(int(start_date))
@@ -2580,7 +2579,7 @@ class ApimsAesConnector(BaseResource):
                 item['disabled'] = item.get('is_child_already_registered') or not item.get('invoiceable_parent_id')
                 item['id'] = f"{item['activity_id']}_{item['activity_date_id']}_{item['child_id']}"
                 d = date.fromisoformat(item['date'])
-                item['group_by'] = f"{jours[d.weekday()]} {d.day} {mois[d.month - 1]} {d.year}"
+                item['group_by'] = f"{JOURS[d.weekday()]} {d.day} {MOIS[d.month - 1]} {d.year}".capitalize()
                 pedagogical_days.append(item)
         data["items"] = pedagogical_days
           
@@ -2671,14 +2670,14 @@ class ApimsAesConnector(BaseResource):
         response = self.session.get(url)
         items = response.json().get("items", [])
         for item in items:
-            format_date = date.fromisoformat(item["date"])
-            item["group_by"] = f"{format_date.day}/{format_date.month}/{format_date.year}"
+            d = date.fromisoformat(item["date"])
+            item['group_by'] = f"{JOURS[d.weekday()]} {d.day} {MOIS[d.month - 1]} {d.year}".capitalize()
             item["text"] = item["child_name"]
             item["id"] = f"{item['child_registration_line_id']}_{item['day']}"
         response.raise_for_status()
         logging.info(f"Items: {items}")
         logging.info(f"Response: {response.json()}")
-        return {"data": items}
+        return {"data": sorted(items, key=lambda i: i["date"])}
 
     @endpoint(
         name="pedagogical-days",
