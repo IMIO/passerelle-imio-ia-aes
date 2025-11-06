@@ -2968,3 +2968,57 @@ class ApimsAesConnector(BaseResource):
         result = method(payload)
         return result
 
+    ###############################
+    ## Mercredis après-midi      ##
+    ###############################
+
+    def fetch_wednesday_afternoon(self, parent_id):
+        url = f"{self.server_url}/{self.aes_instance}/wednesday-afternoon?parent_id={parent_id}"
+        response = self.session.get(url)
+        response.raise_for_status()
+        return response.json()
+
+    @endpoint(
+        name="wednesday-afternoon",
+        methods=["get"],
+        perm="can_access",
+        description="Lister les mercredis après-midi",
+        long_description="Lis les mercredis après-midi dans iA.AES et les complète pour leur utilisation dans un formulaire.",
+        display_category="Mercredis après-midi",
+        parameters={
+            "parent_id": {
+                "example_value": 19,
+                "description": "ID du parent"             
+            },
+            "end_date": {
+                "description": "Délai en jours pour masquer les dates au-delà",
+                "example_value": 30
+            },
+            "start_date": {
+                "description": "Délai en jours pour masquer les dates en deçà",
+                "example_value": 1
+            },
+        }
+    )
+    def list_wednesday_afternoon(self, request, parent_id, end_date=None, start_date=1):
+        data = self.fetch_wednesday_afternoon(parent_id)
+
+        start_date = date.today() + timedelta(int(start_date))
+        end_date = date.today() + timedelta(int(end_date))
+        wednesday_afternoon = []
+
+        for item in data.get("items", []):
+            item_date = date.fromisoformat(item["date"])
+            logging.info(f"Item date: {item_date}, Start date: {start_date}, End date: {end_date}")
+            logging.info(f"expression end: {end_date is None} or {item_date <= end_date}")
+            logging.info(f"expression start: {(item_date >= start_date)}")
+            if (end_date is None or item_date <= end_date) and (item_date >= start_date):
+                item['text'] = f"{item['child_lastname']} {item['child_firstname']}"
+                item['disabled'] = item.get('is_child_already_registered') or not item.get('invoiceable_parent_id')
+                item['id'] = f"{item['activity_id']}_{item.get('activity_date_id') or item['date']}_{item['child_id']}"
+                d = date.fromisoformat(item['date'])
+                item['group_by'] = f"{JOURS[d.weekday()]} {d.day} {MOIS[d.month - 1]} {d.year}".capitalize()
+                wednesday_afternoon.append(item)
+
+        data["items"] = wednesday_afternoon
+        return data

@@ -15,6 +15,7 @@ Changelog
 - [PP-635] Add delete_pedagogical_registration def
 - [PP-612] Add read_pedagogical_registrations def
 - [PP-608] Add list_pedagogical_days date filtering
+- [PP-656] Add get_wednesday_afternoon def
 
 
 2.2.0
