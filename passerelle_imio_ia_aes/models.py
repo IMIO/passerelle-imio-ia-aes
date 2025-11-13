@@ -2615,19 +2615,19 @@ class ApimsAesConnector(BaseResource):
         return result
 
     @endpoint(
-        name="pedagogical-days",
+        name="generic-activities",
         methods=["post"],
         perm="can_access",
-        description="Créer des inscriptions aux journées pédagogiques",
-        long_description="Enregistre des inscriptions aux journées pédagogiques dans iA.AES",
+        description="Créer des inscriptions à des activités génériques",
+        long_description="Enregistre des inscriptions à des activités génériques.",
         example_pattern="create-registrations/",
         pattern=r"^create-registrations/$",
-        display_category="Journées pédagogiques",
+        display_category="Activités génériques",
     )
-    def create_pedagogical_days_inscriptions(self, request):
+    def create_generic_registrations(self, request):
         post_data = json.loads(request.body)
         logger.info(f"Données : {post_data}")
-        url = f"{self.server_url}/{self.aes_instance}/pedagogical-days"
+        url = f"{self.server_url}/{self.aes_instance}/generic-activities"
         registrations = []
         for registration in post_data["registrations"]:
             registrations.append({
@@ -2680,18 +2680,17 @@ class ApimsAesConnector(BaseResource):
         return {"data": sorted(items, key=lambda i: i["date"])}
 
     @endpoint(
-        name="pedagogical-days",
+        name="generic-activities",
         methods=["delete"],
         perm="can_access",
         description="Désinscrire un enfant d'une ou plusieurs journées pédagogiques",
         long_description="Désinscrit un enfant d'une ou plusieurs journées pédagogiques",
-        display_category="Journées pédagogiques",
+        display_category="Activités génériques",
         example_pattern="registrations/delete",
         pattern=r"^registrations/delete$",
     )
-
-    def delete_pedagogical_registration(self, request):
-        url = f"{self.server_url}/{self.aes_instance}/pedagogical-days/registrations"
+    def delete_generic_registration(self, request):
+        url = f"{self.server_url}/{self.aes_instance}/generic-activities/registrations"
         registrations = json.loads(request.body)["registrations"]
         data =  {}
         for registration in registrations:
@@ -2729,7 +2728,7 @@ class ApimsAesConnector(BaseResource):
         # Je logge le payload
         logger.info(f"Payload : {payload}")
         # Je construis l'URL pour la requête POST, c'est le endpoint AES pour calculer le coût des journées pédagogiques
-        url = f"{self.server_url}/{self.aes_instance}/pedagogical-days/cost"
+        url = f"{self.server_url}/{self.aes_instance}/generic-activities/cost"
         # j'envoie la requête HTTP POST à l’URL donnée avec le payload (données) en JSON
         response = self.session.post(url, json=payload)
         # Je vérifie que la requête s'est bien passée 
