@@ -2645,7 +2645,7 @@ class ApimsAesConnector(BaseResource):
         return response.json()
     
     @endpoint(
-        name="pedagogical-days",
+        name="generic-activities",
         methods=["get"],
         perm="can_access",
         description="Lire les inscriptions aux journées pédagogiques pour un enfant",
@@ -2653,28 +2653,36 @@ class ApimsAesConnector(BaseResource):
         parameters={
             "child_id": CHILD_PARAM,
             "parent_id": PARENT_PARAM,
+            "activity_on_portal": {
+                "description": "Nom de l'activité sur le Portail Parent",
+                "example_value": "pedagogical_day"
+            }
         },
-        display_category="Journées pédagogiques",
+        display_category="Activités génériques",
         example_pattern="registrations/",
         pattern=r"^registrations/$",
     )
-    def read_pedagogical_registrations(self, request, child_id=None, parent_id=None):
+    def read_generic_activities_registrations(self, request, child_id=None, parent_id=None, activity_on_portal=None):
         parameters= []
         if child_id:
             parameters.append(f"child_id={child_id}")
         if parent_id:
             parameters.append(f"parent_id={parent_id}")
-        url = f"{self.server_url}/{self.aes_instance}/pedagogical-days/registrations"
+        if activity_on_portal:
+            parameters.append(f"activity_on_portal={activity_on_portal}")
+        url = f"{self.server_url}/{self.aes_instance}/generic-activities/registrations"
         if parameters:
             url = url + "?" + "&".join(parameters)
         response = self.session.get(url)
+        if response.status_code == 404:
+            raise Http404(response.json()["detail"])
+        response.raise_for_status()
         items = response.json().get("items", [])
         for item in items:
             d = date.fromisoformat(item["date"])
             item['group_by'] = f"{JOURS[d.weekday()]} {d.day} {MOIS[d.month - 1]} {d.year}".capitalize()
             item["text"] = item["child_name"]
             item["id"] = f"{item['child_registration_line_id']}_{item['day']}"
-        response.raise_for_status()
         logging.info(f"Items: {items}")
         logging.info(f"Response: {response.json()}")
         return {"data": sorted(items, key=lambda i: i["date"])}
