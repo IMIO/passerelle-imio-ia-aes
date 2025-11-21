@@ -26,7 +26,7 @@ import requests
 from calendar import Calendar, monthrange
 from django.db import models
 from django.conf import settings
-from django.http import Http404, HttpResponse, HttpResponseBadRequest
+from django.http import Http404, HttpResponse, HttpResponseBadRequest, HttpResponseNotAllowed
 from django.urls import path, reverse
 from django.core.exceptions import MultipleObjectsReturned
 from datetime import date, datetime, timedelta, time
@@ -37,10 +37,13 @@ from passerelle.utils.api import endpoint
 from passerelle.utils.jsonresponse import APIError
 from requests.exceptions import ConnectionError
 from workalendar.europe import Belgium
+from datetime import datetime
 
 
 logger = logging.getLogger(__name__)
-
+JOURS = ('lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche')
+MOIS = ('janvier', 'février', 'mars', 'avril', 'mai', 'juin',
+        'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre')
 
 class ApimsAesConnector(BaseResource):
     """
@@ -156,7 +159,6 @@ class ApimsAesConnector(BaseResource):
         response = self.session.get(url)
         return response.json()
 
-
     @endpoint(
         name="levels",
         methods=["get"],
@@ -164,7 +166,7 @@ class ApimsAesConnector(BaseResource):
         description="Lister les niveaux",
         long_description="Liste les niveaux scolaires.",
         display_category="Données génériques",
-        cache_duration=600
+        cache_duration=600,
     )
     def list_levels(self, request):
         url = f"{self.server_url}/{self.aes_instance}/levels"
@@ -192,7 +194,7 @@ class ApimsAesConnector(BaseResource):
         description="Lister les implantations scolaires",
         long_description="Liste les implantations scolaires.",
         display_category="Données génériques",
-        cache_duration=600
+        cache_duration=600,
     )
     def list_school_implantations(self, request):
         url = f"{self.server_url}/{self.aes_instance}/school-implantations"
@@ -326,7 +328,7 @@ class ApimsAesConnector(BaseResource):
             "partner_type": {
                 "description": "'parent' or 'child'",
                 "example_value": "child",
-            }
+            },
         },
         example_pattern="{id}",
         pattern="^(?P<id>\w+)$",
@@ -334,36 +336,60 @@ class ApimsAesConnector(BaseResource):
     )
     def update_person(self, request, id, partner_type):
         data = json.loads(request.body)
-        form_register_child_schema = self.get_data_from_wcs("api/formdefs/pp-enregistrer-un-enfant/schema")
+        form_register_child_schema = self.get_data_from_wcs(
+            "api/formdefs/pp-enregistrer-un-enfant/schema"
+        )
         patch_data = {
-            "is_invoicing_differs_by_home": True if form_register_child_schema["options"]["child_type_facturation"].lower() == "oui" else False,
-            "is_invoicing_differs_by_school": True if form_register_child_schema["options"]["prefered_school_pricing"].lower() == "oui" else False,
-            "municipality_zipcodes": data["municipality_zipcodes"]
+            "is_invoicing_differs_by_home": (
+                True
+                if form_register_child_schema["options"][
+                    "child_type_facturation"
+                ].lower()
+                == "oui"
+                else False
+            ),
+            "is_invoicing_differs_by_school": (
+                True
+                if form_register_child_schema["options"][
+                    "prefered_school_pricing"
+                ].lower()
+                == "oui"
+                else False
+            ),
+            "municipality_zipcodes": data["municipality_zipcodes"],
         }
         if partner_type == "child":
-            patch_data.update({
-                "firstname": data["child_firstname"],
-                "lastname": data["child_lastname"],
-                "birthdate_date": "-".join(reversed(data["child_birthdate"].split("/"))),
-                "national_number": data["child_national_number"],
-                "school_implantation_id": int(data["child_school_implantation"]),
-                "other_ref": data.get("child_other_reference") or ""
-            })
+            patch_data.update(
+                {
+                    "firstname": data["child_firstname"],
+                    "lastname": data["child_lastname"],
+                    "birthdate_date": "-".join(
+                        reversed(data["child_birthdate"].split("/"))
+                    ),
+                    "national_number": data["child_national_number"],
+                    "school_implantation_id": int(data["child_school_implantation"]),
+                    "other_ref": data.get("child_other_reference") or "",
+                }
+            )
         elif partner_type == "parent":
-            patch_data.update({
-                "country_id": int(data["parent_country_id"]),
-                "email": data["parent_email"],
-                "locality_box": data["parent_num_box"],
-                "street_number": data["parent_num_house"],
-                "phone": data["parent_phone"],
-                "street": data["parent_street"],
-                "professional_phone": data["parent_professional_phone"],
-                "mobile": data["parent_mobile_phone"]
-            })
+            patch_data.update(
+                {
+                    "country_id": int(data["parent_country_id"]),
+                    "email": data["parent_email"],
+                    "locality_box": data["parent_num_box"],
+                    "street_number": data["parent_num_house"],
+                    "phone": data["parent_phone"],
+                    "street": data["parent_street"],
+                    "professional_phone": data["parent_professional_phone"],
+                    "mobile": data["parent_mobile_phone"],
+                }
+            )
             if data["parent_country"].lower() == "belgique":
                 patch_data.update({"locality_id": data["parent_locality_id"]})
             else:
-                patch_data.update({"zip": data["parent_zipcode"], "city": data["parent_city"]})
+                patch_data.update(
+                    {"zip": data["parent_zipcode"], "city": data["parent_city"]}
+                )
         else:
             return HttpResponseBadRequest(f"{partner_type} is not a valid partner.")
         url = f"{self.server_url}/{self.aes_instance}/persons/{id}"
@@ -418,7 +444,7 @@ class ApimsAesConnector(BaseResource):
         example_pattern="{parent_id}/",
         pattern="^(?P<parent_id>\w+)/$",
         display_category="Parent",
-        cache_duration=30
+        cache_duration=30,
     )
     def read_parent(self, request, parent_id):
         url = f"{self.server_url}/{self.aes_instance}/parents/{parent_id}/"
@@ -471,7 +497,7 @@ class ApimsAesConnector(BaseResource):
         example_pattern="{parent_id}/children/",
         pattern="^(?P<parent_id>\w+)/children/$",
         display_category="Parent",
-        cache_duration=15
+        cache_duration=15,
     )
     def list_children(self, request, parent_id):
         url = f"{self.server_url}/{self.aes_instance}/parents/{parent_id}/kids"
@@ -492,7 +518,7 @@ class ApimsAesConnector(BaseResource):
                     "level": child["level_id"],
                     "healthsheet": child["health_sheet_ids"],
                     "invoiceable_parents": child["parent_ids"],
-                    "responsibility_id": child["responsibility_id"]
+                    "responsibility_id": child["responsibility_id"],
                 }
             )
         return {"items": result}
@@ -503,11 +529,28 @@ class ApimsAesConnector(BaseResource):
         perm="can_access",
         description="Lister les formulaires de la catégorie Portail Parent",
         display_category="WCS",
-        cache_duration=30
+        cache_duration=30,
+        parameters={
+            "keywords": {
+                "example_value": "Inscriptions,Désinscriptions",
+                "description": "Récupére les formulaires dont au moins un mot-clef correspond à un des 'keyword' de la requête",
+            }
+        },
     )
-    def list_forms(self, requests):
+    def list_forms(self, request, keywords=None):
         path = "api/categories/portail-parent/formdefs/"
-        return self.get_data_from_wcs(path)["data"]
+        forms = self.get_data_from_wcs(path)["data"]
+        result = []
+        if keywords:
+            keywords = keywords.split(",")
+            for form in forms:
+                for keyword in keywords:
+                    if keyword.lower() in [k.lower() for k in form["keywords"]]:
+                        result.append(form)
+                        break
+        else:
+            return forms
+        return result
 
     def get_data_from_wcs(self, path):
         if not getattr(settings, "KNOWN_SERVICES", {}).get("wcs"):
@@ -648,9 +691,10 @@ class ApimsAesConnector(BaseResource):
             parent_id=consolidated_parent_id,
             has_plain_registrations=self.has_plain_registrations(parent_uuid),
             children=list(),
-            is_update_child_available="pp-modifier-les-donnees-d-un-enfant" in form_slugs,
+            is_update_child_available="pp-modifier-les-donnees-d-un-enfant"
+            in form_slugs,
             is_update_parent_available="pp-modifier-mes-donnees-parent" in form_slugs,
-            is_become_invoiceable_available="pp-me-designer-facturable" in form_slugs
+            is_become_invoiceable_available="pp-me-designer-facturable" in form_slugs,
         )
         for child in response.json().get("children"):
             child_forms = list()
@@ -669,7 +713,8 @@ class ApimsAesConnector(BaseResource):
                     and (
                         "repas" not in form["slug"]
                         or self.does_school_have_meals(
-                            child["school_implantation"], school_implantations_with_meals
+                            child["school_implantation"],
+                            school_implantations_with_meals,
                         )
                     )
                 ]
@@ -678,9 +723,11 @@ class ApimsAesConnector(BaseResource):
                 national_number=child["national_number"],
                 name=child["name"],
                 age=child["age"],
-                school_implantation=False
-                if not child["school_implantation"]
-                else child["school_implantation"],
+                school_implantation=(
+                    False
+                    if not child["school_implantation"]
+                    else child["school_implantation"]
+                ),
                 level=child["level"],
                 healthsheet=child["has_valid_healthsheet"],
                 invoiceable_parent_id=child["invoiceable_parent_id"],
@@ -688,6 +735,38 @@ class ApimsAesConnector(BaseResource):
             )
             result["children"].append(ts_child)
         return result
+
+
+    @endpoint(
+        name="parents",
+        methods=["get"],
+        perm="can_access",
+        description="Informations enfants du parents",
+        long_description="Récupére les données contenue dans le endpoint homepage de apims",
+        parameters={
+            "parent_id": PARENT_PARAM,
+        },
+        example_pattern="{parent_id}/homepage_lite",
+        pattern="^(?P<parent_id>\w+)/homepage_lite$",
+        display_category="Parent",
+    )
+    def homepage_lite(self, request, parent_id):
+        """Check and update user's aes_id and build parent portal data structure
+
+        Parameters:
+            new_parent_aes_id: new parent's ID in iA.AES after a merge.
+            parent_uuid: user's uuid in authentic
+
+        Returns:
+            json
+        """
+        if not parent_id.isdigit():
+            return None
+        url = f"{self.server_url}/{self.aes_instance}/parents/{parent_id}/homepage"
+        response = self.session.get(url)
+        response.raise_for_status()
+        return response.json()
+
 
     ##############
     ### Enfant ###
@@ -698,20 +777,19 @@ class ApimsAesConnector(BaseResource):
         perm="can_access",
         description="Récupérer les infos enfants via l'id enfant",
         long_description="Récupérer les infos enfants via l'id enfant",
-        parameters={
-            "child_id": CHILD_PARAM
-        },
+        parameters={"child_id": CHILD_PARAM},
         example_pattern="{child_id}/",
         pattern="^(?P<child_id>\w+)/$",
         display_category="Enfant",
     )
     def read_child(self, request, child_id):
         from time import perf_counter
+
         t0 = perf_counter()
         url = f"{self.server_url}/{self.aes_instance}/kids/{child_id}"
         logging.error(f"READ_CHILD {url} - temps : {perf_counter()-t0}")
         result = self.session.get(url).json()
-        result["time"] = perf_counter()-t0
+        result["time"] = perf_counter() - t0
         return result
 
     def list_price_categories(self):
@@ -724,7 +802,11 @@ class ApimsAesConnector(BaseResource):
         return price_categories
 
     def set_price_category(
-        self, is_invoicing_differs_by_home, is_invoicing_differs_by_school, is_parent_lives_in_municipality, is_child_scholarised_in_municipality
+        self,
+        is_invoicing_differs_by_home,
+        is_invoicing_differs_by_school,
+        is_parent_lives_in_municipality,
+        is_child_scholarised_in_municipality,
     ):
         """
         Défini la catégorie tarifaire de l'enfant en fonction de son implantation scolaire et du domicile de son parent
@@ -737,7 +819,12 @@ class ApimsAesConnector(BaseResource):
         price_categories = self.list_price_categories()
         if not is_invoicing_differs_by_home and not is_invoicing_differs_by_school:
             price_category = price_categories["Aucun"]
-        elif is_invoicing_differs_by_home and is_parent_lives_in_municipality or is_invoicing_differs_by_school and is_child_scholarised_in_municipality:
+        elif (
+            is_invoicing_differs_by_home
+            and is_parent_lives_in_municipality
+            or is_invoicing_differs_by_school
+            and is_child_scholarised_in_municipality
+        ):
             price_category = price_categories["Commune"]
         else:
             price_category = price_categories["Hors Commune"]
@@ -758,10 +845,19 @@ class ApimsAesConnector(BaseResource):
         url = f"{self.server_url}/{self.aes_instance}/parents/{parent_id}/kids"
         post_data = json.loads(request.body)
         price_category_id = self.set_price_category(
-            is_invoicing_differs_by_home=post_data["invoicing_differs_by_home"] in ("oui", "non_renseigne"), # non-renseigne est possible dans ce cas pour des raisons de rétro-compatibilité
-            is_invoicing_differs_by_school=post_data["invoicing_differs_by_school"] == "oui", # Ici, non-renseigne n'est pas possible car pas de rétro-compatibilité à gérer
-            is_parent_lives_in_municipality=post_data["parent_zipcode"] in post_data["municipality_zipcodes"],
-            is_child_scholarised_in_municipality=not (len(post_data["school_implantation"]) <= 6 and "autre" in post_data["school_implantation"].lower()), # La longueur pour gérer les cas comme l'école communale de Bautre et le vrai test.
+            is_invoicing_differs_by_home=post_data["invoicing_differs_by_home"]
+            in (
+                "oui",
+                "non_renseigne",
+            ),  # non-renseigne est possible dans ce cas pour des raisons de rétro-compatibilité
+            is_invoicing_differs_by_school=post_data["invoicing_differs_by_school"]
+            == "oui",  # Ici, non-renseigne n'est pas possible car pas de rétro-compatibilité à gérer
+            is_parent_lives_in_municipality=post_data["parent_zipcode"]
+            in post_data["municipality_zipcodes"],
+            is_child_scholarised_in_municipality=not (
+                len(post_data["school_implantation"]) <= 6
+                and "autre" in post_data["school_implantation"].lower()
+            ),  # La longueur pour gérer les cas comme l'école communale de Bautre et le vrai test.
         )
         child = {
             "firstname": post_data["firstname"],
@@ -860,7 +956,8 @@ class ApimsAesConnector(BaseResource):
         perm="can_access",
         description="Ajoute facturable ou attestable",
         long_description="Renseigne une responsabilité comme facturable, ce qui permet au parent d'entamer des démarches, et éventuellement attestable.",
-        parameters={"responsibility_id": {
+        parameters={
+            "responsibility_id": {
                 "description": "Identifiant du lien entre le parent et l'enfant",
                 "example_value": "37",
             },
@@ -916,9 +1013,11 @@ class ApimsAesConnector(BaseResource):
                 "id": "{}_{}_{}".format(
                     activity["year"], activity["week"], activity["id"]
                 ),
-                "text": activity.get("theme")
-                if activity.get("theme") and activity.get("theme") != "False"
-                else activity["name"],
+                "text": (
+                    activity.get("theme")
+                    if activity.get("theme") and activity.get("theme") != "False"
+                    else activity["name"]
+                ),
                 "week": activity["week"],
                 "year": activity["year"],
                 "start_date": activity["start_date"],
@@ -964,7 +1063,7 @@ class ApimsAesConnector(BaseResource):
         plains = []
         for plain in post_data["plains"]:
             activity_id = plain["id"]
-            start_date = datetime.fromisocalendar(plain['year'], plain['week'], 1)
+            start_date = datetime.fromisocalendar(plain["year"], plain["week"], 1)
             end_date = start_date + timedelta(days=4)
             plains.append(
                 {
@@ -1097,7 +1196,11 @@ class ApimsAesConnector(BaseResource):
 
     def set_disabled_on_meal(self, registration, meal_date, parent_id):
         disabled, reasons = False, []
-        if registration is not None and parent_id is not None and int(parent_id) not in registration['meal_authorized_parent_ids']:
+        if (
+            registration is not None
+            and parent_id is not None
+            and int(parent_id) not in registration["meal_authorized_parent_ids"]
+        ):
             disabled = True
             reasons.append("Initial registering parent is not current parent")
         if meal_date <= date.today() + timedelta(days=1):
@@ -1109,15 +1212,21 @@ class ApimsAesConnector(BaseResource):
         url = f"{self.server_url}/{self.aes_instance}/menus?kid_id={child_id}&month={month}"
         response = self.session.get(url)
         response.raise_for_status()
-        registrations = {f"_{self.reverse_date(registration['meal_date'], '-')}_{registration['meal_regime']}-{registration['meal_activity_id']}": registration
-                         for registration in self.get_meal_registrations(child_id)}
+        registrations = {
+            f"_{self.reverse_date(registration['meal_date'], '-')}_{registration['meal_regime']}-{registration['meal_activity_id']}": registration
+            for registration in self.get_meal_registrations(child_id)
+        }
         menus = []
         for menu in response.json()["items"]:
             for meal in menu["meal_ids"]:
                 if isinstance(meal, dict):
                     meal_id = f"_{self.reverse_date(menu['date'], '-')}_{meal['regime']}-{meal['activity_id']}"
                     registration = registrations.get(meal_id)
-                    disabled, disabling_reason = self.set_disabled_on_meal(registration, datetime.strptime(menu['date'], "%Y-%m-%d").date(), parent_id)
+                    disabled, disabling_reason = self.set_disabled_on_meal(
+                        registration,
+                        datetime.strptime(menu["date"], "%Y-%m-%d").date(),
+                        parent_id,
+                    )
                     menus.append(
                         {
                             "id": meal_id,
@@ -1128,7 +1237,7 @@ class ApimsAesConnector(BaseResource):
                             "price": meal["price"],
                             "activity_id": meal["activity_id"],
                             "is_disabled": disabled,
-                            "disabling_reason": disabling_reason
+                            "disabling_reason": disabling_reason,
                         }
                     )
         return {"data": sorted(menus, key=lambda x: x["id"])}
@@ -1186,7 +1295,23 @@ class ApimsAesConnector(BaseResource):
         if len(list_errors) > 0:
             return {"errors_in_menus": list_errors}
         return month_menu
-    
+
+    @endpoint(
+        name="activity_categories",
+        methods=["get"],
+        perm="can_access",
+        description="Liste les catégories d'activités",
+        long_description="Renvoie la liste des catégories d’activités pour une entité AES donnée (municipality_id).",
+        example_pattern="activity-categories",
+        pattern=r"^activity-categories$",
+        display_category="Données génériques",
+    )
+    def get_activity_categories(self, request):
+        url = f"{self.server_url}/{self.aes_instance}/activity-categories"
+        response = self.session.get(url, timeout=10)
+        response.raise_for_status()
+        return response.json()
+
     @endpoint(
         name="parents",
         methods=["get"],
@@ -1201,19 +1326,22 @@ class ApimsAesConnector(BaseResource):
         display_category="Parent",
     )
     def get_all_balances_for_parent(self, request, parent_id):
-        url = f"{self.server_url}/{self.aes_instance}/parents/{parent_id}/balances/"
-        headers = {
-            "Accept": "application/json",
-        }
-        response = requests.get(url, headers=headers, timeout=10)
+        url = f"{self.server_url}/{self.aes_instance}/parents/{parent_id}/balances"
+        response = self.session.get(url, timeout=10)
         response.raise_for_status()
         return response.json()
-        
-    def get_balance(self, parent_id, activity_category_type, child_id=None, year=None, month=None):
+
+    def get_balance(
+        self, parent_id, activity_category_type, child_id=None, year=None, month=None
+    ):
         url = f"{self.server_url}/{self.aes_instance}/parents/{parent_id}/balances/{activity_category_type}"
         if child_id or year or month:
             url += "?"
-            url += "&".join(f"{k}={v}" for k, v in {"child_id": child_id, "year": year, "month": month}.items() if v)
+            url += "&".join(
+                f"{k}={v}"
+                for k, v in {"child_id": child_id, "year": year, "month": month}.items()
+                if v
+            )
         response = self.session.get(url)
         response.raise_for_status()
         return response.json()
@@ -1224,7 +1352,7 @@ class ApimsAesConnector(BaseResource):
         response = self.session.post(url, json=data)
         response.raise_for_status()
         return response.json()
-    
+
     @endpoint(
         name="parents",
         methods=["get"],
@@ -1247,40 +1375,72 @@ class ApimsAesConnector(BaseResource):
         },
         display_category="Parent",
     )
-    def get_balance_for_activity_category_type(self, request, parent_id, activity_category_type, child_id=None, month=None):
+    def get_balance_for_activity_category_type(
+        self, request, parent_id, activity_category_type, child_id=None, month=None
+    ):
         if month is not None and month not in ["0", "1", "2"]:
             raise ValueError(
                 "Le mois ne peut avoir comme valeur que 0, 1, ou 2. Voir la description du paramètre pour en savoir plus."
             )
-        reference_day = date.today() + relativedelta(months=int(month))
-        return self.get_balance(parent_id, activity_category_type, child_id=child_id, year=reference_day.year, month=reference_day.month)
+        if month is not None:
+            reference_day = date.today() + relativedelta(months=int(month))
+        return self.get_balance(
+            parent_id,
+            activity_category_type,
+            child_id=child_id,
+            year=reference_day.year if month is not None else None,
+            month=reference_day.month if month is not None else None,
+        )
 
     def get_or_create_child_registration_line(self, data):
-        response = self.session.post(f"{self.server_url}/{self.aes_instance}/school-meals/registrations/lines", json=data)
+        response = self.session.post(
+            f"{self.server_url}/{self.aes_instance}/school-meals/registrations/lines",
+            json=data,
+        )
         response.raise_for_status()
         return response.json()
 
-    @endpoint(
-        name="parents",
-        methods=["post"],
-        perm="can_access",
-        description="Montant d'une commande de repas",
-        long_description="Calcule le montant à payer en fonction de la commande et du solde du parent",
-        example_pattern="{parent_id}/menus/registrations/cost",
-        pattern="^(?P<parent_id>\w+)/menus/registrations/cost$",
-        parameters={
-            "parent_id": PARENT_PARAM
-        },
-        display_category="Repas",
-    )
     def compute_meals_order_amount(self, request, parent_id):
+        """
+        Calcule le montant total d'une commande de repas pour un enfant donné,
+        en tenant compte du solde disponible du parent et des repas réservés.
+
+        Args:
+            request (HttpRequest): L'objet de requête contenant les détails de la commande,
+                                y compris les repas et les informations sur l'enfant.
+            parent_id (int): L'identifiant du parent pour lequel le solde est vérifié.
+
+        Returns:
+            dict: Un dictionnaire contenant les informations suivantes :
+                - activity_category_id (int): L'identifiant de la catégorie d'activité.
+                - child_registration_line_id (str): L'identifiant de la ligne d'inscription de l'enfant.
+                - due_amount (float): Le montant dû par le parent après application du solde.
+                - initial_balance (float): Le solde initial du parent avant la commande.
+                - parent_id (int): L'identifiant du parent.
+                - prepayment_by_category_id (int): L'identifiant de la prépaiement par catégorie.
+                - reserved_balance (float or None): Le solde réservé pour cette commande,
+                                                    ou None si aucun solde n'est réservé.
+                - spent_balance (float): Le montant du solde dépensé pour cette commande.
+                - total_amount (float): Le montant total de la commande de repas.
+
+        Notes:
+            - Si le parent n'a pas de solde disponible, le montant dû sera égal au montant total de la commande.
+            - Si le montant total de la commande est inférieur ou égal au solde, le montant dû sera zéro.
+            - La méthode réserve le solde utilisé pour la commande, si nécessaire.
+        """
         body = json.loads(request.body)
-        order = body.get('order')
+        order = body.get("order")
         reserved_balance = None
-        total_amount = sum([meal['price'] for meal in order if not meal.get("is_disabled")])
+        total_amount = sum(
+            [meal["price"] for meal in order if not meal.get("is_disabled")]
+        )
         if body.get("month") and body.get("year"):
-            year, month = int(body.get('year')), int(body.get('month'))
+            year, month = int(body.get("year")), int(body.get("month"))
+        # Récupération du solde du parent, en tenant compte d'une éventuelle commande pour la même période
+        # et le même enfant
         balance = self.get_balance(parent_id, "meal", body.get("child_id"), year, month)
+        # Si le parent n'a pas de solde, on retourne directement le résultat et le parent doit payer l'intégralité de
+        # la commande
         if balance.get("amount") <= 0:
             return {
                 "activity_category_id": balance["activity_category_id"],
@@ -1290,38 +1450,58 @@ class ApimsAesConnector(BaseResource):
                 "parent_id": balance["parent_id"],
                 "prepayment_by_category_id": balance["prepayment_by_category_id"],
                 "reserved_balance": reserved_balance,
-                "spent_balance": 0, 
+                "spent_balance": 0,
                 "total_amount": total_amount,
             }
-        # Si le total est inférieur au solde (balance) du parent:
-        # le montant dû devient zéro et
-        # la portion de solde dépensée est égale au solde total moins le montant total
+        # Situation par défaut : si le total est inférieur au solde (balance) du parent :
+        # le montant dû devient zéro (le parent n'aura rien à payer) et
+        # la portion de solde dépensée est égale au montant total.
         due_amount, spent_balance = 0, total_amount
-        # If total > balance
+        # Si le total est supérieur au solde (balance) du parent :
+        # le montant dû devient le montant total moins le montant du solde
+        # et l'entièreté du solde disponible est consommé pour diminuer le montant dû.
         if total_amount > balance["amount"]:
             due_amount = total_amount - balance["amount"]
             spent_balance = balance["amount"]
-        # Reserve spent balance
+        # Maintenant qu'on connaît la part du solde du parent consommé pour diminuer son montant dû,
+        # on réserve cette part dans AES en créant un "solde réservé" (reserved_balance).
         child_registration_line_response = None
         reserved_balance = None
         if spent_balance:
+            # On commence par récupérer la ligne d'inscription concernée. Les soldes réservés sont en effet
+            # liés à une ligne d'inscription.
             child_registration_line = {
                 "kid_id": body["child_id"],
                 "parent_id": int(parent_id),
                 "school_implantation_id": int(body["school_implantation_id"]),
                 "month": int(body["month"]),
-                "year": int(body["year"])
+                "year": int(body["year"]),
             }
-            child_registration_line_response = self.get_or_create_child_registration_line(child_registration_line)
+            child_registration_line_response = (
+                self.get_or_create_child_registration_line(child_registration_line)
+            )
             reserved_balance = None
+            # On vérifie également que le parent le solde dépensé par parent pour cette commande est bien
+            # supérieur à un éventuel solde réservé préexistant pour le même enfant et la même période.
+            # Si c'est le cas, il faut réserver davantage de solde.
+            # Si ce n'est pas le cas, pas besoin de réserver davantage de solde.
             if spent_balance - balance["already_reserved_amount"] > 0:
-                reserved_balance = self.reserve_balance(parent_id, {
-                    "prepayment_by_category_id": balance["prepayment_by_category_id"],
-                    "amount": spent_balance - balance["already_reserved_amount"],
-                    "date": date.today().strftime("%Y-%m-%d"),
-                    "reserving_request": int(body['form_number']),
-                    "child_registration_line_id": child_registration_line_response["id"]
-                })
+                # Voici la réservation du solde proprement dite.
+                reserved_balance = self.reserve_balance(
+                    parent_id,
+                    {
+                        "prepayment_by_category_id": balance[
+                            "prepayment_by_category_id"
+                        ],
+                        "amount": spent_balance - balance["already_reserved_amount"],
+                        "date": date.today().strftime("%Y-%m-%d"),
+                        "reserving_request": int(body["form_number"]),
+                        "child_registration_line_id": child_registration_line_response[
+                            "id"
+                        ],
+                    },
+                )
+        # Enfin, on retourne les informations nécessaires pour le workflow
         return {
             "activity_category_id": balance["activity_category_id"],
             "child_registration_line_id": child_registration_line_response["id"],
@@ -1335,7 +1515,9 @@ class ApimsAesConnector(BaseResource):
         }
 
     def create_meals_payment(self, data):
-        response = self.session.post(f"{self.server_url}/{self.aes_instance}/school-meals/payments", json=data)
+        response = self.session.post(
+            f"{self.server_url}/{self.aes_instance}/school-meals/payments", json=data
+        )
         response.raise_for_status()
         return response.json()
 
@@ -1354,15 +1536,18 @@ class ApimsAesConnector(BaseResource):
     )
     def generic_create_payment(self, request, parent_id):
         body = json.loads(request.body)
-        payment = self.create_meals_payment({
-            "activity_category_id": body["activity_category_id"],
-            "amount": body["amount"].replace(",", "."),
-            "comment": body["comment"],
-            "date": date.today().strftime("%Y-%m-%d"),
-            "parent_id": parent_id, # TODO: parent facturable
-            "prepayment_by_category_id": body["prepayment_by_category_id"],
-            "type": "online"
-        })
+        payment = self.create_meals_payment(
+            {
+                "activity_category_id": body["activity_category_id"],
+                "amount": body["amount"].replace(",", "."),
+                "comment": body["comment"],
+                "date": date.today().strftime("%Y-%m-%d"),
+                "parent_id": parent_id,  # TODO: parent facturable
+                "prepayment_by_category_id": body["prepayment_by_category_id"],
+                "type": "online",
+                "online_transaction_id": body.get("transaction_id") or "",
+            }
+        )
         return payment
 
     @endpoint(
@@ -1380,22 +1565,27 @@ class ApimsAesConnector(BaseResource):
     )
     def create_reserved_balance(self, request, parent_id):
         body = json.loads(request.body)
-        if not body["child_registration_line_id"]:
+        if body.get("child_registration_line_id") is None:
             child_registration_line = {
-                    "kid_id": body["child_id"],
-                    "parent_id": int(parent_id), # TODO: parent factu
-                    "school_implantation_id": int(body["school_implantation_id"]),
-                    "month": int(body["month"]),
-                    "year": int(body["year"])
-                }
-            child_registration_line_response = self.get_or_create_child_registration_line(child_registration_line)
-        reserved_balance = self.reserve_balance(parent_id, {
+                "kid_id": body["child_id"],
+                "parent_id": int(parent_id),  # TODO: parent factu
+                "school_implantation_id": int(body["school_implantation_id"]),
+                "month": int(body["month"]),
+                "year": int(body["year"]),
+            }
+            child_registration_line_response = (
+                self.get_or_create_child_registration_line(child_registration_line)
+            )
+        reserved_balance = self.reserve_balance(
+            parent_id,
+            {
                 "prepayment_by_category_id": body["prepayment_by_category_id"],
                 "amount": body["amount"].replace(",", "."),
                 "date": date.today().strftime("%Y-%m-%d"),
-                "reserving_request": int(body['form_number']),
-                "child_registration_line_id": body["child_registration_line_id"] or child_registration_line_response["id"]
-            }
+                "reserving_request": int(body["form_number"]),
+                "child_registration_line_id": body["child_registration_line_id"]
+                or child_registration_line_response["id"],
+            },
         )
         return reserved_balance
 
@@ -1411,7 +1601,7 @@ class ApimsAesConnector(BaseResource):
             "reserved_balance_id": {
                 "description": "Solde bloqué à supprimer",
                 "example_value": 1,
-            }
+            },
         },
         example_pattern="{parent_id}/reserved-balances/{reserved_balance_id}",
         pattern="^(?P<parent_id>\d+)/reserved-balances/(?P<reserved_balance_id>\d+)$",
@@ -1421,6 +1611,29 @@ class ApimsAesConnector(BaseResource):
         response = self.session.delete(url)
         response.raise_for_status()
         return True
+
+    # @endpoint(
+    #     name="parents",
+    #     methods=["delete"],
+    #     perm="can_access",
+    #     description="Débloque plusieurs soldes",
+    #     long_description="Supprime plusieurs blocages de soldes.",
+    #     display_category="Parent",
+    #     parameters={
+    #         "parent_id": PARENT_PARAM,
+    #     },
+    #     example_pattern="{parent_id}/reserved-balances/list",
+    #     pattern="^(?P<parent_id>\d+)/reserved-balances/list$",
+    # )
+    # def free_balances(self, request, parent_id):
+    #     data = json.loads(request.body)
+    #     for id in data[""]
+    #     for identifiant in data.get("details"):
+    #         url = f"{self.server_url}/{self.aes_instance}/parents/{parent_id}/reserved-balances/"
+    #         response = self.session.delete(url)
+    #         response.raise_for_status()
+
+    #     return responses 
 
     @endpoint(
         name="menus",
@@ -1446,7 +1659,8 @@ class ApimsAesConnector(BaseResource):
                     "activity_id": meal["activity_id"],
                     "meal_ids": [meal["meal_id"]],
                 }
-                for meal in post_data["meals"] if not meal.get("is_disabled")
+                for meal in post_data["meals"]
+                if not meal.get("is_disabled")
             ],
         }
         if not len(data["meals"]):
@@ -1483,7 +1697,13 @@ class ApimsAesConnector(BaseResource):
         display_category="Repas",
     )
     def list_meal_registrations(
-        self, request, child_id, parent_id=None, days_in_delay=1, no_later_than="19:00", month=None
+        self,
+        request,
+        child_id,
+        parent_id=None,
+        days_in_delay=1,
+        no_later_than="19:00",
+        month=None,
     ):
         if month is not None and month not in [0, 1, 2]:
             raise ValueError(
@@ -1500,8 +1720,10 @@ class ApimsAesConnector(BaseResource):
                     if today.month < 13
                     else today.month + month - 12
                 )
-            if (month is None or meal_date.month == selected_month):
-                is_disabling_delay = not self.is_in_time(meal_date, days_in_delay, time.fromisoformat(no_later_than))
+            if month is None or meal_date.month == selected_month:
+                is_disabling_delay = not self.is_in_time(
+                    meal_date, days_in_delay, time.fromisoformat(no_later_than)
+                )
                 result.append(
                     {
                         "id": f"_{datetime.strftime(meal_date, '%d-%m-%Y')}_{registration['meal_regime']}-{registration['meal_activity_id']}",
@@ -1510,7 +1732,12 @@ class ApimsAesConnector(BaseResource):
                         "text": f"{datetime.strftime(meal_date, '%d/%m/%Y')} {registration['meal_name']}",
                         "regime": registration["meal_regime"],
                         "parent_id": registration["meal_parent_id"],
-                        "disabled": is_disabling_delay or (bool(parent_id) and int(parent_id) not in registration['meal_authorized_parent_ids'])
+                        "disabled": is_disabling_delay
+                        or (
+                            bool(parent_id)
+                            and int(parent_id)
+                            not in registration["meal_authorized_parent_ids"]
+                        ),
                     }
                 )
         return {"data": result}
@@ -1875,15 +2102,15 @@ class ApimsAesConnector(BaseResource):
         other_diseases = []
         for disease in origin_data["diseases"]:
             disease_id = {
-                'gravity': disease['gravity'],
-                'disease_text': disease['treatment'],
-                'health_sheet_id': origin_data['healthsheet_id']
+                "gravity": disease["gravity"],
+                "disease_text": disease["treatment"],
+                "health_sheet_id": origin_data["healthsheet_id"],
             }
-            if disease['disease'] != 'autre':
-                disease_id.update({'disease_type_id': int(disease['disease'])})
+            if disease["disease"] != "autre":
+                disease_id.update({"disease_type_id": int(disease["disease"])})
                 disease_ids.append(disease_id)
             else:
-                disease_id.update({'name': disease['other_disease']})
+                disease_id.update({"name": disease["other_disease"]})
                 other_diseases.append(disease_id)
         put_data["disease_ids"] = disease_ids
         put_data["other_diseases"] = other_diseases
@@ -1981,7 +2208,7 @@ class ApimsAesConnector(BaseResource):
                 "default_value": None,
             },
         },
-        cache_duration=60
+        cache_duration=60,
     )
     def list_allergies(self, request, healthsheet=None):
         url = f"{self.server_url}/{self.aes_instance}/allergies"
@@ -2047,12 +2274,12 @@ class ApimsAesConnector(BaseResource):
             "mobile": post_data["mobile"] or "",
             "street": post_data["street"],
             "is_company": False,
-            "locality_id": int(post_data["locality_id"])
-            if post_data["locality_id"]
-            else None,
-            "country_id": int(post_data["country_id"])
-            if post_data["country_id"]
-            else None,
+            "locality_id": (
+                int(post_data["locality_id"]) if post_data["locality_id"] else None
+            ),
+            "country_id": (
+                int(post_data["country_id"]) if post_data["country_id"] else None
+            ),
             "zip": post_data.get("zipcode") or "",
             "city": post_data.get("city") or "",
         }
@@ -2112,7 +2339,61 @@ class ApimsAesConnector(BaseResource):
     )
     def list_invoices(self, request, parent_id):
         url = f"{self.server_url}/{self.aes_instance}/parents/{parent_id}/invoices"
-        return self.session.get(url).json()["items"]
+        return self.session.get(url).json()
+
+    @endpoint(
+        name="parents",
+        methods=["post"],
+        perm="can_access",
+        description="Payer une facture",
+        parameters={
+            "parent_id": PARENT_PARAM,
+            "invoice_id": {
+                "example_value": 1,
+                "description": "Identifiant d'une facture d'un parent",
+            },
+        },
+        example_pattern="{parent_id}/invoices/{invoice_id}/pay",
+        pattern="^(?P<parent_id>\w+)/invoices/(?P<invoice_id>\w+)/pay$",
+        display_category="Parent",
+    )
+    def pay_invoice(self, request, parent_id, invoice_id):
+        post_data = json.loads(request.body)
+        url = f"{self.server_url}/{self.aes_instance}/parents/{parent_id}/invoices/{invoice_id}/pay"
+        payment = {
+            "date": post_data["date"],
+            "type": "online",
+            "amount": post_data["amount"],
+            "activity_category_id": post_data["activity_category_id"],
+            "comment": post_data["comment"],
+            "form_url": post_data["form_url"],
+            "online_transaction_id": post_data["transaction_id"],
+            "prepayment_by_category_id": post_data["prepayment_by_category_id"],
+        }
+        logger.info(f"POST_DATA:", post_data)
+        response = self.session.post(url, json=payment)
+        response.raise_for_status()
+        return response.json()
+
+    ################
+    # Attestations #
+    ################
+
+    @endpoint(
+        name="parents",
+        methods=["get"],
+        perm="can_access",
+        description="Lister les attestations d'un parent",
+        parameters={
+            "parent_id": PARENT_PARAM,
+        },
+        example_pattern="{parent_id}/certificates/",
+        pattern="^(?P<parent_id>\w+)/certificates/$",
+        display_category="Parent",
+    )
+    def list_certificates(self, request, parent_id):
+        url = f"{self.server_url}/{self.aes_instance}/parents/{parent_id}/certificates"
+        return self.session.get(url).json()
 
     ################
     ### Paiement ###
@@ -2139,7 +2420,6 @@ class ApimsAesConnector(BaseResource):
         response.raise_for_status()
         return response.json()
 
-
     @endpoint(
         name="payments",
         methods=["post"],
@@ -2162,11 +2442,13 @@ class ApimsAesConnector(BaseResource):
                 "comment": post_data["comment"],
                 "form_url": post_data["form_url"],
                 "online_transaction_id": post_data["transaction_id"],
-                "initial_amount": float(post_data["amount"].replace(",", "."))
+                "initial_amount": float(post_data["amount"].replace(",", ".")),
             }
-        for detail in post_data["details"]]
+            for detail in post_data["details"]
+        ]
         response = self.session.post(url, json=payments)
         response.raise_for_status()
+        logging.info(f"Response payment creation: {response.json()}")
         return response.json()
 
     ###################
@@ -2214,3 +2496,536 @@ class ApimsAesConnector(BaseResource):
                 year - 1 - age_years, month - age_months + 12, day
             ) - timedelta(days=age_days)
         return {"data": result}
+    
+    @staticmethod
+    def format_date(date_str):
+        """Formate une date 'YYYY-MM-DD' en 'Vendredi 18 juillet 2025'"""
+        jours = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche']
+        mois = [
+            'janvier', 'février', 'mars', 'avril', 'mai', 'juin',
+            'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'
+        ]
+        try:
+            d = datetime.strptime(date_str, "%Y-%m-%d").date()
+            return f"{jours[d.weekday()]} {d.day} {mois[d.month - 1]} {d.year}"
+        except Exception:
+            return date_str 
+        
+    @staticmethod
+    def parse_french_date(text_date):
+        """Convertit une date 'Jeudi 23 octobre 2025' en '2025-10-23'"""
+        mois = {
+            'janvier': 1, 'février': 2, 'mars': 3, 'avril': 4, 'mai': 5, 'juin': 6,
+            'juillet': 7, 'août': 8, 'septembre': 9, 'octobre': 10,
+            'novembre': 11, 'décembre': 12
+        }
+        try:
+            parts = text_date.split(" ")  # ['Jeudi', '23', 'octobre', '2025']
+            jour = int(parts[1])
+            mois_num = mois[parts[2].lower()]
+            annee = int(parts[3])
+            return f"{annee:04d}-{mois_num:02d}-{jour:02d}"
+        except Exception:
+            return text_date  # fallback si ça plante
+
+    
+    ###########################
+    ## Journées pédagogiques ##
+    ###########################
+
+    def fetch_pedagogical_days(self, parent_id):
+        url = f"{self.server_url}/{self.aes_instance}/pedagogical-days?parent_id={parent_id}"
+        response = self.session.get(url)
+        response.raise_for_status()
+        return response.json()
+
+    @endpoint(
+        name="pedagogical-days",
+        methods=["get"],
+        perm="can_access",
+        description="Lister les journées pédagogiques",
+        long_description="Lis les journées pédagogiques dans iA.AES et les complète pour leur utilisation dans un formulaire.",
+        display_category="Journées pédagogiques",
+        parameters={
+            "parent_id": {
+                "example_value": 279,
+                "description": "ID du parent"             
+            },
+            "end_date": {
+                "description": "Délai en jours pour masquer les dates au-delà",
+                "example_value": 30
+            },
+            "start_date": {
+                "description": "Délai en jours pour masquer les dates en deçà",
+                "example_value": 1
+            },
+        }
+    )
+
+    def list_pedagogical_days(self, request, parent_id, end_date=None, start_date=1):
+        data = self.fetch_pedagogical_days(parent_id) 
+
+        start_date = date.today() + timedelta(int(start_date))
+        end_date = date.today() + timedelta(int(end_date))
+        pedagogical_days = []
+
+        for item in data.get("items", []):
+            item_date = date.fromisoformat(item["date"])
+            logging.info(f"Item date: {item_date}, Start date: {start_date}, End date: {end_date}")
+            logging.info(f"expression end: {end_date is None} or {item_date <= end_date}")
+            logging.info(f"expression start: {(item_date >= start_date)}")
+            if (end_date is None or item_date <= end_date) and (item_date >= start_date):
+                item['text'] = f"{item['child_lastname']} {item['child_firstname']}"
+                item['disabled'] = item.get('is_child_already_registered') or not item.get('invoiceable_parent_id')
+                item['id'] = f"{item['activity_id']}_{item['activity_date_id']}_{item['child_id']}"
+                d = date.fromisoformat(item['date'])
+                item['group_by'] = f"{JOURS[d.weekday()]} {d.day} {MOIS[d.month - 1]} {d.year}".capitalize()
+                pedagogical_days.append(item)
+        data["items"] = pedagogical_days
+          
+        return data
+
+    @endpoint(
+        name="pedagogical-days",
+        methods=["get"],
+        perm="can_access",
+        description="Lister les journées pédagogiques, regroupée par date",
+        long_description="Lis les journées pédagogiques dans iA.AES, les complète et les regroupe par date pour affichage.",
+        example_pattern="per-dates",
+        pattern=r"^per-dates$",
+        display_category="Journées pédagogiques",
+        parameters={
+            "parent_id": {
+                "example_value": 279,
+                "description": "ID du parent"
+            },
+        }
+    )
+    def list_pedagogical_days_per_dates(self, request, parent_id):
+        data = self.fetch_pedagogical_days(parent_id)
+        items = {}
+        for item in data.get("items", []):
+            if items.get(item["date"]) is None:
+                items[item["date"]] = []
+            item["text"] = f"{item['child_lastname']} {item['child_firstname']}"
+            item["disabled"] = item["is_child_already_registered"]
+            item["id"] = f"{item['activity_id']}_{item['activity_date_id']}_{item['child_id']}"
+            items[item["date"]].append(item)
+        result = {"data": [{"id": k,"text": k,"registrations": v} for k,v in items.items()]}
+        return result
+
+    @endpoint(
+        name="generic-activities",
+        methods=["post"],
+        perm="can_access",
+        description="Créer des inscriptions à des activités génériques",
+        long_description="Enregistre des inscriptions à des activités génériques.",
+        example_pattern="create-registrations/",
+        pattern=r"^create-registrations/$",
+        display_category="Activités génériques",
+    )
+    def create_generic_registrations(self, request):
+        post_data = json.loads(request.body)
+        logger.info(f"Données : {post_data}")
+        url = f"{self.server_url}/{self.aes_instance}/generic-activities"
+        registrations = []
+        for registration in post_data["registrations"]:
+            registrations.append({
+                "activity_id": registration["activity_id"],
+                "date": registration["date"],
+                "school_implantation_id": int(registration["school_implantation_id"]),
+                "child_id": int(registration["child_id"]),
+                "parent_id": int(post_data["parent_id"]),
+            })
+        
+        payload = {"registrations": registrations}
+        logger.info(payload)
+        response = self.session.post(url, json=payload)
+        response.raise_for_status()
+        return response.json()
+    
+    @endpoint(
+        name="generic-activities",
+        methods=["get"],
+        perm="can_access",
+        description="Lire les inscriptions aux journées pédagogiques pour un enfant",
+        long_description="Lire les inscriptions aux journées pédagogiques pour un enfant",
+        parameters={
+            "child_id": CHILD_PARAM,
+            "parent_id": PARENT_PARAM,
+            "activity_on_portal": {
+                "description": "Nom de l'activité sur le Portail Parent",
+                "example_value": "pedagogical_day"
+            }
+        },
+        display_category="Activités génériques",
+        example_pattern="registrations/",
+        pattern=r"^registrations/$",
+    )
+    def read_generic_activities_registrations(self, request, child_id=None, parent_id=None, activity_on_portal=None):
+        parameters= []
+        if child_id:
+            parameters.append(f"child_id={child_id}")
+        if parent_id:
+            parameters.append(f"parent_id={parent_id}")
+        if activity_on_portal:
+            parameters.append(f"activity_on_portal={activity_on_portal}")
+        url = f"{self.server_url}/{self.aes_instance}/generic-activities/registrations"
+        if parameters:
+            url = url + "?" + "&".join(parameters)
+        response = self.session.get(url)
+        if response.status_code == 404:
+            raise Http404(response.json()["detail"])
+        response.raise_for_status()
+        items = response.json().get("items", [])
+        for item in items:
+            d = date.fromisoformat(item["date"])
+            item['group_by'] = f"{JOURS[d.weekday()]} {d.day} {MOIS[d.month - 1]} {d.year}".capitalize()
+            item["text"] = item["child_name"]
+            item["id"] = f"{item['child_registration_line_id']}_{item['day']}"
+        logging.info(f"Items: {items}")
+        logging.info(f"Response: {response.json()}")
+        return {"data": sorted(items, key=lambda i: i["date"])}
+
+    @endpoint(
+        name="generic-activities",
+        methods=["delete"],
+        perm="can_access",
+        description="Désinscrire un enfant d'une ou plusieurs journées pédagogiques",
+        long_description="Désinscrit un enfant d'une ou plusieurs journées pédagogiques",
+        display_category="Activités génériques",
+        example_pattern="registrations/delete",
+        pattern=r"^registrations/delete$",
+    )
+    def delete_generic_registration(self, request):
+        url = f"{self.server_url}/{self.aes_instance}/generic-activities/registrations"
+        registrations = json.loads(request.body)["registrations"]
+        data =  {}
+        for registration in registrations:
+            if data.get(str(registration["child_registration_line_id"])) is None:
+                data[str(registration["child_registration_line_id"])] = [registration["day"]]
+            else:
+                data[str(registration["child_registration_line_id"])].append(registration["day"])
+        response = self.session.delete(url, json=data)
+        response.raise_for_status()
+        return response.json()
+
+    def compute_childcare_amount(self, request, parent_id):
+        # Je récupère les données JSON que j'encapsule dans la variable "body"
+        body = json.loads(request.body)
+        logging.info(f"Données dans le body: {body}")
+
+        # Je déclare une liste vide pour stocker les inscriptions "registrations"
+        registrations = []
+        # Je crée une boucle for pour parcourir chaque inscription dans "body" avec la clé "registrations" et j'alimente la liste "registrations"
+        for r in body.get("registrations", []):
+            registrations.append({
+                # Je construis un dictionnaire pour chaque inscription avec les champs requis
+                "activity_id": int(r["activity_id"]),
+                "child_id": int(r["child_id"]),
+                "date": r["date"],
+                "invoiceable_parent_id": int(r["invoiceable_parent_id"]),
+                "parent_id": int(r["parent_id"]),
+                "price_category_id": int(r["price_category_id"]),
+                "activity_category_id": int(r["activity_category_id"]),
+                "school_implantation_id": int(r["school_implantation_id"]),
+            })
+
+        # Je prépare le "payload" pour la requête POST (ce qui sera envoyé à l'API AES et donc c'est le contenu de la liste registrations)
+        payload = {"registrations": registrations}
+        # Je logge le payload
+        logger.info(f"Payload : {payload}")
+        # Je construis l'URL pour la requête POST, c'est le endpoint AES pour calculer le coût des journées pédagogiques
+        url = f"{self.server_url}/{self.aes_instance}/generic-activities/cost"
+        # j'envoie la requête HTTP POST à l’URL donnée avec le payload (données) en JSON
+        response = self.session.post(url, json=payload)
+        # Je vérifie que la requête s'est bien passée 
+        response.raise_for_status()
+        # Je récupère les données de coût de la réponse JSON
+        cost_data = response.json()
+        logging.info(f"Données de coût : {cost_data}")
+
+        # Montant total renvoyé par AES
+        total_amount = float(cost_data["cost"])
+        # Infos du body
+        initial_balance = float(body["initial_balance"]) - float(body["already_reserved_amount"])
+        if initial_balance < 0:
+            initial_balance = 0
+        activity_category_id = body.get("activity_category_id")
+        details = cost_data.get("details", {})
+        payments = []
+        post_payments_reserved_balances = []
+
+        # Si le solde initial est <= 0 :
+        if initial_balance <= 0:
+            payments_dict = {}
+            for detail in details:
+                for price_details in detail.get("details", []):
+                    for item in price_details:
+                        if payments_dict.get((item["invoiceable_parent_id"], detail["activity_category_id"])) is None:
+                            payments_dict[(item["invoiceable_parent_id"], detail["activity_category_id"])] = {
+                                "payment": {
+                                    "parent_id": int(item["invoiceable_parent_id"]),
+                                    "activity_category_id": detail["activity_category_id"],
+                                    "type": "online",
+                                    "comment": body.get("comment", ""),
+                                    "form_url": body.get("form_url", ""),
+                                    "amount": 0.0
+                                },
+                                "post_payments_reserved_balances": {
+                                    "amount": 0.0,
+                                    "child_registration_line_id": item.get("child_registration_line_id"),
+                                    "prepayment_by_category_id": item.get("prepayment_by_category_id"),
+                                    "date": item.get("date"),
+                                    "reserving_request": body.get("form_number_raw"),
+                                }
+                            }
+                        payments_dict[(item["invoiceable_parent_id"], detail["activity_category_id"])]["payment"]["amount"] += float(item.get("price", 0.0))
+                        payments_dict[(item["invoiceable_parent_id"], detail["activity_category_id"])]["post_payments_reserved_balances"]["amount"] += float(item.get("price", 0.0))
+            
+            for value in payments_dict.values():
+                payments.append(value["payment"])
+                post_payments_reserved_balances.append(value["post_payments_reserved_balances"])
+            return {
+                "activity_category_id": activity_category_id,
+                "due_amount": round(total_amount, 2),
+                "initial_balance": round(initial_balance, 2),
+                "reserved_balances": [], 
+                "final_solde": 0,
+                "total_amount": round(total_amount, 2),
+                "payments": payments,
+                "post_payments_reserved_balances": post_payments_reserved_balances
+            }
+
+        reserved_balances = []
+        balance = initial_balance
+        due_amount = total_amount
+        logging.info(f"Détails  : {details}")
+        for detail in details:
+            for price_details in detail.get("details", []):
+                for item in price_details:
+                    line_amount = float(item.get("price", 0.0))
+                    payment = {
+                        "parent_id": int(item["invoiceable_parent_id"]),
+                        "activity_category_id": detail["activity_category_id"],
+                        "type": "online",
+                        "comment": body.get("comment", ""),
+                        "form_url": body.get("form_url", ""),
+                        "amount": line_amount - balance if line_amount > balance else 0.0,
+                    }
+                    logging.info(f"payment: {payment}")
+                    amount = line_amount - (line_amount - balance)
+                    if amount > line_amount:
+                        amount = line_amount 
+                    balance -= line_amount
+                    due_amount -= amount
+                    if balance < 0:
+                        #due_amount += abs(balance)
+                        
+                        balance = 0.0
+                    if amount > 0.01:
+                        reserved_balances.append({
+                            "amount": amount,
+                            "child_registration_line_id": item.get("child_registration_line_id"),
+                            "prepayment_by_category_id": item.get("prepayment_by_category_id"),
+                            "date": item.get("date"),
+                            "reserving_request": body.get("form_number_raw"),
+                        })
+                    logging.info(f"Payment amount > 0 ? : {payment['amount']} {type(payment['amount'])} > 0 => {payment['amount'] > 0.0}")
+                    if payment["amount"] > 0.0:
+                        logging.info(f"Ajout du paiement : {payment}")
+                        payments.append(payment)
+                        post_payments_reserved_balances.append({
+                            "amount": payment["amount"],
+                            "child_registration_line_id": item.get("child_registration_line_id"),
+                            "prepayment_by_category_id": item.get("prepayment_by_category_id"),
+                            "date": item.get("date"),
+                            "reserving_request": body.get("form_number_raw"),
+                        })
+                    # if balance <= 0:
+                    #     return {
+                    #         "activity_category_id": activity_category_id,
+                    #         "due_amount": round(due_amount, 2),
+                    #         "balance": balance,
+                    #         "initial_balance": round(initial_balance, 2),
+                    #         "reserved_balances": reserved_balances,
+                    #         "total_amount": round(total_amount, 2),
+                    #         "payments": payments
+                    #     }
+        logging.info(f"Payments : {payments}")
+        return {
+            "activity_category_id": activity_category_id,
+            "due_amount": round(due_amount, 2),
+            "balance": balance,
+            "initial_balance": round(initial_balance, 2),
+            "reserved_balances": reserved_balances,
+            "total_amount": round(total_amount, 2),
+            "payments": payments,
+            "post_payments_reserved_balances": post_payments_reserved_balances
+        }
+        
+        # registration_lines = [
+        #     {
+        #         "id": item.get("child_registration_line_id"),
+        #         "reserved_amount": float(item.get("price", 0.0)),
+        #     }
+        #     #astuce filée par copilot pour le triple for imbriqué ?
+        #     for group in cost_data.get("details", [])
+        #     for bucket in group.get("details", [])
+        #     for item in bucket
+        # ]
+
+        # final_solde = initial_balance
+        # due_amount = 0.0
+
+        # for line in registration_lines:
+        #     line_amount = float(line.get("reserved_amount", 0.0))
+        #     final_solde -= line_amount
+        #     if final_solde < 0:
+        #         due_amount += abs(final_solde)
+        #         final_solde = 0.0
+
+        # spent_balance = initial_balance - final_solde  
+
+        # return {
+        #     "activity_category_id": activity_category_id,
+        #     "child_registration_line_ids": [line["id"] for line in registration_lines],
+        #     "due_amount": round(due_amount, 2),
+        #     "initial_balance": round(initial_balance, 2),
+        #     "parent_id": int(parent_id),
+        #     "prepayment_by_category_id": prepayment_by_category_id,
+        #     "reserved_balance": None,  # ici on ne fait que le calcul, pas la réservation
+        #     "spent_balance": round(spent_balance, 2),
+        #     "total_amount": round(total_amount, 2),
+        # }
+
+
+    ###############################
+    ## Calcul du montant à payer ##
+    ###############################
+
+    @endpoint(
+        name="parents",
+        methods=["post"],
+        perm="can_access",
+        description="Demander le coût des inscriptions",
+        long_description="Calcule le montant à payer en fonction de la commande et du solde du parent",
+        example_pattern="{parent_id}/{activity_category_type}/registrations/cost",
+        pattern="^(?P<parent_id>\w+)/(?P<activity_category_type>\w+)/registrations/cost$",
+        parameters={"parent_id": PARENT_PARAM, 
+            "activity_category_type": {
+            "description": "Type de catégorie d'activité",
+            "example_value": "meal",
+        }},
+        display_category="Calcul du montant à payer",
+    )
+    def compute_amount(self, request, parent_id, activity_category_type):
+        compute_amount_function = {
+            "menus": self.compute_meals_order_amount,
+            "childcare": self.compute_childcare_amount
+        }
+        logging.info(f"REQUEST: {request, json.loads(request.body)}") 
+        if activity_category_type not in compute_amount_function.keys():
+            raise ValueError(f"{activity_category_type} is not a valid activity category type")
+
+        return compute_amount_function[activity_category_type](request, parent_id)
+    
+    def create_reserved_balances(self, payload):
+        url = f"{self.server_url}/{self.aes_instance}/reserved-balances"
+        logging.info(f"Payload reserved balances: {payload}")
+        response = self.session.post(url, json=payload)
+        response.raise_for_status()
+        return response.json()
+    
+    def delete_reserved_balances(self, payload):
+        url = f"{self.server_url}/{self.aes_instance}/reserved-balances"
+        reserved_balances = payload.get("reserved_balances", [])
+        if not reserved_balances:
+            return HttpResponse(status_code=422)
+        response = self.session.delete(url, json=[
+            reserved_balance.get("id") for reserved_balance in reserved_balances if reserved_balance.get("id") is not None
+        ])
+        response.raise_for_status()
+        return HttpResponse(status=204)
+      
+    @endpoint(
+        name="reserved-balances",
+        methods=["get", "post", "delete"],
+        perm="can_access",
+        description="Permet de gérer des soldes réservés par batch",
+        description_post="Réserve des soldes",
+        description_delete="Supprime des soldes réservés",
+        long_description="Permet de gérer des soldes réservés par batch",
+        long_description_post="Réserve des soldes",
+        long_description_delete="Supprime des soldes réservés.",
+        display_category="Solde",
+    )
+    def reserved_balances(self, request):
+        methods = {
+            "POST": self.create_reserved_balances,
+            "DELETE": self.delete_reserved_balances,
+        }
+        method = methods.get(request.method)
+        logging.info("got reserve-balance request")
+        payload = None
+        if request.body:
+            payload = json.loads(request.body)
+        if method is None:
+            return HttpResponseNotAllowed()
+        result = method(payload)
+        return result
+
+    ###############################
+    ## Mercredis après-midi      ##
+    ###############################
+
+    def fetch_wednesday_afternoon(self, parent_id):
+        url = f"{self.server_url}/{self.aes_instance}/wednesday-afternoon?parent_id={parent_id}"
+        response = self.session.get(url)
+        response.raise_for_status()
+        return response.json()
+
+    @endpoint(
+        name="wednesday-afternoon",
+        methods=["get"],
+        perm="can_access",
+        description="Lister les mercredis après-midi",
+        long_description="Lis les mercredis après-midi dans iA.AES et les complète pour leur utilisation dans un formulaire.",
+        display_category="Mercredis après-midi",
+        parameters={
+            "parent_id": {
+                "example_value": 19,
+                "description": "ID du parent"             
+            },
+            "end_date": {
+                "description": "Délai en jours pour masquer les dates au-delà",
+                "example_value": 30
+            },
+            "start_date": {
+                "description": "Délai en jours pour masquer les dates en deçà",
+                "example_value": 1
+            },
+        }
+    )
+    def list_wednesday_afternoon(self, request, parent_id, end_date=None, start_date=1):
+        data = self.fetch_wednesday_afternoon(parent_id)
+
+        start_date = date.today() + timedelta(int(start_date))
+        end_date = date.today() + timedelta(int(end_date))
+        wednesday_afternoon = []
+
+        for item in data.get("items", []):
+            item_date = date.fromisoformat(item["date"])
+            logging.info(f"Item date: {item_date}, Start date: {start_date}, End date: {end_date}")
+            logging.info(f"expression end: {end_date is None} or {item_date <= end_date}")
+            logging.info(f"expression start: {(item_date >= start_date)}")
+            if (end_date is None or item_date <= end_date) and (item_date >= start_date):
+                item['text'] = f"{item['child_lastname']} {item['child_firstname']}"
+                item['disabled'] = item.get('is_child_already_registered') or not item.get('invoiceable_parent_id')
+                item['id'] = f"{item['activity_id']}_{item.get('activity_date_id') or item['date']}_{item['child_id']}"
+                d = date.fromisoformat(item['date'])
+                item['group_by'] = f"{JOURS[d.weekday()]} {d.day} {MOIS[d.month - 1]} {d.year}".capitalize()
+                wednesday_afternoon.append(item)
+
+        data["items"] = wednesday_afternoon
+        return data

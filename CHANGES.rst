@@ -1,5 +1,27 @@
 Changelog
 =========
+2.2.1
+-----------------
+
+- [PP-587] Add endpoint get_activity_categories
+- [PP-588] Add 'transaction_id' for generic_create_payment
+- [PP-593] Add list_certificates endpoint
+- [PP-595] Adapt get_forms with multiple keywords 
+- [PP-604] Add pay_invoice endpoint
+- [PP-608] Add list_pedagogicals_days
+- [PP-609] Add create_pedagogicals_days_inscriptions & list_pedagogical_days_per_dates
+- [PP-614] Add compute_childcare_amount endpoint
+- [PP-634] Add comments into compute_meals_order_amount.
+- [PP-635] Add delete_pedagogical_registration def
+- [PP-612] Add read_pedagogical_registrations def
+- [PP-608] Add list_pedagogical_days date filtering
+- [PP-656] Add get_wednesday_afternoon def
+
+
+2.2.0
+-----------------
+
+- [PP-589] Add endpoint get_all_balances_for_parent
 
 2.1.10
 -----------------
