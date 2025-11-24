@@ -1565,7 +1565,14 @@ class ApimsAesConnector(BaseResource):
     )
     def create_reserved_balance(self, request, parent_id):
         body = json.loads(request.body)
-        if body.get("child_registration_line_id") is None:
+        balance = {
+                "prepayment_by_category_id": body["prepayment_by_category_id"],
+                "amount": body["amount"].replace(",", "."),
+                "date": date.today().strftime("%Y-%m-%d"),
+                "reserving_request": int(body["form_number"]),
+            }
+        child_registration_line_id = body.get("child_registration_line_id")
+        if child_registration_line_id is None or child_registration_line_id == "":
             child_registration_line = {
                 "kid_id": body["child_id"],
                 "parent_id": int(parent_id),  # TODO: parent factu
@@ -1576,17 +1583,10 @@ class ApimsAesConnector(BaseResource):
             child_registration_line_response = (
                 self.get_or_create_child_registration_line(child_registration_line)
             )
-        reserved_balance = self.reserve_balance(
-            parent_id,
-            {
-                "prepayment_by_category_id": body["prepayment_by_category_id"],
-                "amount": body["amount"].replace(",", "."),
-                "date": date.today().strftime("%Y-%m-%d"),
-                "reserving_request": int(body["form_number"]),
-                "child_registration_line_id": body["child_registration_line_id"]
-                or child_registration_line_response["id"],
-            },
-        )
+            balance["child_registration_line_id"] = child_registration_line_response["id"]
+        else:
+            balance["child_registration_line_id"] = body["child_registration_line_id"]
+        reserved_balance = self.reserve_balance(parent_id, balance)
         return reserved_balance
 
     @endpoint(
