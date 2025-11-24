@@ -1,6 +1,11 @@
 Changelog
 =========
 
+3.0.1
+-----------------
+
+- [PP-662] Fix: manage empty string as None to create reserving balance for meals
+
 3.0.0
 -----------------
 
