@@ -534,10 +534,14 @@ class ApimsAesConnector(BaseResource):
             "keywords": {
                 "example_value": "Inscriptions,Désinscriptions",
                 "description": "Récupére les formulaires dont au moins un mot-clef correspond à un des 'keyword' de la requête",
+            },
+            "as_slugs": {
+                "example_value": "False",
+                "description": "Renvoie le resultat sous la forme d'une liste de slugs",
             }
         },
     )
-    def list_forms(self, request, keywords=None):
+    def list_forms(self, request, keywords=None, as_slugs=False):
         path = "api/categories/portail-parent/formdefs/"
         forms = self.get_data_from_wcs(path)["data"]
         result = []
@@ -549,7 +553,9 @@ class ApimsAesConnector(BaseResource):
                         result.append(form)
                         break
         else:
-            return forms
+            result = forms
+        if as_slugs:
+            result = [form["slug"] for form in result]
         return result
 
     def get_data_from_wcs(self, path):

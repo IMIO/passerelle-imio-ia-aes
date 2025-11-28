@@ -1,6 +1,11 @@
 Changelog
 =========
 
+3.0.2
+-----------------
+
+- [PP-661] Added: get-forms return can be a list of slugs.
+
 3.0.1
 -----------------
 
