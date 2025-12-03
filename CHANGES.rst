@@ -1,6 +1,11 @@
 Changelog
 =========
 
+3.0.3
+-----------------
+
+- [PP-669] Fixed: fetch meal registrations for next year
+
 3.0.2
 -----------------
 

@@ -1723,7 +1723,7 @@ class ApimsAesConnector(BaseResource):
                 today = datetime.today()
                 selected_month = (
                     today.month + month
-                    if today.month < 13
+                    if today.month + month < 13
                     else today.month + month - 12
                 )
             if month is None or meal_date.month == selected_month:
