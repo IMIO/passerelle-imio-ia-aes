@@ -4,7 +4,8 @@ Changelog
 3.0.3
 -----------------
 
-- [PP-669] Fixed: fetch meal registrations for next year
+- [PP-668] Fixed: due amount and spent balance for meals.
+- [PP-669] Fixed: fetch meal registrations for next year.
 
 3.0.2
 -----------------

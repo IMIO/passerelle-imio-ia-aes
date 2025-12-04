@@ -38,6 +38,7 @@ from passerelle.utils.jsonresponse import APIError
 from requests.exceptions import ConnectionError
 from workalendar.europe import Belgium
 from datetime import datetime
+from .utils import compute_amount_with_balance
 
 
 logger = logging.getLogger(__name__)
@@ -1445,68 +1446,46 @@ class ApimsAesConnector(BaseResource):
         # Récupération du solde du parent, en tenant compte d'une éventuelle commande pour la même période
         # et le même enfant
         balance = self.get_balance(parent_id, "meal", body.get("child_id"), year, month)
-        # Si le parent n'a pas de solde, on retourne directement le résultat et le parent doit payer l'intégralité de
-        # la commande
-        if balance.get("amount") <= 0:
-            return {
-                "activity_category_id": balance["activity_category_id"],
-                "child_registration_line_id": "",
-                "due_amount": total_amount,
-                "initial_balance": balance["amount"],
-                "parent_id": balance["parent_id"],
-                "prepayment_by_category_id": balance["prepayment_by_category_id"],
-                "reserved_balance": reserved_balance,
-                "spent_balance": 0,
-                "total_amount": total_amount,
-            }
-        # Situation par défaut : si le total est inférieur au solde (balance) du parent :
-        # le montant dû devient zéro (le parent n'aura rien à payer) et
-        # la portion de solde dépensée est égale au montant total.
-        due_amount, spent_balance = 0, total_amount
-        # Si le total est supérieur au solde (balance) du parent :
-        # le montant dû devient le montant total moins le montant du solde
-        # et l'entièreté du solde disponible est consommé pour diminuer le montant dû.
-        if total_amount > balance["amount"]:
-            due_amount = total_amount - balance["amount"]
-            spent_balance = balance["amount"]
+        balance_amount = round(balance.get("amount") + balance.get("already_reserved_amount"), 2)
+
+        # Calcul du montant à payer et du solde à réserver
+        due_amount_with_spent_balance = compute_amount_with_balance(total_amount, balance_amount, balance["amount"], balance["already_reserved_amount"])
+        due_amount = due_amount_with_spent_balance["due_amount"]
+        spent_balance = due_amount_with_spent_balance["spent_balance"]
+
         # Maintenant qu'on connaît la part du solde du parent consommé pour diminuer son montant dû,
         # on réserve cette part dans AES en créant un "solde réservé" (reserved_balance).
         child_registration_line_response = None
         reserved_balance = None
+        # On récupére la ligne d'inscription concernée. Les soldes réservés sont en effet
+        # liés à une ligne d'inscription.
+        child_registration_line = {
+            "kid_id": body["child_id"],
+            "parent_id": int(parent_id),
+            "school_implantation_id": int(body["school_implantation_id"]),
+            "month": int(body["month"]),
+            "year": int(body["year"]),
+        }
+        child_registration_line_response = (
+            self.get_or_create_child_registration_line(child_registration_line)
+        )
+
+        # S'il y a du solde à réserver : ça se passe ici.
         if spent_balance:
-            # On commence par récupérer la ligne d'inscription concernée. Les soldes réservés sont en effet
-            # liés à une ligne d'inscription.
-            child_registration_line = {
-                "kid_id": body["child_id"],
-                "parent_id": int(parent_id),
-                "school_implantation_id": int(body["school_implantation_id"]),
-                "month": int(body["month"]),
-                "year": int(body["year"]),
-            }
-            child_registration_line_response = (
-                self.get_or_create_child_registration_line(child_registration_line)
+            reserved_balance = self.reserve_balance(
+                parent_id,
+                {
+                    "prepayment_by_category_id": balance[
+                        "prepayment_by_category_id"
+                    ],
+                    "amount": spent_balance,
+                    "date": date.today().strftime("%Y-%m-%d"),
+                    "reserving_request": int(body["form_number"]),
+                    "child_registration_line_id": child_registration_line_response[
+                        "id"
+                    ],
+                },
             )
-            reserved_balance = None
-            # On vérifie également que le parent le solde dépensé par parent pour cette commande est bien
-            # supérieur à un éventuel solde réservé préexistant pour le même enfant et la même période.
-            # Si c'est le cas, il faut réserver davantage de solde.
-            # Si ce n'est pas le cas, pas besoin de réserver davantage de solde.
-            if spent_balance - balance["already_reserved_amount"] > 0:
-                # Voici la réservation du solde proprement dite.
-                reserved_balance = self.reserve_balance(
-                    parent_id,
-                    {
-                        "prepayment_by_category_id": balance[
-                            "prepayment_by_category_id"
-                        ],
-                        "amount": spent_balance - balance["already_reserved_amount"],
-                        "date": date.today().strftime("%Y-%m-%d"),
-                        "reserving_request": int(body["form_number"]),
-                        "child_registration_line_id": child_registration_line_response[
-                            "id"
-                        ],
-                    },
-                )
         # Enfin, on retourne les informations nécessaires pour le workflow
         return {
             "activity_category_id": balance["activity_category_id"],
