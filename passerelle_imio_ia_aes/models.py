@@ -700,6 +700,7 @@ class ApimsAesConnector(BaseResource):
             children=list(),
             is_update_child_available="pp-modifier-les-donnees-d-un-enfant"
             in form_slugs,
+            is_become_guarantor_available="pp-declarer-un-enfant-a-ma-charge" in form_slugs,
             is_update_parent_available="pp-modifier-mes-donnees-parent" in form_slugs,
             is_become_invoiceable_available="pp-me-designer-facturable" in form_slugs,
         )
@@ -738,6 +739,7 @@ class ApimsAesConnector(BaseResource):
                 level=child["level"],
                 healthsheet=child["has_valid_healthsheet"],
                 invoiceable_parent_id=child["invoiceable_parent_id"],
+                is_dependent=child["is_dependent"],
                 forms=child_forms,
             )
             result["children"].append(ts_child)

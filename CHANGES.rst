@@ -1,6 +1,11 @@
 Changelog
 =========
 
+3.1.0
+-----------------
+
+- [PPBDC-1118] Add is dependent notion into homepage.
+
 3.0.3
 -----------------
 
