@@ -2966,8 +2966,10 @@ class ApimsAesConnector(BaseResource):
     ## Mercredis après-midi      ##
     ###############################
 
-    def fetch_wednesday_afternoon(self, parent_id):
-        url = f"{self.server_url}/{self.aes_instance}/wednesday-afternoon?parent_id={parent_id}"
+    def fetch_wednesday_afternoon(self, parent_id, start_date, end_date=None):
+        url = f"{self.server_url}/{self.aes_instance}/wednesday-afternoon?parent_id={parent_id}&start_date={start_date}"
+        if end_date:
+            url += f"&end_date={end_date}"
         response = self.session.get(url)
         response.raise_for_status()
         return response.json()
@@ -2995,7 +2997,11 @@ class ApimsAesConnector(BaseResource):
         }
     )
     def list_wednesday_afternoon(self, request, parent_id, end_date=None, start_date=1):
-        data = self.fetch_wednesday_afternoon(parent_id)
+        data = self.fetch_wednesday_afternoon(
+            parent_id,
+            start_date=(date.today() + timedelta(days=start_date)).isoformat(),
+            end_date=(date.today() + timedelta(days=end_date)).isoformat()
+        )
 
         start_date = date.today() + timedelta(int(start_date))
         end_date = date.today() + timedelta(int(end_date))
@@ -3003,9 +3009,6 @@ class ApimsAesConnector(BaseResource):
 
         for item in data.get("items", []):
             item_date = date.fromisoformat(item["date"])
-            logging.info(f"Item date: {item_date}, Start date: {start_date}, End date: {end_date}")
-            logging.info(f"expression end: {end_date is None} or {item_date <= end_date}")
-            logging.info(f"expression start: {(item_date >= start_date)}")
             if (end_date is None or item_date <= end_date) and (item_date >= start_date):
                 item['text'] = f"{item['child_lastname']} {item['child_firstname']}"
                 item['disabled'] = item.get('is_child_already_registered') or not item.get('invoiceable_parent_id')

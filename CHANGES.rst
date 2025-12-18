@@ -1,10 +1,15 @@
 Changelog
 =========
 
+3.1.1
+-----------------
+
+- [PP-679] Fixed: Passerelle do send end_date to AES when fetching wednesday
+
 3.1.0
 -----------------
 
-- [PPBDC-1118] Add is dependent notion into homepage.
+- [PPBDC-1118] Added: is_dependent notion into homepage.
 
 3.0.3
 -----------------
