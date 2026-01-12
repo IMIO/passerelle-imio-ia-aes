@@ -1015,13 +1015,19 @@ class ApimsAesConnector(BaseResource):
     def list_available_plains(self, request, child_id):
         url = f"{self.server_url}/{self.aes_instance}/plains?kid_id={child_id}"
         response = self.session.get(url)
-        plains = [plain for plain in response.json() if plain["nb_remaining_place"] > 0]
+
+        plains = []
+        for plain in response.json():
+            if plain["nb_remaining_place"] > 0:
+                plain["disabled"] = False
+            else:
+                plain["disabled"] = True
+            plains.append(plain)
+
         weeks, available_plains = set(), []
         for activity in plains:
             new_activity = {
-                "id": "{}_{}_{}".format(
-                    activity["year"], activity["week"], activity["id"]
-                ),
+                "id": "{}_{}_{}".format(activity["year"], activity["week"], activity["id"]),
                 "text": (
                     activity.get("theme")
                     if activity.get("theme") and activity.get("theme") != "False"
@@ -1033,7 +1039,9 @@ class ApimsAesConnector(BaseResource):
                 "end_date": activity["end_date"],
                 "age_group_manager_id": activity["age_group_manager_id"],
                 "remaining_places": activity["nb_remaining_place"],
+                "disabled": activity.get("disabled", False),
             }
+
             if activity["week"] not in weeks:
                 available_plains.append(
                     {
@@ -1041,9 +1049,7 @@ class ApimsAesConnector(BaseResource):
                         "text": "Semaine {}".format(activity["week"]),
                         "activities": [new_activity],
                         "week": activity["week"],
-                        "monday": date.fromisocalendar(
-                            activity["year"], activity["week"], 1
-                        ),
+                        "monday": date.fromisocalendar(activity["year"], activity["week"], 1),
                         "year": activity["year"],
                     }
                 )
@@ -1054,6 +1060,7 @@ class ApimsAesConnector(BaseResource):
                     for week in available_plains
                     if week["id"] == activity["week"]
                 ]
+
         return sorted(available_plains, key=lambda x: x["monday"])
 
     @endpoint(
