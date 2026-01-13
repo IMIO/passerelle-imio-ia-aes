@@ -1,6 +1,11 @@
 Changelog
 =========
 
+3.1.2
+-----------------
+
+- [PP-617] Changed: all plains are listed for a child; complete ones are disabled.
+
 3.1.1
 -----------------
 
