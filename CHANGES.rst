@@ -1,6 +1,11 @@
 Changelog
 =========
 
+3.1.3
+-----------------
+
+- [PP-690] Fixed: filter generic activities registrations like school meals registrations.
+
 3.1.2
 -----------------
 

@@ -2650,13 +2650,21 @@ class ApimsAesConnector(BaseResource):
             "activity_on_portal": {
                 "description": "Nom de l'activité sur le Portail Parent",
                 "example_value": "pedagogical_day"
-            }
+            },
+            "days_in_delay": {
+                "description": "Délai en jours avant le repas.",
+                "example_value": 1,
+            },
+            "no_later_than": {
+                "description": "Dernier moment avant la désinscription, lors du dernier jour permis par le délai.",
+                "example_value": "19:00",
+            },
         },
         display_category="Activités génériques",
         example_pattern="registrations/",
         pattern=r"^registrations/$",
     )
-    def read_generic_activities_registrations(self, request, child_id=None, parent_id=None, activity_on_portal=None):
+    def read_generic_activities_registrations(self, request, child_id=None, parent_id=None, activity_on_portal=None, days_in_delay=1, no_later_than="19:00"):
         parameters= []
         if child_id:
             parameters.append(f"child_id={child_id}")
@@ -2672,14 +2680,16 @@ class ApimsAesConnector(BaseResource):
             raise Http404(response.json()["detail"])
         response.raise_for_status()
         items = response.json().get("items", [])
+        result = []
         for item in items:
             d = date.fromisoformat(item["date"])
-            item['group_by'] = f"{JOURS[d.weekday()]} {d.day} {MOIS[d.month - 1]} {d.year}".capitalize()
-            item["text"] = item["child_name"]
-            item["id"] = f"{item['child_registration_line_id']}_{item['day']}"
-        logging.info(f"Items: {items}")
-        logging.info(f"Response: {response.json()}")
-        return {"data": sorted(items, key=lambda i: i["date"])}
+            item_date = datetime.fromisoformat(item["date"])
+            if self.is_in_time(item_date, days_in_delay, time.fromisoformat(no_later_than)):
+                item['group_by'] = f"{JOURS[d.weekday()]} {d.day} {MOIS[d.month - 1]} {d.year}".capitalize()
+                item["text"] = item["child_name"]
+                item["id"] = f"{item['child_registration_line_id']}_{item['day']}"
+                result.append(item)
+        return {"data": sorted(result, key=lambda i: i["date"])}
 
     @endpoint(
         name="generic-activities",
