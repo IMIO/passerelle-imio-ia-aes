@@ -19,4 +19,4 @@ def compute_amount_with_balance(order_amount, total_balance_amount, unreserved_b
     elif order_amount >= total_balance_amount:
         due_amount = order_amount - total_balance_amount
         spent_balance = unreserved_balance_amount
-    return {"due_amount": due_amount, "spent_balance": spent_balance}
+    return {"due_amount": round(due_amount, 2), "spent_balance": round(spent_balance, 2)}

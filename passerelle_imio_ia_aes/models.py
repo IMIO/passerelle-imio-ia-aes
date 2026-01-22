@@ -1480,7 +1480,8 @@ class ApimsAesConnector(BaseResource):
         )
 
         # S'il y a du solde à réserver : ça se passe ici.
-        if spent_balance:
+        # Pour qu'il y ait du solde à réserver, il faut que ce montant soit d'au moins un centime.
+        if spent_balance > 0.01:
             reserved_balance = self.reserve_balance(
                 parent_id,
                 {

@@ -1,6 +1,11 @@
 Changelog
 =========
 
+3.1.4
+-----------------
+
+- [PP-697] Fixed: unrounded zero-like spent balance amount are now rounded.
+
 3.1.3
 -----------------
 
