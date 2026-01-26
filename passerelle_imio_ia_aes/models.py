@@ -38,7 +38,7 @@ from passerelle.utils.jsonresponse import APIError
 from requests.exceptions import ConnectionError
 from workalendar.europe import Belgium
 from datetime import datetime
-from .utils import compute_amount_with_balance
+from .utils import compute_amount_with_balance, test_compute_amount_with_balance
 
 
 logger = logging.getLogger(__name__)
@@ -117,6 +117,17 @@ class ApimsAesConnector(BaseResource):
     def verify_connection(self, request):
         url = self.server_url
         return self.session.get(url).json()
+
+    @endpoint(
+        name="test-compute-meal-order-amount",
+        perm="can_access",
+        description="Test du calcul du montant des repas",
+        long_description="Test du calcul du montant des repas",
+        display_order=0,
+        display_category="Test",
+    )
+    def test_compute_meal_order_amount(self, request):
+        return test_compute_amount_with_balance()
 
     ##########################
     ### Données génériques ###
@@ -1455,10 +1466,9 @@ class ApimsAesConnector(BaseResource):
         # Récupération du solde du parent, en tenant compte d'une éventuelle commande pour la même période
         # et le même enfant
         balance = self.get_balance(parent_id, "meal", body.get("child_id"), year, month)
-        balance_amount = round(balance.get("amount") + balance.get("already_reserved_amount"), 2)
 
         # Calcul du montant à payer et du solde à réserver
-        due_amount_with_spent_balance = compute_amount_with_balance(total_amount, balance_amount, balance["amount"], balance["already_reserved_amount"])
+        due_amount_with_spent_balance = compute_amount_with_balance(round(total_amount, 2), round(balance['amount'],2), round(balance['already_reserved_amount'],2))
         due_amount = due_amount_with_spent_balance["due_amount"]
         spent_balance = due_amount_with_spent_balance["spent_balance"]
 
