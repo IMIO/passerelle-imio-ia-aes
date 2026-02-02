@@ -26,7 +26,7 @@ def compute_amount_with_balance(order_amount, balance_amount, already_reserved_b
     return {"due_amount": round(due_amount / 100, 2), "spent_balance": round(spent_balance / 100, 2)}
 
 test_compute_amount_with_balance_compute_dataset = [
-    # order_amount, balance_amount, already_reserved_balance_amount
+    # order_amount, balance_amount, already_reserved_balance_amount, due_amount, spent_balance
     (0.00, 0.00, 0.00, 0.00, 0.00),
     (10.50, 10.50, 10.50, 0.00, 0.00),
     (20.75, 30.00, 20.00, 0.00, 0.75),
@@ -42,6 +42,11 @@ test_compute_amount_with_balance_compute_dataset = [
     (9.12, 2.28, 0.00, 6.84, 2.28),
     (9.12, 0.00, 0.00, 9.12, 0.00),
     (9.12, 6.84, 2.28, 2.28, 4.56),
+    (20.00, 21.00, 20.00, 0.00, 0.00),
+    (20.25, 21.00, 20.00, 0.00, 0.25),
+    (22.00, 21.00, 21.00, 1.00, 0.00),
+    (25.00, 22.00, 21.00, 3.00, 1.00),
+    (30.00, 20.00, 5.00, 10.00, 15.00),
 ]
 
 def test_compute_amount_with_balance(dataset=test_compute_amount_with_balance_compute_dataset):
@@ -50,14 +55,12 @@ def test_compute_amount_with_balance(dataset=test_compute_amount_with_balance_co
     for i in range(0, len(dataset)):
         computed = compute_amount_with_balance(dataset[i][0], dataset[i][1], dataset[i][2])
         line_result = True
-        detail = f"Order amount: {computed['due_amount']}/{dataset[i][3]}, Spent balance: {computed['spent_balance']}/{dataset[i][4]}"
         if computed["due_amount"] != dataset[i][3] or computed["spent_balance"] != dataset[i][4]:
             result = False
             line_result = False
         tests.append(
             {
                 "line_result": line_result,
-                "detail": detail,
                 "parameters": {
                     "order_amount": dataset[i][0],
                     "balance_amount": dataset[i][1],
@@ -67,7 +70,7 @@ def test_compute_amount_with_balance(dataset=test_compute_amount_with_balance_co
                     "expected": dataset[i][3],
                     "obtained": computed["due_amount"],
                 },
-                "results": {
+                "spent_balance": {
                     "expected": dataset[i][4],
                     "obtained": computed["spent_balance"]
                 }
