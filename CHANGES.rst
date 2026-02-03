@@ -4,9 +4,9 @@ Changelog
 3.1.4
 -----------------
 
-- [PP-697] Fixed: unrounded zero-like spent balance amount are now rounded.
-- [PP-697] Fixed: meal order amount computation.
-- [PP-697] Added: pseudo-unit test on meal order computation through a test endpoint.
+- [PP-700] Fixed: unrounded zero-like spent balance amount are now rounded.
+- [PP-700] Fixed: meal order amount computation.
+- [PP-700] Added: pseudo-unit test on meal order computation through a test endpoint.
 
 3.1.3
 -----------------

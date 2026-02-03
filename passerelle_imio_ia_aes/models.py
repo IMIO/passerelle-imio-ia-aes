@@ -1471,6 +1471,7 @@ class ApimsAesConnector(BaseResource):
         due_amount_with_spent_balance = compute_amount_with_balance(round(total_amount, 2), round(balance['amount'],2), round(balance['already_reserved_amount'],2))
         due_amount = due_amount_with_spent_balance["due_amount"]
         spent_balance = due_amount_with_spent_balance["spent_balance"]
+        remaining_balance = due_amount_with_spent_balance["remaining_balance"]
 
         # Maintenant qu'on connaît la part du solde du parent consommé pour diminuer son montant dû,
         # on réserve cette part dans AES en créant un "solde réservé" (reserved_balance).
@@ -1514,6 +1515,7 @@ class ApimsAesConnector(BaseResource):
             "initial_balance": round(balance["amount"], 2),
             "parent_id": balance["parent_id"],
             "prepayment_by_category_id": balance["prepayment_by_category_id"],
+            "remaining_balance": remaining_balance,
             "reserved_balance": reserved_balance,
             "spent_balance": round(spent_balance, 2),
             "total_amount": round(total_amount, 2),
