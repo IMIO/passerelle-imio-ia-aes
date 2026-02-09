@@ -1868,32 +1868,7 @@ class ApimsAesConnector(BaseResource):
                 {
                     "id": "other_contact_address",
                     "text": "Demander l'adresse des autres contacts",
-                },
-                {
-                    "id": "photo",
-                    "text": "L'enfant peut-il être pris en photo durant les stages ou les plaines ?",
-                },
-                {
-                    "id": "photo_general",
-                    "text": "L'enfant peut-il être pris en photo lors des garderies, ateliers, spectacles, ou autre ?",
-                },
-                {
-                    "id": "facebook",
-                    "text": "Les photos de l'enfant peuvent-elles être publiées sur les réseaux sociaux (site de la commune, "
-                    "Facebook) ?",
-                },
-                {
-                    "id": "medical_autorisation",
-                    "text": "Je marque mon accord pour que la prise en charge ou les traitements estimés nécessaires soient entrepris durant le séjour de mon enfant par les responsables de l’accueil ou par le service médical qui y est associé. J’autorise le médecin local à prendre les décisions qu’il juge urgentes et indispensables pour assurer l’état de santé de l’enfant, même s’il s’agit d’une intervention chirurgicale. En cas d’urgence, les parents/tuteurs seront avertis le plus rapidement possible. Néanmoins, s’ils ne sont pas joignables et que l’urgence le requiert, l’intervention se fera sans leur consentement.",
-                },
-                {
-                    "id": "covid",
-                    "text": "Je m’engage sur l’honneur à ce que moi-même ou un autre adulte de la bulle sociale de mon enfant soit joignable par téléphone et d’avoir la possibilité de venir chercher l’enfant immédiatement pendant toute la durée de l’activité si son état de santé le nécessite, et de s’engager dans ce cas à faire consulter le participant dès que possible (et endéans les 24h du retour au plus tard) par son médecin référent ou un autre médecin si ce dernier n’est pas disponible",
-                },
-                {
-                    "id": "rgpd",
-                    "text": "Je consens au traitement de mes données à caractère personnel par l'Administration communale de Chaudfontaine conformément à sa charte relative à la protection de la vie privée.",
-                },
+                }
             ]
         }
 
