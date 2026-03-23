@@ -2617,7 +2617,7 @@ class ApimsAesConnector(BaseResource):
                 "date": registration["date"],
                 "school_implantation_id": int(registration["school_implantation_id"]),
                 "child_id": int(registration["child_id"]),
-                "parent_id": int(post_data["parent_id"]),
+                "parent_id": int(post_data["invoiceable_parent_id"]),
             })
         
         payload = {"registrations": registrations}
