@@ -1,6 +1,10 @@
 Changelog
 =========
 
+3.1.5
+-----------------
+- [PP-718] Fixed: create generic registrations in name of invoiceable parent.
+
 3.1.4
 -----------------
 
