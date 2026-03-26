@@ -16,6 +16,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
+import base64
 from builtins import str
 from email import header
 
@@ -640,12 +641,11 @@ class ApimsAesConnector(BaseResource):
                 return True
         return False
 
-    def update_parent_id(self, new_parent_aes_id, parent_uuid):
-        """Update user's aes_id
-
-        Keyword arguments:
-        new_parent_aes_id -- new parent's ID in iA.AES after a merge.
-        parent_uuid -- user's uuid in authentic
+    def create_profile_url_with_signature(self, parent_uuid):
+        """Fetch parent profile from authentic.
+        @params
+        parent_uuid -- user's uuid in authentic as "nameid".
+        @returns: authentic_url toward a parent with signature
         """
         if not getattr(settings, "KNOWN_SERVICES", {}).get("authentic"):
             return
@@ -654,6 +654,26 @@ class ApimsAesConnector(BaseResource):
             url=f"{authentic['url']}api/users/{parent_uuid}/?orig={authentic.get('orig')}",
             key=authentic.get("secret"),
         )
+        return url_with_signature
+
+    def fetch_parent_profile(self, parent_uuid):
+        url_with_signature = self.create_profile_url_with_signature(parent_uuid)
+        if url_with_signature is None:
+            return
+        authentic_response = self.requests.get(url_with_signature)
+        authentic_response.raise_for_status()
+        return authentic_response.json()
+
+    def update_parent_id(self, new_parent_aes_id, parent_uuid):
+        """Update user's aes_id
+
+        Keyword arguments:
+        new_parent_aes_id -- new parent's ID in iA.AES after a merge.
+        parent_uuid -- user's uuid in authentic
+        """
+        url_with_signature = self.create_profile_url_with_signature(parent_uuid)
+        if url_with_signature is None:
+            return
         authentic_response = self.requests.patch(
             url_with_signature, json={"aes_id": new_parent_aes_id}
         )
@@ -2356,6 +2376,53 @@ class ApimsAesConnector(BaseResource):
         response = self.session.post(url, json=payment)
         response.raise_for_status()
         return response.json()
+
+    @endpoint(
+        name="parents",
+        methods=["get"],
+        perm="can_access",
+        description="Récupérer une facture en PDF",
+        parameters={
+            "parent_uuid": {
+                "example_value": "3a13109910c34fca8b85a7a219c56b54",
+                "description": "Attribut nameid de l'utilisateur visible dans son profil.",
+            },
+            "documents_type": {
+                "example_value": "invoices",
+                "description": "Type de documents souhaités",
+            },
+            "document_id": {
+                "example_value": 1,
+                "description": "Identifiant d'une facture d'un parent",
+            },
+            "NameID": {
+                "description": "Publik NameID",
+            },
+        },
+        example_pattern="{parent_uuid}/{documents_type}/{document_id}/pdf",
+        pattern="^(?P<parent_uuid>\w+)/(?P<documents_type>\w+)/(?P<document_id>\w+)/pdf$",
+        display_category="Parent",
+    )
+    def get_invoice_as_pdf(self, request, parent_uuid, documents_type, document_id, NameID=None):
+        documents_type = {
+            "factures": "invoices",
+            "invoices": "invoices"
+        }[documents_type]
+        # url = f"{self.server_url}/{self.aes_instance}/parents/{parent_id}/invoices/{invoice_id}/pdf"
+        parent_id = self.fetch_parent_profile(parent_uuid).get("aes_id")
+        if parent_id is None:
+            raise Http404(f"User {parent_uuid} not a parent!")
+        url = f"{self.server_url}/{self.aes_instance}/parents/{parent_id}/{documents_type}/{document_id}/pdf"
+        logger.error(f"Parent {parent_id} asks for invoice {document_id}")
+        response = self.session.get(url)
+        if response.status_code == 404:
+            raise Http404("Cannot find this document")
+        try:
+            response.raise_for_status()
+        except Exception as e:
+            logger.error(f"C'est la merde bitch: status: {response.status_code}")
+        # return HttpResponse(base64.b64decode(response.content), content_type="application/pdf")
+        return HttpResponse(response.content, content_type="application/pdf")
 
     ################
     # Attestations #
