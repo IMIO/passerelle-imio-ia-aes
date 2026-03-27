@@ -1670,6 +1670,8 @@ class ApimsAesConnector(BaseResource):
                 if not meal.get("is_disabled")
             ],
         }
+        if post_data.get("payment_id"):
+            data.update({"payment_id": post_data.get("payment_id")})
         if not len(data["meals"]):
             return
         url = f"{self.server_url}/{self.aes_instance}/school-meals/registrations"
@@ -2425,6 +2427,7 @@ class ApimsAesConnector(BaseResource):
                 "form_url": post_data["form_url"],
                 "online_transaction_id": post_data["transaction_id"],
                 "initial_amount": float(post_data["amount"].replace(",", ".")),
+                "child_registration_line_ids": detail["child_registration_line_id"]
             }
             for detail in post_data["details"]
         ]
@@ -2760,6 +2763,7 @@ class ApimsAesConnector(BaseResource):
                                     "parent_id": int(item["invoiceable_parent_id"]),
                                     "activity_category_id": detail["activity_category_id"],
                                     "type": "online",
+                                    "child_registration_line_id": item.get("child_registration_line_id"),
                                     "comment": body.get("comment", ""),
                                     "form_url": body.get("form_url", ""),
                                     "amount": 0.0
@@ -2800,6 +2804,7 @@ class ApimsAesConnector(BaseResource):
                     payment = {
                         "parent_id": int(item["invoiceable_parent_id"]),
                         "activity_category_id": detail["activity_category_id"],
+                        "child_registration_line_id": item.get("child_registration_line_id"),
                         "type": "online",
                         "comment": body.get("comment", ""),
                         "form_url": body.get("form_url", ""),
