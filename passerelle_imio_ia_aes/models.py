@@ -2427,7 +2427,7 @@ class ApimsAesConnector(BaseResource):
                 "form_url": post_data["form_url"],
                 "online_transaction_id": post_data["transaction_id"],
                 "initial_amount": float(post_data["amount"].replace(",", ".")),
-                "child_registration_line_ids": detail["child_registration_line_id"]
+                "child_registration_line_id": detail["child_registration_line_id"]
             }
             for detail in post_data["details"]
         ]
