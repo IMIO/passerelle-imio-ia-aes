@@ -1553,6 +1553,7 @@ class ApimsAesConnector(BaseResource):
                 "prepayment_by_category_id": body["prepayment_by_category_id"],
                 "type": "online",
                 "online_transaction_id": body.get("transaction_id") or "",
+                "child_registration_line_id": body["child_registration_line_id"]
             }
         )
         return payment
