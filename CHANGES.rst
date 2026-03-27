@@ -5,6 +5,7 @@ Changelog
 -----------------
 
 - [PP-716] Add child_registration_lines in payments.
+- [PP-718] Fixed: use the right key for invoiceable parent.
 
 3.1.5
 -----------------
