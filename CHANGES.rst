@@ -1,6 +1,12 @@
 Changelog
 =========
 
+3.1.6
+-----------------
+
+- [PP-716] Add child_registration_lines in payments.
+- [PP-718] Fixed: use the right key for invoiceable parent.
+
 3.1.5
 -----------------
 - [PP-718] Fixed: create generic registrations in name of invoiceable parent.

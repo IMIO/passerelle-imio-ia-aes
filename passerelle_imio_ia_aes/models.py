@@ -1553,6 +1553,7 @@ class ApimsAesConnector(BaseResource):
                 "prepayment_by_category_id": body["prepayment_by_category_id"],
                 "type": "online",
                 "online_transaction_id": body.get("transaction_id") or "",
+                "child_registration_line_id": body["child_registration_line_id"]
             }
         )
         return payment
@@ -1670,6 +1671,8 @@ class ApimsAesConnector(BaseResource):
                 if not meal.get("is_disabled")
             ],
         }
+        if post_data.get("payment_id"):
+            data.update({"payment_id": post_data.get("payment_id")})
         if not len(data["meals"]):
             return
         url = f"{self.server_url}/{self.aes_instance}/school-meals/registrations"
@@ -2425,6 +2428,7 @@ class ApimsAesConnector(BaseResource):
                 "form_url": post_data["form_url"],
                 "online_transaction_id": post_data["transaction_id"],
                 "initial_amount": float(post_data["amount"].replace(",", ".")),
+                "child_registration_line_id": detail["child_registration_line_id"]
             }
             for detail in post_data["details"]
         ]
@@ -2617,7 +2621,7 @@ class ApimsAesConnector(BaseResource):
                 "date": registration["date"],
                 "school_implantation_id": int(registration["school_implantation_id"]),
                 "child_id": int(registration["child_id"]),
-                "parent_id": int(post_data["invoiceable_parent_id"]),
+                "parent_id": int(registration["invoiceable_parent_id"]),
             })
         
         payload = {"registrations": registrations}
@@ -2760,6 +2764,7 @@ class ApimsAesConnector(BaseResource):
                                     "parent_id": int(item["invoiceable_parent_id"]),
                                     "activity_category_id": detail["activity_category_id"],
                                     "type": "online",
+                                    "child_registration_line_id": item.get("child_registration_line_id"),
                                     "comment": body.get("comment", ""),
                                     "form_url": body.get("form_url", ""),
                                     "amount": 0.0
@@ -2800,6 +2805,7 @@ class ApimsAesConnector(BaseResource):
                     payment = {
                         "parent_id": int(item["invoiceable_parent_id"]),
                         "activity_category_id": detail["activity_category_id"],
+                        "child_registration_line_id": item.get("child_registration_line_id"),
                         "type": "online",
                         "comment": body.get("comment", ""),
                         "form_url": body.get("form_url", ""),
