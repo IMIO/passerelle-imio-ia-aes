@@ -1263,6 +1263,7 @@ class ApimsAesConnector(BaseResource):
                             "meal_id": meal["meal_id"],
                             "price": meal["price"],
                             "activity_id": meal["activity_id"],
+                            "activity_category_id": meal["activity_category_id"],
                             "is_disabled": disabled,
                             "disabling_reason": disabling_reason,
                         }
@@ -1271,7 +1272,10 @@ class ApimsAesConnector(BaseResource):
 
     def validate_month_menu(self, month_menu):
         checked_menu_ids, errors = list(), dict()
+        activity_categories = []
         for menu in month_menu["data"]:
+            if menu["activity_category_id"] not in activity_categories:
+                activity_categories.append(menu["activity_category_id"])
             if menu["id"] in checked_menu_ids:
                 index_menu = checked_menu_ids.index(menu["id"])
                 error = {
@@ -1296,6 +1300,11 @@ class ApimsAesConnector(BaseResource):
                     }
                 errors[menu["id"]]["meal_ids"].append(error)
             checked_menu_ids.append(menu["id"])
+        if len(activity_categories) > 1:
+            errors["activity_category_error"] = {
+                "message": "more than one category found",
+                "activity_category_ids": activity_categories
+            }
         return errors
 
     @endpoint(
@@ -1338,6 +1347,37 @@ class ApimsAesConnector(BaseResource):
         response = self.session.get(url, timeout=10)
         response.raise_for_status()
         return response.json()
+
+    @endpoint(
+        name="activity_category_by_activity_on_portal",
+        methods=["get"],
+        perm="can_access",
+        description="Catégorie d'activité par activité on portal",
+        long_description="Renvoie la catégorie liée à l'activité pour une entité AES donnée (municipality_id).",
+        parameters={
+            "activity_on_portal": {
+                "description": "Type d'activité sur le portail",
+                "example_value": "meal",
+            },
+        },
+        display_category="Données génériques",
+    )
+    def get_activity_category_by_activity_on_portal(self, request, activity_on_portal):
+        categories = dict(self.get_activity_categories(request)).get("items")
+        category_ids = []
+        if not categories:
+            return
+        for category in categories:
+            category_id = category.get("id")
+            activities = category.get("activity_on_portal_ids")
+            for activity in activities:
+                if activity.get("label") == activity_on_portal and category_id not in category_ids:
+                    category_ids.append(category.get("id"))
+        if len(category_ids) > 1:
+            raise MultipleObjectsReturned(f"Many category_id ({category_ids}) for activity_on_portal : {activity_on_portal}")
+        if len(category_ids) == 0:
+            return Http404(f"No category_id found for activity_on_portal : {activity_on_portal}")
+        return category_ids[0]
 
     @endpoint(
         name="parents",
@@ -1392,7 +1432,7 @@ class ApimsAesConnector(BaseResource):
             "parent_id": PARENT_PARAM,
             "activity_category_type": {
                 "description": "Identifiant du type de la catégorie d'activité",
-                "example_value": "meal",
+                "example_value": "10",
             },
             "child_id": CHILD_PARAM,
             "month": {
@@ -1465,7 +1505,8 @@ class ApimsAesConnector(BaseResource):
             year, month = int(body.get("year")), int(body.get("month"))
         # Récupération du solde du parent, en tenant compte d'une éventuelle commande pour la même période
         # et le même enfant
-        balance = self.get_balance(parent_id, "meal", body.get("child_id"), year, month)
+        activity_category_id = order[0].get("activity_category_id") or "meal"
+        balance = self.get_balance(parent_id, activity_category_id, body.get("child_id"), year, month)
 
         # Calcul du montant à payer et du solde à réserver
         due_amount_with_spent_balance = compute_amount_with_balance(round(total_amount, 2), round(balance['amount'],2), round(balance['already_reserved_amount'],2))
@@ -2417,8 +2458,9 @@ class ApimsAesConnector(BaseResource):
     def create_payments(self, request):
         post_data = json.loads(request.body)
         url = f"{self.server_url}/{self.aes_instance}/payments"
-        payments = [
-            {
+        payments = []
+        for detail in post_data["details"]:
+            payment = {
                 "parent_id": int(detail["parent_id"]),
                 "date": post_data["date"],
                 "type": "online",
@@ -2428,10 +2470,10 @@ class ApimsAesConnector(BaseResource):
                 "form_url": post_data["form_url"],
                 "online_transaction_id": post_data["transaction_id"],
                 "initial_amount": float(post_data["amount"].replace(",", ".")),
-                "child_registration_line_id": detail["child_registration_line_id"]
             }
-            for detail in post_data["details"]
-        ]
+            if detail.get("child_registration_line_id") is not None:
+                payment.update({"child_registration_line_id": detail["child_registration_line_id"]})
+            payments.append(payment)
         response = self.session.post(url, json=payments)
         response.raise_for_status()
         logging.info(f"Response payment creation: {response.json()}")

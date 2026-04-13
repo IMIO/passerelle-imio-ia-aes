@@ -1,6 +1,13 @@
 Changelog
 =========
 
+3.1.7
+-----------------
+
+- [PP-722] Patch compute cost to use category id instead of category label
+- [PP-722] Add activity_category_by_activity_on_portal to get category ids of a label
+- [PP-724] Patch create_payments manage unknown child registration line
+
 3.1.6
 -----------------
 
