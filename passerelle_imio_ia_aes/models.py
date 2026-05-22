@@ -805,6 +805,7 @@ class ApimsAesConnector(BaseResource):
         example_pattern="{child_id}/",
         pattern="^(?P<child_id>\w+)/$",
         display_category="Enfant",
+        cache_duration=15,
     )
     def read_child(self, request, child_id):
         from time import perf_counter
@@ -1345,6 +1346,7 @@ class ApimsAesConnector(BaseResource):
         example_pattern="activity-categories",
         pattern=r"^activity-categories$",
         display_category="Données génériques",
+        cache_duration=60,
     )
     def get_activity_categories(self, request):
         url = f"{self.server_url}/{self.aes_instance}/activity-categories"
@@ -2366,6 +2368,7 @@ class ApimsAesConnector(BaseResource):
         example_pattern="{parent_id}/invoices/",
         pattern="^(?P<parent_id>\w+)/invoices/$",
         display_category="Parent",
+        cache_duration=300
     )
     def list_invoices(self, request, parent_id):
         url = f"{self.server_url}/{self.aes_instance}/parents/{parent_id}/invoices"
@@ -2420,6 +2423,7 @@ class ApimsAesConnector(BaseResource):
         example_pattern="{parent_id}/certificates/",
         pattern="^(?P<parent_id>\w+)/certificates/$",
         display_category="Parent",
+        cache_duration=300
     )
     def list_certificates(self, request, parent_id):
         url = f"{self.server_url}/{self.aes_instance}/parents/{parent_id}/certificates"
