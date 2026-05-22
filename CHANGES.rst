@@ -5,7 +5,7 @@ Changelog
 -----------------
 
 - [PP-734] Added: check on parent_id parameter when listing children
-
+- [PP-737] Added: cache en healthsheet-fields
 
 3.1.7
 -----------------

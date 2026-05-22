@@ -2157,7 +2157,7 @@ class ApimsAesConnector(BaseResource):
         perm="can_access",
         description="Consulter les champs d'une fiche santé",
         long_description="Liste les champs de la fiche santé et leurs valeurs possible.",
-        # cache_duration=3600,
+        cache_duration=300,
         display_category="Fiche santé",
     )
     def list_healthsheet_fields(self, request):
