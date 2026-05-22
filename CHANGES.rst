@@ -1,6 +1,12 @@
 Changelog
 =========
 
+3.1.8
+-----------------
+
+- [PP-734] Added: check on parent_id parameter when listing children
+
+
 3.1.7
 -----------------
 
