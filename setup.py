@@ -34,7 +34,7 @@ class compile_translations(Command):
                 call_command("compilemessages")
                 os.chdir(curdir)
         except ImportError:
-            sys.stderr.write("!!! Please install Django >= 1.4 to build translations\n")
+            sys.stderr.write("!!! Please install Django >= 3.2 to build translations\n")
 
 
 class build(_build):
@@ -47,7 +47,7 @@ class install_lib(_install_lib):
         _install_lib.run(self)
 
 
-version = "3.1.8"
+version = "3.2.0"
 
 setup(
     name="passerelle-imio-ia-aes",
@@ -68,7 +68,7 @@ setup(
         "Programming Language :: Python :: 3",
     ],
     install_requires=[
-        "django>=3.2, <3.3",
+        "django>=3.2, <5.3",
     ],
     zip_safe=False,
     cmdclass={

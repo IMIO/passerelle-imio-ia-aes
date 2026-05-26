@@ -1,6 +1,10 @@
 Changelog
 =========
 
+-----------------
+
+- [PP-740] Changed: update django required version from 3.2 until 5.2
+
 3.1.8
 -----------------
 
