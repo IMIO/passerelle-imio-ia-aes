@@ -1,6 +1,12 @@
 Changelog
 =========
 
+3.2.2
+------------------
+
+- [PP-743] Removed: unused legacy debug scripts test.py and test_post.py
+- [PP-743] Changed: README was updated and changed to true markdown. 
+
 3.2.1
 ------------------
 
