@@ -1,6 +1,12 @@
 Changelog
 =========
 
+3.2.1
+------------------
+
+- [PP-741] Changed: move compute meal order amount tests from endpoint to pytest
+
+3.2.0
 -----------------
 
 - [PP-740] Changed: update django required version from 3.2 until 5.2

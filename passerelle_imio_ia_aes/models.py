@@ -38,7 +38,7 @@ from passerelle.utils.jsonresponse import APIError
 from requests.exceptions import ConnectionError
 from workalendar.europe import Belgium
 from datetime import datetime
-from .utils import compute_amount_with_balance, test_compute_amount_with_balance
+from .utils import compute_amount_with_balance
 
 
 logger = logging.getLogger(__name__)
@@ -117,17 +117,6 @@ class ApimsAesConnector(BaseResource):
     def verify_connection(self, request):
         url = self.server_url
         return self.session.get(url).json()
-
-    @endpoint(
-        name="test-compute-meal-order-amount",
-        perm="can_access",
-        description="Test du calcul du montant des repas",
-        long_description="Test du calcul du montant des repas",
-        display_order=0,
-        display_category="Test",
-    )
-    def test_compute_meal_order_amount(self, request):
-        return test_compute_amount_with_balance()
 
     ##########################
     ### Données génériques ###
