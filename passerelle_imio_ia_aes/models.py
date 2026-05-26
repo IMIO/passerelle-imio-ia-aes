@@ -26,7 +26,7 @@ import requests
 from calendar import Calendar, monthrange
 from django.db import models
 from django.conf import settings
-from django.http import Http404, HttpResponse, HttpResponseBadRequest, HttpResponseNotAllowed
+from django.http import Http404, HttpResponse, HttpResponseBadRequest, HttpResponseNotAllowed, HttpResponseBadRequest
 from django.urls import path, reverse
 from django.core.exceptions import MultipleObjectsReturned
 from datetime import date, datetime, timedelta, time
@@ -512,6 +512,10 @@ class ApimsAesConnector(BaseResource):
         cache_duration=15,
     )
     def list_children(self, request, parent_id):
+        try:
+            1 / int(parent_id)
+        except (ValueError, TypeError, ZeroDivisionError):
+            return HttpResponseBadRequest('{"parent_id": "Must be an integer > 0"}', content_type="application/json")
         url = f"{self.server_url}/{self.aes_instance}/parents/{parent_id}/kids"
         response = self.session.get(url).json()
         result = []
@@ -801,6 +805,7 @@ class ApimsAesConnector(BaseResource):
         example_pattern="{child_id}/",
         pattern="^(?P<child_id>\w+)/$",
         display_category="Enfant",
+        cache_duration=15,
     )
     def read_child(self, request, child_id):
         from time import perf_counter
@@ -1341,6 +1346,7 @@ class ApimsAesConnector(BaseResource):
         example_pattern="activity-categories",
         pattern=r"^activity-categories$",
         display_category="Données génériques",
+        cache_duration=60,
     )
     def get_activity_categories(self, request):
         url = f"{self.server_url}/{self.aes_instance}/activity-categories"
@@ -2153,7 +2159,7 @@ class ApimsAesConnector(BaseResource):
         perm="can_access",
         description="Consulter les champs d'une fiche santé",
         long_description="Liste les champs de la fiche santé et leurs valeurs possible.",
-        # cache_duration=3600,
+        cache_duration=300,
         display_category="Fiche santé",
     )
     def list_healthsheet_fields(self, request):
@@ -2362,6 +2368,7 @@ class ApimsAesConnector(BaseResource):
         example_pattern="{parent_id}/invoices/",
         pattern="^(?P<parent_id>\w+)/invoices/$",
         display_category="Parent",
+        cache_duration=300
     )
     def list_invoices(self, request, parent_id):
         url = f"{self.server_url}/{self.aes_instance}/parents/{parent_id}/invoices"
@@ -2416,6 +2423,7 @@ class ApimsAesConnector(BaseResource):
         example_pattern="{parent_id}/certificates/",
         pattern="^(?P<parent_id>\w+)/certificates/$",
         display_category="Parent",
+        cache_duration=300
     )
     def list_certificates(self, request, parent_id):
         url = f"{self.server_url}/{self.aes_instance}/parents/{parent_id}/certificates"

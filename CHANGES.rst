@@ -1,6 +1,13 @@
 Changelog
 =========
 
+3.1.8
+-----------------
+
+- [PP-734] Added: check on parent_id parameter when listing children
+- [PP-737] Added: cache en healthsheet-fields
+- [PP-738] Added: cache on get_activity_categories, list_certificates, list_invoices, read_child
+
 3.1.7
 -----------------
 
