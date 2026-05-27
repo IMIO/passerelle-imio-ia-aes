@@ -1,6 +1,11 @@
 Changelog
 =========
 
+3.2.3
+------------------
+
+- [PP-736] Changed: replace self.session with self.requests to benefit from Passerelle's connection pooling.
+
 3.2.2
 ------------------
 

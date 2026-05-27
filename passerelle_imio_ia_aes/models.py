@@ -22,7 +22,6 @@ from email import header
 import json
 import logging
 import re
-import requests
 from calendar import Calendar, monthrange
 from django.db import models
 from django.conf import settings
@@ -35,7 +34,6 @@ from passerelle.base.models import BaseResource
 from passerelle.base.signature import sign_url
 from passerelle.utils.api import endpoint
 from passerelle.utils.jsonresponse import APIError
-from requests.exceptions import ConnectionError
 from workalendar.europe import Belgium
 from datetime import datetime
 from .utils import compute_amount_with_balance
@@ -95,12 +93,13 @@ class ApimsAesConnector(BaseResource):
     class Meta:
         verbose_name = "Connecteur Apims AES"
 
-    @property
-    def session(self):
-        session = requests.Session()
-        session.auth = (self.username, self.password)
-        session.headers.update({"Accept": "application/json"})
-        return session
+    def make_requests_auth(self, session=None):
+        return (self.username, self.password)
+
+    def make_requests(self, **kwargs):
+        r = super().make_requests(**kwargs)
+        r.headers.update({"Accept": "application/json"})
+        return r
 
     ############
     ### Test ###
@@ -116,7 +115,7 @@ class ApimsAesConnector(BaseResource):
     )
     def verify_connection(self, request):
         url = self.server_url
-        return self.session.get(url).json()
+        return self.requests.get(url).json()
 
     ##########################
     ### Données génériques ###
@@ -134,7 +133,7 @@ class ApimsAesConnector(BaseResource):
     # list_states instead of list_countries as list_countries didn't work, don't know why.
     def list_states(self, request):
         url = f"{self.server_url}/{self.aes_instance}/countries"
-        response = self.session.get(url)
+        response = self.requests.get(url)
         return response.json()
 
     @endpoint(
@@ -157,7 +156,7 @@ class ApimsAesConnector(BaseResource):
     # get_state instead of get_country to be consistant with list_states.
     def get_state(self, request, country_id):
         url = f"{self.server_url}/{self.aes_instance}/countries/{country_id}"
-        response = self.session.get(url)
+        response = self.requests.get(url)
         return response.json()
 
     @endpoint(
@@ -171,7 +170,7 @@ class ApimsAesConnector(BaseResource):
     )
     def list_levels(self, request):
         url = f"{self.server_url}/{self.aes_instance}/levels"
-        response = self.session.get(url).json()
+        response = self.requests.get(url).json()
         return response
 
     @endpoint(
@@ -185,7 +184,7 @@ class ApimsAesConnector(BaseResource):
     )
     def list_places(self, request):
         url = f"{self.server_url}/{self.aes_instance}/places"
-        response = self.session.get(url).json()
+        response = self.requests.get(url).json()
         return response
 
     @endpoint(
@@ -199,7 +198,7 @@ class ApimsAesConnector(BaseResource):
     )
     def list_school_implantations(self, request):
         url = f"{self.server_url}/{self.aes_instance}/school-implantations"
-        response = self.session.get(url).json()
+        response = self.requests.get(url).json()
         return response
 
     ##############
@@ -208,7 +207,7 @@ class ApimsAesConnector(BaseResource):
 
     def get_localities(self):
         url = f"{self.server_url}/{self.aes_instance}/localities"
-        response = self.session.get(url)
+        response = self.requests.get(url)
         items = [
             dict(
                 id=item["id"],
@@ -268,7 +267,7 @@ class ApimsAesConnector(BaseResource):
 
     def list_countries(self):
         url = f"{self.server_url}/{self.aes_instance}/countries"
-        response = self.session.get(url)
+        response = self.requests.get(url)
         return response.json()["items"]
 
     def search_country(self, country):
@@ -394,7 +393,7 @@ class ApimsAesConnector(BaseResource):
         else:
             return HttpResponseBadRequest(f"{partner_type} is not a valid partner.")
         url = f"{self.server_url}/{self.aes_instance}/persons/{id}"
-        response = self.session.patch(url, json=patch_data)
+        response = self.requests.patch(url, json=patch_data)
         response.raise_for_status()
         return True
 
@@ -425,7 +424,7 @@ class ApimsAesConnector(BaseResource):
         self, request, national_number="", registration_number="", partner_type=""
     ):
         url = f"{self.server_url}/{self.aes_instance}/persons?national_number={national_number}&registration_number={registration_number}&partner_type={partner_type}"
-        response = self.session.get(url)
+        response = self.requests.get(url)
         response.raise_for_status()
         if response.json()["items_total"] > 1:
             raise MultipleObjectsReturned
@@ -449,7 +448,7 @@ class ApimsAesConnector(BaseResource):
     )
     def read_parent(self, request, parent_id):
         url = f"{self.server_url}/{self.aes_instance}/parents/{parent_id}/"
-        response = self.session.get(url).json()
+        response = self.requests.get(url).json()
         return response
 
     @endpoint(
@@ -484,7 +483,7 @@ class ApimsAesConnector(BaseResource):
         else:
             parent["zip"] = post_data["zipcode"]
             parent["city"] = post_data["locality"]
-        response = self.session.post(url, json=parent)
+        response = self.requests.post(url, json=parent)
         response.raise_for_status()
         return response.json()
 
@@ -506,7 +505,7 @@ class ApimsAesConnector(BaseResource):
         except (ValueError, TypeError, ZeroDivisionError):
             return HttpResponseBadRequest('{"parent_id": "Must be an integer > 0"}', content_type="application/json")
         url = f"{self.server_url}/{self.aes_instance}/parents/{parent_id}/kids"
-        response = self.session.get(url).json()
+        response = self.requests.get(url).json()
         result = []
         for child in response["items"]:
             result.append(
@@ -609,7 +608,7 @@ class ApimsAesConnector(BaseResource):
     )
     def get_plain_structured_communication(self, request, parent_id):
         url = f"{self.server_url}/{self.aes_instance}/parents/{parent_id}/structured-communications"
-        response = self.session.get(url)
+        response = self.requests.get(url)
         response.raise_for_status()
         if len(response.json()) > 1:
             raise MultipleObjectsReturned
@@ -683,7 +682,7 @@ class ApimsAesConnector(BaseResource):
         if not parent_id.isdigit():
             return None
         url = f"{self.server_url}/{self.aes_instance}/parents/{parent_id}/homepage"
-        response = self.session.get(url)
+        response = self.requests.get(url)
         response.raise_for_status()
         consolidated_parent_id = response.json().get("parent_id")
         if consolidated_parent_id != int(parent_id):
@@ -776,7 +775,7 @@ class ApimsAesConnector(BaseResource):
         if not parent_id.isdigit():
             return None
         url = f"{self.server_url}/{self.aes_instance}/parents/{parent_id}/homepage"
-        response = self.session.get(url)
+        response = self.requests.get(url)
         response.raise_for_status()
         return response.json()
 
@@ -802,13 +801,13 @@ class ApimsAesConnector(BaseResource):
         t0 = perf_counter()
         url = f"{self.server_url}/{self.aes_instance}/kids/{child_id}"
         logging.error(f"READ_CHILD {url} - temps : {perf_counter()-t0}")
-        result = self.session.get(url).json()
+        result = self.requests.get(url).json()
         result["time"] = perf_counter() - t0
         return result
 
     def list_price_categories(self):
         url = f"{self.server_url}/{self.aes_instance}/price_categories"
-        response = self.session.get(url)
+        response = self.requests.get(url)
         response.raise_for_status()
         price_categories = dict()
         for price_category in response.json()["items"]:
@@ -883,7 +882,7 @@ class ApimsAesConnector(BaseResource):
         }
         if post_data["national_number"]:
             child["national_number"] = post_data["national_number"]
-        response = self.session.post(url, json=child)
+        response = self.requests.post(url, json=child)
         response.raise_for_status()
         return response.json()
 
@@ -934,7 +933,7 @@ class ApimsAesConnector(BaseResource):
                 "You have to give either the national_number, or the lastname, firstname and birthdate."
             )
         url = f"{self.server_url}/{self.aes_instance}/persons?{url_parameters}"
-        response = self.session.get(url)
+        response = self.requests.get(url)
         response.raise_for_status()
         if response.json()["items_total"] == 1:
             child = response.json()["items"][0]
@@ -960,7 +959,7 @@ class ApimsAesConnector(BaseResource):
     def add_parent_to_child(self, request, child_id):
         url = f"{self.server_url}/{self.aes_instance}/kids/{child_id}"
         parent = json.loads(request.body)
-        response = self.session.patch(url, json=parent)
+        response = self.requests.patch(url, json=parent)
         response.raise_for_status()
         return True
 
@@ -983,7 +982,7 @@ class ApimsAesConnector(BaseResource):
     def update_responsibilities(self, request, responsibility_id):
         url = f"{self.server_url}/{self.aes_instance}/responsibilities/{responsibility_id}"
         data = json.loads(request.body)
-        response = self.session.patch(url, json=data)
+        response = self.requests.patch(url, json=data)
         response.raise_for_status()
         return HttpResponse(status=204)
 
@@ -1004,7 +1003,7 @@ class ApimsAesConnector(BaseResource):
     )
     def list_available_plains_raw(self, request, child_id):
         url = f"{self.server_url}/{self.aes_instance}/plains?kid_id={child_id}"
-        response = self.session.get(url)
+        response = self.requests.get(url)
         return response.json()
 
     @endpoint(
@@ -1019,7 +1018,7 @@ class ApimsAesConnector(BaseResource):
     )
     def list_available_plains(self, request, child_id):
         url = f"{self.server_url}/{self.aes_instance}/plains?kid_id={child_id}"
-        response = self.session.get(url)
+        response = self.requests.get(url)
 
         plains = []
         for plain in response.json():
@@ -1100,7 +1099,7 @@ class ApimsAesConnector(BaseResource):
             "form_number": int(post_data["form_number"]),
             "plains": plains,
         }
-        response = self.session.post(url, json=registrations)
+        response = self.requests.post(url, json=registrations)
         response.raise_for_status()
         return response.json()
 
@@ -1122,7 +1121,7 @@ class ApimsAesConnector(BaseResource):
     )
     def delete_plain_registration(self, request, registration_id):
         url = f"{self.server_url}/{self.aes_instance}/plains/registration/{registration_id}"
-        response = self.session.delete(url)
+        response = self.requests.delete(url)
         response.raise_for_status()
         return response.json()
 
@@ -1138,7 +1137,7 @@ class ApimsAesConnector(BaseResource):
     )
     def get_plains_registrations_cost(self, request, form_numbers):
         url = f"{self.server_url}/{self.aes_instance}/plains/registrations/cost?form_numbers={form_numbers}"
-        response = self.session.get(url)
+        response = self.requests.get(url)
         response.raise_for_status()
         return response.json()
 
@@ -1204,7 +1203,7 @@ class ApimsAesConnector(BaseResource):
 
     def get_meal_registrations(self, child_id, parent_id=None):
         url = f"{self.server_url}/{self.aes_instance}/school-meals/registrations?kid_id={child_id}"
-        response = self.session.get(url)
+        response = self.requests.get(url)
         response.raise_for_status()
         if isinstance(response.json(), list):
             registrations = response.json()
@@ -1231,7 +1230,7 @@ class ApimsAesConnector(BaseResource):
 
     def get_month_menu(self, child_id, parent_id, month):
         url = f"{self.server_url}/{self.aes_instance}/menus?kid_id={child_id}&month={month}"
-        response = self.session.get(url)
+        response = self.requests.get(url)
         response.raise_for_status()
         registrations = {
             f"_{self.reverse_date(registration['meal_date'], '-')}_{registration['meal_regime']}-{registration['meal_activity_id']}": registration
@@ -1339,7 +1338,7 @@ class ApimsAesConnector(BaseResource):
     )
     def get_activity_categories(self, request):
         url = f"{self.server_url}/{self.aes_instance}/activity-categories"
-        response = self.session.get(url, timeout=10)
+        response = self.requests.get(url, timeout=10)
         response.raise_for_status()
         return response.json()
 
@@ -1389,7 +1388,7 @@ class ApimsAesConnector(BaseResource):
     )
     def get_all_balances_for_parent(self, request, parent_id):
         url = f"{self.server_url}/{self.aes_instance}/parents/{parent_id}/balances"
-        response = self.session.get(url, timeout=10)
+        response = self.requests.get(url, timeout=10)
         response.raise_for_status()
         return response.json()
 
@@ -1404,14 +1403,14 @@ class ApimsAesConnector(BaseResource):
                 for k, v in {"child_id": child_id, "year": year, "month": month}.items()
                 if v
             )
-        response = self.session.get(url)
+        response = self.requests.get(url)
         response.raise_for_status()
         return response.json()
 
     def reserve_balance(self, parent_id, data):
         url = f"{self.server_url}/{self.aes_instance}/parents/{parent_id}/reserved-balances"
         logging.info(f"Reserving {data}")
-        response = self.session.post(url, json=data)
+        response = self.requests.post(url, json=data)
         response.raise_for_status()
         return response.json()
 
@@ -1455,7 +1454,7 @@ class ApimsAesConnector(BaseResource):
         )
 
     def get_or_create_child_registration_line(self, data):
-        response = self.session.post(
+        response = self.requests.post(
             f"{self.server_url}/{self.aes_instance}/school-meals/registrations/lines",
             json=data,
         )
@@ -1558,7 +1557,7 @@ class ApimsAesConnector(BaseResource):
         }
 
     def create_meals_payment(self, data):
-        response = self.session.post(
+        response = self.requests.post(
             f"{self.server_url}/{self.aes_instance}/school-meals/payments", json=data
         )
         response.raise_for_status()
@@ -1652,7 +1651,7 @@ class ApimsAesConnector(BaseResource):
     )
     def free_balance(self, request, parent_id, reserved_balance_id):
         url = f"{self.server_url}/{self.aes_instance}/parents/{parent_id}/reserved-balances/{reserved_balance_id}"
-        response = self.session.delete(url)
+        response = self.requests.delete(url)
         response.raise_for_status()
         return True
 
@@ -1674,7 +1673,7 @@ class ApimsAesConnector(BaseResource):
     #     for id in data[""]
     #     for identifiant in data.get("details"):
     #         url = f"{self.server_url}/{self.aes_instance}/parents/{parent_id}/reserved-balances/"
-    #         response = self.session.delete(url)
+    #         response = self.requests.delete(url)
     #         response.raise_for_status()
 
     #     return responses 
@@ -1712,7 +1711,7 @@ class ApimsAesConnector(BaseResource):
         if not len(data["meals"]):
             return
         url = f"{self.server_url}/{self.aes_instance}/school-meals/registrations"
-        response = self.session.post(url, json=data)
+        response = self.requests.post(url, json=data)
         response.raise_for_status()
         return response.json()
 
@@ -1820,7 +1819,7 @@ class ApimsAesConnector(BaseResource):
             meal["meal_detail_id"] for meal in json.loads(request.body).get("meals")
         ]
         url = f"{self.server_url}/{self.aes_instance}/school-meals/registrations/delete"
-        response = self.session.post(url, json=data)
+        response = self.requests.post(url, json=data)
         response.raise_for_status()
         return response.json()
 
@@ -1913,7 +1912,7 @@ class ApimsAesConnector(BaseResource):
 
     def has_valid_healthsheet(self, child_id):
         url = f"{self.server_url}/{self.aes_instance}/kids/{child_id}/healthsheet"
-        response = self.session.get(url)
+        response = self.requests.get(url)
         if response.status_code >= 400:
             return {
                 "is_valid": False,
@@ -1940,7 +1939,7 @@ class ApimsAesConnector(BaseResource):
     )
     def read_healthsheet(self, request, child_id):
         url = f"{self.server_url}/{self.aes_instance}/kids/{child_id}/healthsheet"
-        response = self.session.get(url)
+        response = self.requests.get(url)
         data = response.json()[0]
         healthsheet = dict()
         healthsheet["activity_no_available_reason"] = (
@@ -2138,7 +2137,7 @@ class ApimsAesConnector(BaseResource):
         if allowed_contact_ids:
             put_data["allowed_contact_ids"] = allowed_contact_ids
         url = f"{self.server_url}/{self.aes_instance}/kids/{child_id}/healthsheet"
-        response = self.session.put(url, json=put_data)
+        response = self.requests.put(url, json=put_data)
         response.raise_for_status()
         return True
 
@@ -2153,7 +2152,7 @@ class ApimsAesConnector(BaseResource):
     )
     def list_healthsheet_fields(self, request):
         url = f"{self.server_url}/{self.aes_instance}/models/healthsheet"
-        response = self.session.get(url).json()
+        response = self.requests.get(url).json()
         result = dict()
         for k, v in response.items():
             if isinstance(v, dict):
@@ -2200,7 +2199,7 @@ class ApimsAesConnector(BaseResource):
                 f"Filter value '{filter}' is unknown. It must be 'mandatory' or 'optional'."
             )
         url = f"{self.server_url}/{self.aes_instance}/authorizations"
-        response = self.session.get(url).json()
+        response = self.requests.get(url).json()
         if not filter:
             return response
         if filter == "mandatory":
@@ -2235,7 +2234,7 @@ class ApimsAesConnector(BaseResource):
         url = f"{self.server_url}/{self.aes_instance}/allergies"
         if healthsheet:
             url += f"?health_sheet_id={healthsheet}"
-        response = self.session.get(url)
+        response = self.requests.get(url)
         response.raise_for_status()
         result = dict(
             data=[
@@ -2267,7 +2266,7 @@ class ApimsAesConnector(BaseResource):
         url = f"{self.server_url}/{self.aes_instance}/diseases"
         if healthsheet:
             url += f"?health_sheet_id={healthsheet}"
-        response = self.session.get(url)
+        response = self.requests.get(url)
         response.raise_for_status()
         return response.json()
 
@@ -2304,7 +2303,7 @@ class ApimsAesConnector(BaseResource):
             "zip": post_data.get("zipcode") or "",
             "city": post_data.get("city") or "",
         }
-        response = self.session.post(url, json=contact)
+        response = self.requests.post(url, json=contact)
         response.raise_for_status()
         return response.json()
 
@@ -2338,7 +2337,7 @@ class ApimsAesConnector(BaseResource):
         else:
             doctor["zip"] = post_data["zip"]
             doctor["city"] = post_data["city"]
-        response = self.session.post(url, json=doctor)
+        response = self.requests.post(url, json=doctor)
         response.raise_for_status()
         return response.json()
 
@@ -2361,7 +2360,7 @@ class ApimsAesConnector(BaseResource):
     )
     def list_invoices(self, request, parent_id):
         url = f"{self.server_url}/{self.aes_instance}/parents/{parent_id}/invoices"
-        return self.session.get(url).json()
+        return self.requests.get(url).json()
 
     @endpoint(
         name="parents",
@@ -2393,7 +2392,7 @@ class ApimsAesConnector(BaseResource):
             "prepayment_by_category_id": post_data["prepayment_by_category_id"],
         }
         logger.info(f"POST_DATA:", post_data)
-        response = self.session.post(url, json=payment)
+        response = self.requests.post(url, json=payment)
         response.raise_for_status()
         return response.json()
 
@@ -2416,7 +2415,7 @@ class ApimsAesConnector(BaseResource):
     )
     def list_certificates(self, request, parent_id):
         url = f"{self.server_url}/{self.aes_instance}/parents/{parent_id}/certificates"
-        return self.session.get(url).json()
+        return self.requests.get(url).json()
 
     ################
     ### Paiement ###
@@ -2439,7 +2438,7 @@ class ApimsAesConnector(BaseResource):
             "amount": float(post_data["amount"].replace(",", ".")),
             "comment": post_data["comment"],
         }
-        response = self.session.post(url, json=payment)
+        response = self.requests.post(url, json=payment)
         response.raise_for_status()
         return response.json()
 
@@ -2471,7 +2470,7 @@ class ApimsAesConnector(BaseResource):
             if detail.get("child_registration_line_id") is not None:
                 payment.update({"child_registration_line_id": detail["child_registration_line_id"]})
             payments.append(payment)
-        response = self.session.post(url, json=payments)
+        response = self.requests.post(url, json=payments)
         response.raise_for_status()
         logging.info(f"Response payment creation: {response.json()}")
         return response.json()
@@ -2560,7 +2559,7 @@ class ApimsAesConnector(BaseResource):
 
     def fetch_pedagogical_days(self, parent_id):
         url = f"{self.server_url}/{self.aes_instance}/pedagogical-days?parent_id={parent_id}"
-        response = self.session.get(url)
+        response = self.requests.get(url)
         response.raise_for_status()
         return response.json()
 
@@ -2665,7 +2664,7 @@ class ApimsAesConnector(BaseResource):
         
         payload = {"registrations": registrations}
         logger.info(payload)
-        response = self.session.post(url, json=payload)
+        response = self.requests.post(url, json=payload)
         response.raise_for_status()
         return response.json()
     
@@ -2706,7 +2705,7 @@ class ApimsAesConnector(BaseResource):
         url = f"{self.server_url}/{self.aes_instance}/generic-activities/registrations"
         if parameters:
             url = url + "?" + "&".join(parameters)
-        response = self.session.get(url)
+        response = self.requests.get(url)
         if response.status_code == 404:
             raise Http404(response.json()["detail"])
         response.raise_for_status()
@@ -2741,7 +2740,7 @@ class ApimsAesConnector(BaseResource):
                 data[str(registration["child_registration_line_id"])] = [registration["day"]]
             else:
                 data[str(registration["child_registration_line_id"])].append(registration["day"])
-        response = self.session.delete(url, json=data)
+        response = self.requests.delete(url, json=data)
         response.raise_for_status()
         return response.json()
 
@@ -2773,7 +2772,7 @@ class ApimsAesConnector(BaseResource):
         # Je construis l'URL pour la requête POST, c'est le endpoint AES pour calculer le coût des journées pédagogiques
         url = f"{self.server_url}/{self.aes_instance}/generic-activities/cost"
         # j'envoie la requête HTTP POST à l’URL donnée avec le payload (données) en JSON
-        response = self.session.post(url, json=payload)
+        response = self.requests.post(url, json=payload)
         # Je vérifie que la requête s'est bien passée 
         response.raise_for_status()
         # Je récupère les données de coût de la réponse JSON
@@ -2970,7 +2969,7 @@ class ApimsAesConnector(BaseResource):
     def create_reserved_balances(self, payload):
         url = f"{self.server_url}/{self.aes_instance}/reserved-balances"
         logging.info(f"Payload reserved balances: {payload}")
-        response = self.session.post(url, json=payload)
+        response = self.requests.post(url, json=payload)
         response.raise_for_status()
         return response.json()
     
@@ -2979,7 +2978,7 @@ class ApimsAesConnector(BaseResource):
         reserved_balances = payload.get("reserved_balances", [])
         if not reserved_balances:
             return HttpResponse(status_code=422)
-        response = self.session.delete(url, json=[
+        response = self.requests.delete(url, json=[
             reserved_balance.get("id") for reserved_balance in reserved_balances if reserved_balance.get("id") is not None
         ])
         response.raise_for_status()
@@ -3020,7 +3019,7 @@ class ApimsAesConnector(BaseResource):
         url = f"{self.server_url}/{self.aes_instance}/wednesday-afternoon?parent_id={parent_id}&start_date={start_date}"
         if end_date:
             url += f"&end_date={end_date}"
-        response = self.session.get(url)
+        response = self.requests.get(url)
         response.raise_for_status()
         return response.json()
 
