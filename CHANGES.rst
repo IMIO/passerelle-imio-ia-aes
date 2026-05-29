@@ -1,6 +1,11 @@
 Changelog
 =========
 
+3.2.4
+------------------
+
+- [PP-749] Fixed: accept payments request without child_registration_line_id parameter as it is optional in AES.
+
 3.2.3
 ------------------
 
