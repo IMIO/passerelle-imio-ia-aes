@@ -1,6 +1,32 @@
 Changelog
 =========
 
+3.2.4
+------------------
+
+- [PP-749] Fixed: accept payments request without child_registration_line_id parameter as it is optional in AES.
+
+3.2.3
+------------------
+
+- [PP-736] Changed: replace self.session with self.requests to benefit from Passerelle's connection pooling.
+
+3.2.2
+------------------
+
+- [PP-743] Removed: unused legacy debug scripts test.py and test_post.py
+- [PP-743] Changed: README was updated and changed to true markdown. 
+
+3.2.1
+------------------
+
+- [PP-741] Changed: move compute meal order amount tests from endpoint to pytest
+
+3.2.0
+-----------------
+
+- [PP-740] Changed: update django required version from 3.2 until 5.2
+
 3.1.8
 -----------------
 
