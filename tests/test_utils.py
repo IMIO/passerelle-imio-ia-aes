@@ -1,6 +1,7 @@
 import pytest
+from datetime import date, timedelta
 
-from passerelle_imio_ia_aes.utils import compute_amount_with_balance
+from passerelle_imio_ia_aes.utils import compute_amount_with_balance, compute_generic_activity_parameters
 
 # Cas de test pour compute_amount_with_balance, groupés par branche métier :
 #   - branche 1 (b1) : commande >= solde -> un dû reste à payer
@@ -48,3 +49,114 @@ def test_compute_amount_with_balance(
     assert result["due_amount"] == expected_due
     assert result["spent_balance"] == expected_spent
     assert result["remaining_balance"] == expected_remaining
+
+
+# Cas de test pour compute_generic_activity_parameters, groupés par branche :
+#   - static   : les dates fournies sont retournées telles quelles au format ISO
+#   - dynamic  : les dates sont calculées à partir de date.today() + délai
+#
+# Les dates sont calculées avec date.today() à la collecte des tests.
+# Les valeurs changent d'un jour à l'autre mais les assertions restent valides :
+# l'output du test reflète exactement ce que fait la fonction en conditions réelles.
+compute_generic_activity_parameters_cases = [
+    # --- Mode static ---
+    pytest.param(
+        "static",
+        date.today() + timedelta(days=1), date.today() + timedelta(days=30),
+        None, None,
+        (date.today() + timedelta(days=1)).isoformat(),
+        (date.today() + timedelta(days=30)).isoformat(),
+        id="static_nominal",
+    ),
+    pytest.param(
+        "static",
+        date.today() + timedelta(days=1), date.today() + timedelta(days=1),
+        None, None,
+        (date.today() + timedelta(days=1)).isoformat(),
+        (date.today() + timedelta(days=1)).isoformat(),
+        id="static_start_equals_end",
+    ),
+
+    # --- Mode dynamic ---
+    pytest.param(
+        "dynamic",
+        None, None,
+        1, 30,
+        (date.today() + timedelta(days=1)).isoformat(),
+        (date.today() + timedelta(days=30)).isoformat(),
+        id="dynamic_nominal",
+    ),
+    pytest.param(
+        "dynamic",
+        None, None,
+        0, 90,
+        date.today().isoformat(),
+        (date.today() + timedelta(days=90)).isoformat(),
+        id="dynamic_start_delay_zero",
+    ),
+    pytest.param(
+        "dynamic",
+        None, None,
+        5, 5,
+        (date.today() + timedelta(days=5)).isoformat(),
+        (date.today() + timedelta(days=5)).isoformat(),
+        id="dynamic_start_equals_end",
+    ),
+]
+
+
+@pytest.mark.parametrize(
+    "selection_mode,start_date,end_date,start_delay,end_delay,expected_start,expected_end",
+    compute_generic_activity_parameters_cases,
+)
+def test_compute_generic_activity_parameters(
+    selection_mode, start_date, end_date, start_delay, end_delay, expected_start, expected_end,
+):
+    result = compute_generic_activity_parameters(
+        selection_mode=selection_mode,
+        start_date=start_date,
+        end_date=end_date,
+        start_delay=start_delay,
+        end_delay=end_delay,
+    )
+    assert result["start_date"] == expected_start
+    assert result["end_date"] == expected_end
+
+
+# Cas qui doivent lever une ValueError :
+#   - selection_mode invalide
+#   - start_date > end_date en mode static
+#   - start_delay > end_delay en mode dynamic
+compute_generic_activity_parameters_raises_cases = [
+    pytest.param(
+        "foo", None, None, None, None,
+        id="invalid_selection_mode",
+    ),
+    pytest.param(
+        "static",
+        date.today() + timedelta(days=30), date.today() + timedelta(days=1),
+        None, None,
+        id="static_start_after_end",
+    ),
+    pytest.param(
+        "dynamic", None, None, 30, 1,
+        id="dynamic_start_delay_above_end_delay",
+    ),
+]
+
+
+@pytest.mark.parametrize(
+    "selection_mode,start_date,end_date,start_delay,end_delay",
+    compute_generic_activity_parameters_raises_cases,
+)
+def test_compute_generic_activity_parameters_raises(
+    selection_mode, start_date, end_date, start_delay, end_delay,
+):
+    with pytest.raises(ValueError):
+        compute_generic_activity_parameters(
+            selection_mode=selection_mode,
+            start_date=start_date,
+            end_date=end_date,
+            start_delay=start_delay,
+            end_delay=end_delay,
+        )
