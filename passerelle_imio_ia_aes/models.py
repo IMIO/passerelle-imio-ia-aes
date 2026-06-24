@@ -36,13 +36,14 @@ from passerelle.utils.api import endpoint
 from passerelle.utils.jsonresponse import APIError
 from workalendar.europe import Belgium
 from datetime import datetime
-from .utils import compute_amount_with_balance
+from .utils import enrich_activity_items
+from .utils import JOURS
+from .utils import MOIS
+from .utils import resolve_activity_date_range_with_floor
+from .utils import split_order_amount_against_balance
 
 
 logger = logging.getLogger(__name__)
-JOURS = ('lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche')
-MOIS = ('janvier', 'février', 'mars', 'avril', 'mai', 'juin',
-        'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre')
 
 class ApimsAesConnector(BaseResource):
     """
@@ -1503,7 +1504,7 @@ class ApimsAesConnector(BaseResource):
         balance = self.get_balance(parent_id, activity_category_id, body.get("child_id"), year, month)
 
         # Calcul du montant à payer et du solde à réserver
-        due_amount_with_spent_balance = compute_amount_with_balance(round(total_amount, 2), round(balance['amount'],2), round(balance['already_reserved_amount'],2))
+        due_amount_with_spent_balance = split_order_amount_against_balance(round(total_amount, 2), round(balance['amount'],2), round(balance['already_reserved_amount'],2))
         due_amount = due_amount_with_spent_balance["due_amount"]
         spent_balance = due_amount_with_spent_balance["spent_balance"]
         remaining_balance = due_amount_with_spent_balance["remaining_balance"]
@@ -2557,8 +2558,12 @@ class ApimsAesConnector(BaseResource):
     ## Journées pédagogiques ##
     ###########################
 
-    def fetch_pedagogical_days(self, parent_id):
+    def fetch_pedagogical_days(self, parent_id, start_date=None, end_date=None):
         url = f"{self.server_url}/{self.aes_instance}/pedagogical-days?parent_id={parent_id}"
+        if start_date:
+            url += f"&start_date={start_date}"
+        if end_date:
+            url += f"&end_date={end_date}"
         response = self.requests.get(url)
         response.raise_for_status()
         return response.json()
@@ -2571,42 +2576,39 @@ class ApimsAesConnector(BaseResource):
         long_description="Lis les journées pédagogiques dans iA.AES et les complète pour leur utilisation dans un formulaire.",
         display_category="Journées pédagogiques",
         parameters={
-            "parent_id": {
-                "example_value": 279,
-                "description": "ID du parent"             
-            },
-            "end_date": {
-                "description": "Délai en jours pour masquer les dates au-delà",
-                "example_value": 30
+            "parent_id": PARENT_PARAM,
+            "selection_mode": {
+                "description": "Choix entre une période fixe (static) ou dynamique (dynamic)",
+                "example_value": "dynamic",
             },
             "start_date": {
-                "description": "Délai en jours pour masquer les dates en deçà",
-                "example_value": 1
+                "description": "Date de début de la période fixe si selection_mode == 'static'",
+                "example_value": date.today()
+            },
+            "end_date": {
+                "description": "Date de fin de la période fixe si selection_mode == 'static'",
+                "example_value": date.today() + timedelta(days=30)
+            },
+            "start_delay": {
+                "description": "Délai en jours pour masquer les dates en deçà si selection_mode == 'dynamic'",
+                "example_value": 0,
+            },
+            "end_delay": {
+                "description": "Délai en jours pour masquer les dates au-delà si selection_mode == 'dynamic'",
+                "example_value": 30,
+            },
+            "no_later_than": {
+                "description": "Dernier moment avant l'inscription, lors du dernier jour permis par le délai.",
+                "example_value": "23:59",
             },
         }
     )
-
-    def list_pedagogical_days(self, request, parent_id, end_date=None, start_date=1):
-        data = self.fetch_pedagogical_days(parent_id) 
-
-        start_date = date.today() + timedelta(int(start_date))
-        end_date = date.today() + timedelta(int(end_date))
-        pedagogical_days = []
-
-        for item in data.get("items", []):
-            item_date = date.fromisoformat(item["date"])
-            logging.info(f"Item date: {item_date}, Start date: {start_date}, End date: {end_date}")
-            logging.info(f"expression end: {end_date is None} or {item_date <= end_date}")
-            logging.info(f"expression start: {(item_date >= start_date)}")
-            if (end_date is None or item_date <= end_date) and (item_date >= start_date):
-                item['text'] = f"{item['child_lastname']} {item['child_firstname']}"
-                item['disabled'] = item.get('is_child_already_registered') or not item.get('invoiceable_parent_id')
-                item['id'] = f"{item['activity_id']}_{item['activity_date_id']}_{item['child_id']}"
-                d = date.fromisoformat(item['date'])
-                item['group_by'] = f"{JOURS[d.weekday()]} {d.day} {MOIS[d.month - 1]} {d.year}".capitalize()
-                pedagogical_days.append(item)
-        data["items"] = pedagogical_days
-          
+    def list_pedagogical_days(self, request, parent_id, selection_mode="dynamic", start_date=None, end_date=None, start_delay=1, end_delay=30, no_later_than="23:59"):
+        period = resolve_activity_date_range_with_floor(selection_mode, start_date, end_date, start_delay, end_delay, no_later_than)
+        if period is None:
+            return {"items": []}
+        data = self.fetch_pedagogical_days(parent_id, start_date=period['start_date'], end_date=period['end_date'])
+        data["items"] = enrich_activity_items(data.get("items", []))
         return data
 
     @endpoint(
@@ -3031,40 +3033,37 @@ class ApimsAesConnector(BaseResource):
         long_description="Lis les mercredis après-midi dans iA.AES et les complète pour leur utilisation dans un formulaire.",
         display_category="Mercredis après-midi",
         parameters={
-            "parent_id": {
-                "example_value": 19,
-                "description": "ID du parent"             
-            },
-            "end_date": {
-                "description": "Délai en jours pour masquer les dates au-delà",
-                "example_value": 30
+            "parent_id": PARENT_PARAM,
+            "selection_mode": {
+                "description": "Choix entre une période fixe (static) ou dynamique (dynamic)",
+                "example_value": "dynamic",
             },
             "start_date": {
-                "description": "Délai en jours pour masquer les dates en deçà",
-                "example_value": 1
+                "description": "Date de début de la période fixe si selection_mode == 'static'",
+                "example_value": date.today()
+            },
+            "end_date": {
+                "description": "date de fin de la période fixe",
+                "example_value": date.today() + timedelta(days=30)
+            },
+            "start_delay": {
+                "description": "Délai en jours pour masquer les dates en deçà si selection_mode == 'dynamic'",
+                "example_value": 0,
+            },
+            "end_delay": {
+                "description": "Délai en jours pour masquer les dates au-delà si selection_mode == 'dynamic'",
+                "example_value": 30,
+            },
+            "no_later_than": {
+                "description": "Dernier moment avant l'inscription, lors du dernier jour permis par le délai.",
+                "example_value": "23:59",
             },
         }
     )
-    def list_wednesday_afternoon(self, request, parent_id, end_date=None, start_date=1):
-        data = self.fetch_wednesday_afternoon(
-            parent_id,
-            start_date=(date.today() + timedelta(days=start_date)).isoformat(),
-            end_date=(date.today() + timedelta(days=end_date)).isoformat()
-        )
-
-        start_date = date.today() + timedelta(int(start_date))
-        end_date = date.today() + timedelta(int(end_date))
-        wednesday_afternoon = []
-
-        for item in data.get("items", []):
-            item_date = date.fromisoformat(item["date"])
-            if (end_date is None or item_date <= end_date) and (item_date >= start_date):
-                item['text'] = f"{item['child_lastname']} {item['child_firstname']}"
-                item['disabled'] = item.get('is_child_already_registered') or not item.get('invoiceable_parent_id')
-                item['id'] = f"{item['activity_id']}_{item.get('activity_date_id') or item['date']}_{item['child_id']}"
-                d = date.fromisoformat(item['date'])
-                item['group_by'] = f"{JOURS[d.weekday()]} {d.day} {MOIS[d.month - 1]} {d.year}".capitalize()
-                wednesday_afternoon.append(item)
-
-        data["items"] = wednesday_afternoon
+    def list_wednesday_afternoon(self, request, parent_id, selection_mode="dynamic", start_date=None, end_date=None, start_delay=1, end_delay=30, no_later_than="23:59"):
+        period = resolve_activity_date_range_with_floor(selection_mode, start_date, end_date, start_delay, end_delay, no_later_than)
+        if period is None:
+            return {"items": []}
+        data = self.fetch_wednesday_afternoon(parent_id, start_date=period['start_date'], end_date=period['end_date'])
+        data["items"] = enrich_activity_items(data.get("items", []))
         return data

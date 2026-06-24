@@ -1,6 +1,11 @@
 Changelog
 =========
 
+3.3.0
+------------------
+
+- [PP-704] Added: Add dynamic and static filters on dates for pedagogical days and wednesday afternoon
+
 3.2.4
 ------------------
 
