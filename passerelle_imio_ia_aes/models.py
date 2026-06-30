@@ -494,17 +494,26 @@ class ApimsAesConnector(BaseResource):
         perm="can_access",
         description="Lister les enfants d'un parent",
         long_description="Retourne les enfants d'un parent et filtre leurs données pour n'afficher que l'essentiel.",
-        parameters={"parent_id": PARENT_PARAM},
+        parameters={
+            "parent_id": PARENT_PARAM,
+            "is_invoiceable": {
+                "description": "Filtre les enfants selon que le parent connecté est facturable (true) ou non (false). Sans valeur, renvoie tous les enfants.",
+                "example_value": "false",
+                "type": "bool",
+                "optional": True,
+            },
+        },
         example_pattern="{parent_id}/children/",
         pattern="^(?P<parent_id>\w+)/children/$",
         display_category="Parent",
         cache_duration=15,
     )
-    def list_children(self, request, parent_id):
+    def list_children(self, request, parent_id, is_invoiceable=None):
         try:
             1 / int(parent_id)
         except (ValueError, TypeError, ZeroDivisionError):
             return HttpResponseBadRequest('{"parent_id": "Must be an integer > 0"}', content_type="application/json")
+        parent_id = int(parent_id)
         url = f"{self.server_url}/{self.aes_instance}/parents/{parent_id}/kids"
         response = self.requests.get(url).json()
         result = []
@@ -524,8 +533,11 @@ class ApimsAesConnector(BaseResource):
                     "healthsheet": child["health_sheet_ids"],
                     "invoiceable_parents": child["parent_ids"],
                     "responsibility_id": child["responsibility_id"],
+                    "is_user_invoiceable": parent_id in [parent["id"] for parent in child["parent_ids"]]
                 }
             )
+        if is_invoiceable is not None:
+            result = [child for child in result if child["is_user_invoiceable"] == is_invoiceable]
         return {"items": result}
 
     @endpoint(
