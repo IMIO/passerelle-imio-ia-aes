@@ -1,6 +1,11 @@
 Changelog
 =========
 
+3.4.0
+------------------
+
+- [PP-757] Added: optional filter on children list by invoiceability of the connected user
+
 3.3.0
 ------------------
 
