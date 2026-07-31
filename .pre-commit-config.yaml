@@ -1,0 +1,9 @@
+repos:
+  - repo: local
+    hooks:
+      - id: pytest
+        name: pytest
+        entry: ./scripts/run-tests.sh
+        language: system
+        pass_filenames: false
+        files: \.py$

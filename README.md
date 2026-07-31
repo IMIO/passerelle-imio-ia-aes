@@ -4,7 +4,17 @@ Connecteur [Passerelle](https://doc-publik.entrouvert.com/dev/developpement-d-un
 
 Concrètement, le connecteur expose au catalogue Publik des endpoints HTTP qui relaient les opérations métier (parents, enfants, plaines de vacances, repas, fiches santé, paiements, soldes, etc.) vers APIMS, et applique au passage la logique propre au Portail Parent (calcul du montant à payer, réservation de solde, validation de fiche santé…).
 
-## Installation
+## Configuration du dépôt local
+
+Le projet fournit une configuration [pre-commit](https://pre-commit.com/) (`.pre-commit-config.yaml`).
+
+Pour l'activer sur les commits du dépôt local :
+
+```bash
+pre-commit install
+```
+
+## Installation du connecteur
 
 Ajouter l'application aux apps installées de Passerelle :
 
@@ -20,7 +30,7 @@ PASSERELLE_APP_PASSERELLE_IMIO_IA_AES_ENABLED = True
 
 Le package est compatible avec Django 3.2 à 5.2.
 
-## Configuration
+## Configuration du connecteur
 
 Créer un nouveau connecteur « Connecteur Apims AES » dans l'interface d'administration de Passerelle et renseigner :
 
@@ -67,6 +77,18 @@ DJANGO_SETTINGS_MODULE=passerelle.settings PASSERELLE_SETTINGS_FILE=tests/settin
 ```
 
 En adaptant le chemin de `pytest` selon l'environnement virtuel utilisé, par exemple `~/envs/publik-env-py3/bin/pytest`.
+
+Pour éviter de répéter ce chemin à chaque exécution, copier `.env.example` vers `.env` à la racine du projet et y renseigner la variable `PASSERELLE_ENV` avec le chemin vers l'exécutable `pytest` de son environnement virtuel :
+
+```bash
+cp .env.example .env
+```
+
+```
+PASSERELLE_ENV=~/envs/publik-env-py3/bin/pytest
+```
+
+Le script `scripts/run-tests.sh` charge ensuite ce fichier `.env` et lance les tests avec cet exécutable.
 
 À ce jour la suite ne teste qu'une fonction utilitaire pure (`compute_amount_with_balance`) qui n'a aucune dépendance Django : en pratique `pytest tests/` sans les variables d'environnement suffit. La forme complète ci-dessus est néanmoins conservée parce qu'elle suit la [convention Passerelle](https://doc-publik.entrouvert.com/dev/developpement-d-un-connecteur/#Tests-unitaires) et qu'elle sera requise dès qu'un test touchera au framework (modèles Django, endpoints HTTP via `django-webtest`, accès base de données…).
 
