@@ -3,3 +3,4 @@
 passerelle_imio_ia_aes.egg-info/
 __pycache__/
 *.pyc
+.env
