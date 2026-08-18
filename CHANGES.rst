@@ -1,6 +1,11 @@
 Changelog
 =========
 
+3.4.1
+------------------
+
+[TELE-2226] Changed: migrate from workalendar to calendra.
+
 3.4.0
 ------------------
 
