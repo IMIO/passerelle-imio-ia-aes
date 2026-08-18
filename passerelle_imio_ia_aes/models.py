@@ -34,7 +34,7 @@ from passerelle.base.models import BaseResource
 from passerelle.base.signature import sign_url
 from passerelle.utils.api import endpoint
 from passerelle.utils.jsonresponse import APIError
-from workalendar.europe import Belgium
+from calendra.europe import Belgium
 from datetime import datetime
 from .utils import enrich_activity_items
 from .utils import JOURS
