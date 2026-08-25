@@ -18,6 +18,16 @@
 
 from builtins import str
 from email import header
+from requests.exceptions import (
+    HTTPError,
+    ConnectionError as RequestsConnectionError,
+    Timeout,
+    TooManyRedirects,
+    MissingSchema,
+    InvalidSchema,
+    InvalidURL,
+    URLRequired,
+)
 
 import json
 import logging
@@ -107,16 +117,51 @@ class ApimsAesConnector(BaseResource):
     ############
 
     @endpoint(
-        name="verify-connection",
+        name="check-status",
         perm="can_access",
-        description="Valider la connexion entre APIMS et Publik",
-        long_description="Une simple requête qui permet juste de valider si la connexion est bien établie entre Publik et Apims.",
+        description="Valider la connexion entre Passerelle et APIMS ainsi que APIMS et AES",
+        long_description="Une simple requête qui permet juste de valider si la connexion est bien établie entre Publik et Apims ainsi que pour APIMS et AES.",
         display_order=0,
         display_category="Test",
     )
-    def verify_connection(self, request):
-        url = self.server_url
-        return self.requests.get(url).json()
+    def check_status(self, request):
+        url = f"{self.server_url}/{self.aes_instance}/status"
+        response = None
+
+        try:
+            response = self.requests.get(url)  # Mettre un timeout ?
+            response.raise_for_status()  # Pour les erreurs 400 (client)/ 500 (serveur)
+        except HTTPError as exc:
+            return {"data": {
+                "apims_status": "erreur",
+                "apims_code": response.status_code,
+                "apims_erreur": str(exc) if str(exc) else None,
+                "aes_status": "non testé",
+                "aes_erreur": None,
+            }}
+        except (
+            RequestsConnectionError,  # DNS, connexion refusée, SSL, proxy, ConnectTimeout
+            Timeout,                  # ReadTimeout (et ConnectTimeout)
+            TooManyRedirects,
+            MissingSchema,            # server_url vide ou sans http(s)://
+            InvalidSchema,
+            InvalidURL,
+            URLRequired,
+        ) as exc:
+            return {"data": {
+                "apims_status": "erreur",
+                "apims_code": 502,
+                "apims_erreur": f"Serveur injoignable : {exc}" if str(exc) else "Serveur injoignable",
+                "aes_status": "non testé",
+                "aes_erreur": None,
+            }}
+
+        return {"data": {
+            "apims_status": "connecté",
+            "apims_code": response.status_code,
+            "apims_erreur": None,
+            **response.json(),
+        }}
 
     ##########################
     ### Données génériques ###
