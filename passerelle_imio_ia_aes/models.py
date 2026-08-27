@@ -117,14 +117,14 @@ class ApimsAesConnector(BaseResource):
     ############
 
     @endpoint(
-        name="check-status",
+        name="check-connection",
         perm="can_access",
         description="Valider la connexion entre Passerelle et APIMS ainsi que APIMS et AES",
         long_description="Une simple requête qui permet juste de valider si la connexion est bien établie entre Publik et Apims ainsi que pour APIMS et AES.",
         display_order=0,
         display_category="Test",
     )
-    def check_status(self, request):
+    def check_connection(self, request):
         url = f"{self.server_url}/{self.aes_instance}/status"
         response = None
 
