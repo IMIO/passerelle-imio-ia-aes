@@ -18,16 +18,14 @@
 
 from builtins import str
 from email import header
-from requests.exceptions import (
-    HTTPError,
-    ConnectionError as RequestsConnectionError,
-    Timeout,
-    TooManyRedirects,
-    MissingSchema,
-    InvalidSchema,
-    InvalidURL,
-    URLRequired,
-)
+from requests.exceptions import HTTPError
+from requests.exceptions import ConnectionError as RequestsConnectionError
+from requests.exceptions import Timeout
+from requests.exceptions import TooManyRedirects
+from requests.exceptions import MissingSchema
+from requests.exceptions import InvalidSchema
+from requests.exceptions import InvalidURL
+from requests.exceptions import URLRequired
 
 import json
 import logging
