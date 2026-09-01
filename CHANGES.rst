@@ -1,10 +1,16 @@
 Changelog
 =========
 
+3.4.2
+------------------
+
+- [PP-769] Changed: verify_connection to check_connection endpoint
+- [PP-769] Updated: check_connection returns
+
 3.4.1
 ------------------
 
-[TELE-2226] Changed: migrate from workalendar to calendra.
+- [TELE-2226] Changed: migrate from workalendar to calendra.
 
 3.4.0
 ------------------
