@@ -118,7 +118,8 @@ class ApimsAesConnector(BaseResource):
         name="check-connection",
         perm="can_access",
         description="Valider la connexion entre Passerelle et APIMS ainsi que APIMS et AES",
-        long_description="Une simple requête qui permet juste de valider si la connexion est bien établie entre Publik et Apims ainsi que pour APIMS et AES.",
+        long_description="Une simple requête qui permet juste de valider si la connexion est bien établie entre" \
+                        " Publik et Apims ainsi que pour APIMS et AES.",
         display_order=0,
         display_category="Test",
     )
@@ -145,11 +146,11 @@ class ApimsAesConnector(BaseResource):
             InvalidSchema,
             InvalidURL,
             URLRequired,
-        ) as exc:
+        ) as e:
             return {"data": {
                 "apims_status": "erreur",
                 "apims_code": 502,
-                "apims_erreur": f"Serveur injoignable : {exc}" if str(exc) else "Serveur injoignable",
+                "apims_erreur": f"Serveur injoignable : {e}" if str(e) else "Serveur injoignable",
                 "aes_status": "non testé",
                 "aes_erreur": None,
             }}
