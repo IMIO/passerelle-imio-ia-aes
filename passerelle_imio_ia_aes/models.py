@@ -1712,29 +1712,6 @@ class ApimsAesConnector(BaseResource):
         response.raise_for_status()
         return True
 
-    # @endpoint(
-    #     name="parents",
-    #     methods=["delete"],
-    #     perm="can_access",
-    #     description="Débloque plusieurs soldes",
-    #     long_description="Supprime plusieurs blocages de soldes.",
-    #     display_category="Parent",
-    #     parameters={
-    #         "parent_id": PARENT_PARAM,
-    #     },
-    #     example_pattern="{parent_id}/reserved-balances/list",
-    #     pattern="^(?P<parent_id>\d+)/reserved-balances/list$",
-    # )
-    # def free_balances(self, request, parent_id):
-    #     data = json.loads(request.body)
-    #     for id in data[""]
-    #     for identifiant in data.get("details"):
-    #         url = f"{self.server_url}/{self.aes_instance}/parents/{parent_id}/reserved-balances/"
-    #         response = self.requests.delete(url)
-    #         response.raise_for_status()
-
-    #     return responses 
-
     @endpoint(
         name="menus",
         methods=["post"],
