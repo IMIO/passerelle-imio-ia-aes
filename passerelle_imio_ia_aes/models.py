@@ -196,7 +196,7 @@ class ApimsAesConnector(BaseResource):
         display_category="Données génériques",
         cache_duration=3600,
         example_pattern="{country_id}",
-        pattern=r"^(?P<country_id>\w+)$",
+        pattern=r"^(?P<country_id>\d+)$",
     )
     # get_state instead of get_country to be consistant with list_states.
     def get_state(self, request, country_id):
@@ -376,7 +376,7 @@ class ApimsAesConnector(BaseResource):
             },
         },
         example_pattern="{id}",
-        pattern=r"^(?P<id>\w+)$",
+        pattern=r"^(?P<id>\d+)$",
         display_category="Personne",
     )
     def update_person(self, request, id, partner_type):
@@ -487,7 +487,7 @@ class ApimsAesConnector(BaseResource):
         long_description="Lire un parent selon son identifiant dans iA.AES",
         parameters={"parent_id": PARENT_PARAM},
         example_pattern="{parent_id}/",
-        pattern=r"^(?P<parent_id>\w+)/$",
+        pattern=r"^(?P<parent_id>\d+)/$",
         display_category="Parent",
         cache_duration=30,
     )
@@ -548,7 +548,7 @@ class ApimsAesConnector(BaseResource):
             },
         },
         example_pattern="{parent_id}/children/",
-        pattern=r"^(?P<parent_id>\w+)/children/$",
+        pattern=r"^(?P<parent_id>\d+)/children/$",
         display_category="Parent",
         cache_duration=15,
     )
@@ -660,7 +660,7 @@ class ApimsAesConnector(BaseResource):
         "C'est l'API qui fait le filtre. Retourne une erreur si plusieurs sont trouvées.",
         parameters={"parent_id": PARENT_PARAM},
         example_pattern="{parent_id}/plain-structured-communication/",
-        pattern=r"^(?P<parent_id>\w+)/plain-structured-communication/$",
+        pattern=r"^(?P<parent_id>\d+)/plain-structured-communication/$",
         display_category="Parent",
     )
     def get_plain_structured_communication(self, request, parent_id):
@@ -723,7 +723,7 @@ class ApimsAesConnector(BaseResource):
             },
         },
         example_pattern="{parent_id}/homepage",
-        pattern=r"^(?P<parent_id>\w+)/homepage$",
+        pattern=r"^(?P<parent_id>\d+)/homepage$",
         display_category="Parent",
     )
     def homepage(self, request, parent_id, parent_uuid):
@@ -816,7 +816,7 @@ class ApimsAesConnector(BaseResource):
             "parent_id": PARENT_PARAM,
         },
         example_pattern="{parent_id}/homepage_lite",
-        pattern=r"^(?P<parent_id>\w+)/homepage_lite$",
+        pattern=r"^(?P<parent_id>\d+)/homepage_lite$",
         display_category="Parent",
     )
     def homepage_lite(self, request, parent_id):
@@ -848,7 +848,7 @@ class ApimsAesConnector(BaseResource):
         long_description="Récupérer les infos enfants via l'id enfant",
         parameters={"child_id": CHILD_PARAM},
         example_pattern="{child_id}/",
-        pattern=r"^(?P<child_id>\w+)/$",
+        pattern=r"^(?P<child_id>\d+)/$",
         display_category="Enfant",
         cache_duration=15,
     )
@@ -908,7 +908,7 @@ class ApimsAesConnector(BaseResource):
         long_description="Crée un enfant dans iA.AES avec les informations contenues dans le corps de la requête.",
         parameters={"parent_id": PARENT_PARAM},
         example_pattern="{parent_id}/children/create",
-        pattern=r"^(?P<parent_id>\w+)/children/create$",
+        pattern=r"^(?P<parent_id>\d+)/children/create$",
         display_category="Enfant",
     )
     def create_child(self, request, parent_id):
@@ -1010,7 +1010,7 @@ class ApimsAesConnector(BaseResource):
         long_description="Ajoute un parent à un enfant",
         parameters={"child_id": CHILD_PARAM},
         example_pattern="{child_id}/add-parent",
-        pattern=r"^(?P<child_id>\w+)/add-parent$",
+        pattern=r"^(?P<child_id>\d+)/add-parent$",
         display_category="Enfant",
     )
     def add_parent_to_child(self, request, child_id):
@@ -1033,7 +1033,7 @@ class ApimsAesConnector(BaseResource):
             },
         },
         example_pattern="{responsibility_id}",
-        pattern=r"^(?P<responsibility_id>\w+)$",
+        pattern=r"^(?P<responsibility_id>\d+)$",
         display_category="Responsabilités",
     )
     def update_responsibilities(self, request, responsibility_id):
@@ -1437,7 +1437,7 @@ class ApimsAesConnector(BaseResource):
         description="Tous les soldes du parent (par catégorie)",
         long_description="Renvoie les soldes d'un parent pour toutes les catégories d'activité.",
         example_pattern="{parent_id}/balances",
-        pattern=r"^(?P<parent_id>\w+)/balances$",
+        pattern=r"^(?P<parent_id>\d+)/balances$",
         parameters={
             "parent_id": PARENT_PARAM,
         },
@@ -1478,7 +1478,7 @@ class ApimsAesConnector(BaseResource):
         description="Solde du parent pour un type de catégorie d'activité",
         long_description="Renvoie la valeur du solde du parent.",
         example_pattern="{parent_id}/balance/activity_category_type",
-        pattern=r"^(?P<parent_id>\w+)/balance/(?P<activity_category_type>\w+)$",
+        pattern=r"^(?P<parent_id>\d+)/balance/(?P<activity_category_type>\w+)$",
         parameters={
             "parent_id": PARENT_PARAM,
             "activity_category_type": {
@@ -1772,7 +1772,7 @@ class ApimsAesConnector(BaseResource):
             },
         },
         example_pattern="{child_id}/registrations",
-        pattern=r"^(?P<child_id>\w+)/registrations$",
+        pattern=r"^(?P<child_id>\d+)/registrations$",
         display_category="Repas",
     )
     def list_meal_registrations(
@@ -1831,7 +1831,7 @@ class ApimsAesConnector(BaseResource):
             "child_id": CHILD_PARAM,
         },
         example_pattern="{child_id}/registrations/raw",
-        pattern=r"^(?P<child_id>\w+)/registrations/raw$",
+        pattern=r"^(?P<child_id>\d+)/registrations/raw$",
         display_category="Repas",
     )
     def get_meal_registrations_raw(self, request, child_id):
@@ -1968,7 +1968,7 @@ class ApimsAesConnector(BaseResource):
         description="Lire la fiche santé d'un enfant",
         parameters={"child_id": CHILD_PARAM},
         example_pattern="{child_id}/healthsheet/",
-        pattern=r"^(?P<child_id>\w+)/healthsheet/$",
+        pattern=r"^(?P<child_id>\d+)/healthsheet/$",
         display_category="Fiche santé",
     )
     def read_healthsheet(self, request, child_id):
@@ -2054,7 +2054,7 @@ class ApimsAesConnector(BaseResource):
         description="Mettre à jour la fiche santé d'un enfant",
         parameters={"child_id": CHILD_PARAM},
         example_pattern="{child_id}/healthsheet/update",
-        pattern=r"^(?P<child_id>\w+)/healthsheet/update$",
+        pattern=r"^(?P<child_id>\d+)/healthsheet/update$",
         display_category="Fiche santé",
     )
     def update_healthsheet(self, request, child_id):
@@ -2388,7 +2388,7 @@ class ApimsAesConnector(BaseResource):
             "parent_id": PARENT_PARAM,
         },
         example_pattern="{parent_id}/invoices/",
-        pattern=r"^(?P<parent_id>\w+)/invoices/$",
+        pattern=r"^(?P<parent_id>\d+)/invoices/$",
         display_category="Parent",
         cache_duration=300
     )
@@ -2409,7 +2409,7 @@ class ApimsAesConnector(BaseResource):
             },
         },
         example_pattern="{parent_id}/invoices/{invoice_id}/pay",
-        pattern=r"^(?P<parent_id>\w+)/invoices/(?P<invoice_id>\w+)/pay$",
+        pattern=r"^(?P<parent_id>\d+)/invoices/(?P<invoice_id>\d+)/pay$",
         display_category="Parent",
     )
     def pay_invoice(self, request, parent_id, invoice_id):
@@ -2443,7 +2443,7 @@ class ApimsAesConnector(BaseResource):
             "parent_id": PARENT_PARAM,
         },
         example_pattern="{parent_id}/certificates/",
-        pattern=r"^(?P<parent_id>\w+)/certificates/$",
+        pattern=r"^(?P<parent_id>\d+)/certificates/$",
         display_category="Parent",
         cache_duration=300
     )
@@ -2982,7 +2982,7 @@ class ApimsAesConnector(BaseResource):
         description="Demander le coût des inscriptions",
         long_description="Calcule le montant à payer en fonction de la commande et du solde du parent",
         example_pattern="{parent_id}/{activity_category_type}/registrations/cost",
-        pattern=r"^(?P<parent_id>\w+)/(?P<activity_category_type>\w+)/registrations/cost$",
+        pattern=r"^(?P<parent_id>\d+)/(?P<activity_category_type>\w+)/registrations/cost$",
         parameters={"parent_id": PARENT_PARAM, 
             "activity_category_type": {
             "description": "Type de catégorie d'activité",
