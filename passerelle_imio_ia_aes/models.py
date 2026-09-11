@@ -968,7 +968,7 @@ class ApimsAesConnector(BaseResource):
             },
         },
         example_pattern="search",
-        pattern="^search",
+        pattern="^search$",
         display_category="Enfant",
     )
     def search_child(
