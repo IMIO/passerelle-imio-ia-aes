@@ -33,7 +33,7 @@ import re
 from calendar import Calendar, monthrange
 from django.db import models
 from django.conf import settings
-from django.http import Http404, HttpResponse, HttpResponseBadRequest, HttpResponseNotAllowed, HttpResponseBadRequest
+from django.http import Http404, HttpResponse, HttpResponseBadRequest, HttpResponseNotAllowed
 from django.urls import path, reverse
 from django.core.exceptions import MultipleObjectsReturned
 from datetime import date, datetime, timedelta, time
@@ -553,10 +553,6 @@ class ApimsAesConnector(BaseResource):
         cache_duration=15,
     )
     def list_children(self, request, parent_id, is_invoiceable=None):
-        try:
-            1 / int(parent_id)
-        except (ValueError, TypeError, ZeroDivisionError):
-            return HttpResponseBadRequest('{"parent_id": "Must be an integer > 0"}', content_type="application/json")
         parent_id = int(parent_id)
         url = f"{self.server_url}/{self.aes_instance}/parents/{parent_id}/kids"
         response = self.requests.get(url).json()
