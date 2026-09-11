@@ -1,6 +1,14 @@
 Changelog
 =========
 
+3.4.3
+------------------
+
+- [PP-786] Fixed: préfixe r sur les patterns d'endpoint
+- [PP-789] Removed: commented non-functionnal endpoint
+- [PP-790] Fixed: pattern's end on search child
+- [PP-788] Fixed: use \d in place of \w in endpoint's patterns
+
 3.4.2
 ------------------
 
