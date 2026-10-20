@@ -1,6 +1,11 @@
 Changelog
 =========
 
+3.4.4
+------------------
+
+- [PP-761] Changed: list_invoices cache reduced from 300s to 10s to limit stale unpaid invoices
+
 3.4.3
 ------------------
 
