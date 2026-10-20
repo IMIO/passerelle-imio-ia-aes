@@ -2386,7 +2386,7 @@ class ApimsAesConnector(BaseResource):
         example_pattern="{parent_id}/invoices/",
         pattern=r"^(?P<parent_id>\d+)/invoices/$",
         display_category="Parent",
-        cache_duration=300
+        cache_duration=10
     )
     def list_invoices(self, request, parent_id):
         url = f"{self.server_url}/{self.aes_instance}/parents/{parent_id}/invoices"
