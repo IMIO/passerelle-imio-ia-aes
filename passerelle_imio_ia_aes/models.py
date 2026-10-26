@@ -2496,6 +2496,7 @@ class ApimsAesConnector(BaseResource):
                 "comment": post_data["comment"],
                 "form_url": post_data["form_url"],
                 "online_transaction_id": post_data["transaction_id"],
+                "online_payment_id": post_data.get("payment_id"),
                 "initial_amount": float(post_data["amount"].replace(",", ".")),
             }
             if detail.get("child_registration_line_id") is not None:
