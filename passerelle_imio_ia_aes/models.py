@@ -2420,6 +2420,7 @@ class ApimsAesConnector(BaseResource):
             "comment": post_data["comment"],
             "form_url": post_data["form_url"],
             "online_transaction_id": post_data["transaction_id"],
+            "online_payment_id": post_data.get("payment_id"),
             "prepayment_by_category_id": post_data["prepayment_by_category_id"],
         }
         logger.info(f"POST_DATA:", post_data)
