@@ -1641,6 +1641,7 @@ class ApimsAesConnector(BaseResource):
                 "prepayment_by_category_id": body["prepayment_by_category_id"],
                 "type": "online",
                 "online_transaction_id": body.get("transaction_id") or "",
+                "online_payment_id": body.get("payment_id"),
                 "child_registration_line_id": body.get("child_registration_line_id", "")
             }
         )
@@ -2495,6 +2496,7 @@ class ApimsAesConnector(BaseResource):
                 "comment": post_data["comment"],
                 "form_url": post_data["form_url"],
                 "online_transaction_id": post_data["transaction_id"],
+                "online_payment_id": post_data.get("payment_id"),
                 "initial_amount": float(post_data["amount"].replace(",", ".")),
             }
             if detail.get("child_registration_line_id") is not None:
