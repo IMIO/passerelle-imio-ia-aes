@@ -1,6 +1,15 @@
 Changelog
 =========
 
+3.5.0
+------------------
+
+- [PP-796] Added: forward the online payment id to APIMS in the school meals payment
+- [PP-796] Added: forward the online payment id to APIMS in the bulk payments (plains and various activities)
+- [PP-796] Added: forward the online payment id to APIMS when paying an invoice
+- [PP-788] Removed: useless parent_id guard in list_children, now covered by the endpoint pattern
+- [PP-788] Removed: duplicated HttpResponseBadRequest import
+
 3.4.3
 ------------------
 
